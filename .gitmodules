@@ -4,3 +4,9 @@
 [submodule "ext/getopt"]
 	path = ext/getopt
 	url = https://github.com/wc-duck/getopt.git
+[submodule "ext/SPIRV-Cross"]
+	path = ext/SPIRV-Cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross.git
+[submodule "ext/glslang"]
+	path = ext/glslang
+	url = https://github.com/KhronosGroup/glslang.git
