@@ -86,4 +86,6 @@ Many thanks to:
 - https://github.com/wc-duck/getopt
 - https://github.com/imageworks/pystring
 - https://github.com/KhronosGroup/glslang
-- https://github.com/KhronosGroup/spirv-cross
+- https://github.com/KhronosGroup/SPIRV-Cross
+- https://github.com/KhronosGroup/SPIRV-Tools.git
+- https://github.com/KhronosGroup/SPIRV-Headers
