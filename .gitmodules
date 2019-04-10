@@ -1,0 +1,6 @@
+[submodule "ext/pystring"]
+	path = ext/pystring
+	url = https://github.com/imageworks/pystring.git
+[submodule "ext/getopt"]
+	path = ext/getopt
+	url = https://github.com/wc-duck/getopt.git
