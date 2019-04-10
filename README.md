@@ -10,6 +10,9 @@ Command line tools for the [sokol headers](https://github.com/floooh/sokol).
 2.x or 3.x
 > cmake --version
 3.x
+# optional:
+> ninja --version
+1.9.0
 ```
 ...plus your platform's C/C++ compiler toolchain (Xcode, Visual Studio, clang
 or gcc).
@@ -30,31 +33,35 @@ and clone the repository **with submodules**:
 #### Build
 ...on macOS:
 ```
-./fips set config osx-xcode-release
-./fips build
+> ./fips set config osx-xcode-release
+# or with ninja:
+> ./fips set config osx-ninja-release
+> ./fips build
 ```
 
 ...on Linux:
 ```
-./fips set config linux-make-release
-./fips build
+> ./fips set config linux-make-release
+# or with ninja
+> ./fips set config linux-ninja-release
+> ./fips build
 ```
 
 ...on Windows:
 ```
-./fips set config win64-vstudio-release
-./fips build
+> ./fips set config win64-vstudio-release
+> ./fips build
 ```
 
 #### Run
 List the compilation targets with:
 ```
-./fips list targets
+> ./fips list targets
 ```
 
 Run a compiled executable with:
 ```
-./fips run [exe-target] -- [args]
+> ./fips run [exe-target] -- [args]
 ```
 
 The executables can be found in:
@@ -66,18 +73,18 @@ The executables can be found in:
 #### Debug
 To build for IDE debugging use any of the following build configs:
 ```
-./fips set config osx-xcode-debug
-./fips set config osx-vscode-debug
-./fips set config linux-vscode-debug
-./fips set config win64-vstudio-debug
-./fips set config win64-vscode-debug
+> ./fips set config osx-xcode-debug
+> ./fips set config osx-vscode-debug
+> ./fips set config linux-vscode-debug
+> ./fips set config win64-vstudio-debug
+> ./fips set config win64-vscode-debug
 ```
 
 Then generate IDE project files and open the project in Visual Studio,
 VSCode or Xcode:
 ```
-./fips gen
-./fips open
+> ./fips gen
+> ./fips open
 ```
 
 ## Dependencies
