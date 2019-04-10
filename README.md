@@ -24,6 +24,7 @@ and clone the repository **with submodules**:
 > mkdir workspace
 > cd workspace
 > git clone --recursive git@github.com:floooh/sokol-tools.git
+> cd sokol-tools
 ```
 
 #### Build
