@@ -1,5 +1,7 @@
 # sokol-tools
 
+WIP!
+
 Command line tools for the [sokol headers](https://github.com/floooh/sokol).
 
 ## Howto Clone, Build, Run and Debug:
