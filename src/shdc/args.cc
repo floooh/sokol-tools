@@ -132,7 +132,7 @@ args_t args_t::parse(int argc, const char** argv) {
                     args.output = ctx.current_opt_arg;
                     break;
                 case 'b':
-                    args.output = true;
+                    args.byte_code = true;
                     break;
                 case 'l':
                     if (!parse_slang(args, ctx.current_opt_arg)) {

@@ -6,7 +6,7 @@ int main(int argc, const char** argv) {
     if (!args.valid) {
         return args.exit_code;
     }
-    //args.dump()
+    args.dump();
     return args.exit_code;
 }
 
