@@ -3,9 +3,11 @@
 
 int main(int argc, const char** argv) {
     shdc::args_t args = shdc::args_t::parse(argc, argv);
+    args.validate();
     if (!args.valid) {
         return args.exit_code;
     }
-    return 0;
+    //args.dump()
+    return args.exit_code;
 }
 
