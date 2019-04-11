@@ -82,6 +82,30 @@ static std::string slang_to_str(uint32_t slang) {
     return res;
 }
 
+static void validate(args_t& args) {
+    bool err = false;
+    if (args.input.empty()) {
+        fprintf(stderr, "error: no input file (--input [path])\n");
+        err = true;
+    }
+    if (args.output.empty()) {
+        fprintf(stderr, "error: no output file (--output [path])\n");
+        err = true;
+    }
+    if (args.slang == 0) {
+        fprintf(stderr, "error: no shader languages (--slang ...)\n");
+        err = true;
+    }
+    if (err) {
+        args.valid = false;
+        args.exit_code = 10;
+    }
+    else {
+        args.valid = true;
+        args.exit_code = 0;
+    }
+}
+
 args_t args_t::parse(int argc, const char** argv) {
     args_t args;
     getopt_context_t ctx;
@@ -118,13 +142,15 @@ args_t args_t::parse(int argc, const char** argv) {
                     break;
                 case 'h':
                     print_help_string(ctx);
+                    args.valid = false;
                     args.exit_code = 0;
-                    break;
+                    return args;
                 default:
                     break;
             }
         }
     }
+    validate(args);
     return args;
 }
 
@@ -138,26 +164,6 @@ void args_t::dump() {
     fprintf(stderr,
         "\nargs:\n  input: %s\n  output: %s\n  slang: %s\n  byte_code: %s\n\n",
         input_str.c_str(), output_str.c_str(), slang_str.c_str(), byte_code ? "true":"false");
-}
-
-void args_t::validate() {
-    bool err = false;
-    if (input.empty()) {
-        fprintf(stderr, "error: no input file (--input [path])\n");
-        err = true;
-    }
-    if (output.empty()) {
-        fprintf(stderr, "error: no output file (--output [path])\n");
-        err = true;
-    }
-    if (slang == 0) {
-        fprintf(stderr, "error: no shader languages (--slang ...)\n");
-        err = true;
-    }
-    if (err) {
-        valid = false;
-        exit_code = 10;
-    }
 }
 
 } // namespace shdc

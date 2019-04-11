@@ -28,7 +28,6 @@ struct args_t {
 
     static args_t parse(int argc, const char** argv);
     void dump();
-    void validate();
 };
 
     
