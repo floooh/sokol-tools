@@ -16,3 +16,6 @@
 [submodule "ext/SPIRV-Headers"]
 	path = ext/SPIRV-Headers
 	url = https://github.com/KhronosGroup/SPIRV-Headers
+[submodule "ext/fmt"]
+	path = ext/fmt
+	url = https://github.com/fmtlib/fmt.git
