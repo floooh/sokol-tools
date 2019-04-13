@@ -103,14 +103,17 @@ args_t args_t::parse(int argc, const char** argv) {
         while ((opt = getopt_next(&ctx)) != -1) {
             switch (opt) {
                 case '+':
-                    fmt::print(stderr, "got argument without flag: {}\n", ctx.current_opt_arg);
-                    break;
+                    fmt::print(stderr, "error: got argument without flag: {}\n", ctx.current_opt_arg);
+                    args.valid = false;
+                    return args;
                 case '?':
-                    fmt::print(stderr, "unknown flag {}\n", ctx.current_opt_arg);
-                    break;
+                    fmt::print(stderr, "error: unknown flag {}\n", ctx.current_opt_arg);
+                    args.valid = false;
+                    return args;
                 case '!':
-                    fmt::print(stderr, "invalid use of flag {}\n", ctx.current_opt_arg);
-                    break;
+                    fmt::print(stderr, "error: invalid use of flag {}\n", ctx.current_opt_arg);
+                    args.valid = false;
+                    return args;
                 case 'i':
                     args.input = ctx.current_opt_arg;
                     break;

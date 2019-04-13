@@ -160,6 +160,8 @@ struct input_t {
 struct spirv_t {
     std::vector<error_t> errors;
 
+    static void initialize();
+    static void finalize();
     static spirv_t compile_glsl(const input_t& inp);
     void dump_debug() const;
 };
