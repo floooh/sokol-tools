@@ -34,7 +34,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - @vs name: a named vertex shader code block\n"
         "  - @fs name: a named fragment shader code block\n"
         "  - @end: ends a @vs, @fs or @block code block\n"
-        "  - @include block_name: include a code block in a @vs or @fs block\n"
+        "  - @include_block block_name: include a code block in a @vs or @fs block\n"
         "  - @program name vs_name fs_name: a named, linked shader program\n\n"
         "An input file must contain at least one @vs block, one @fs block\n"
         "and one @program declaration.\n\n"

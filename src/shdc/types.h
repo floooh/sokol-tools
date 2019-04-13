@@ -97,18 +97,11 @@ struct snippet_t {
     };
     type_t type = INVALID;
     std::string name;
-    int line_index = -1;    // first line of the snippet in input source (zero-based)
-    int num_lines = 0;      // number of lines of snippet
+    std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
-    void start(snippet_t::type_t type, const std::string& name, int line_index) {
-        this->type = type;
-        this->name = name;
-        this->line_index = line_index;
-    }
-    void end(int end_line_index) {
-        this->num_lines = end_line_index - this->line_index;
-        assert(this->num_lines > 0);
-    }
+    snippet_t() { };
+    snippet_t(type_t t, const std::string& n): type(t), name(n) { };
+
     static const char* type_to_str(type_t t) {
         switch (t) {
             case BLOCK: return "block";
@@ -136,9 +129,10 @@ struct input_t {
     std::string path;                   // filesystem
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // snippet-ranges
-    std::map<std::string, int> blocks;  // name-index mapping of code block snippets
-    std::map<std::string, int> vs;      // name-index mapping of vertex shader snippets
-    std::map<std::string, int> fs;      // name-index mapping of fragment shader snippets
+    std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
+    std::map<std::string, int> block_map;   // name-index mapping of code block snippets
+    std::map<std::string, int> vs_map;      // name-index mapping of vertex shader snippets
+    std::map<std::string, int> fs_map;      // name-index mapping of fragment shader snippets
     std::map<std::string, program_t> programs;    // parsed shader program definitions
 
     input_t() { };

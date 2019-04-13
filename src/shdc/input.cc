@@ -95,137 +95,217 @@ static bool remove_comments(std::string& str) {
     return true;
 }
 
+static const std::string vs_tag = "@vs";
+static const std::string fs_tag = "@fs";
+static const std::string block_tag = "@block";
+static const std::string inclblock_tag = "@include_block";
+static const std::string end_tag = "@end";
+static const std::string prog_tag = "@program";
+
+/* validate source tags for errors, on error returns false and sets error object in inp */
+static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != block_tag) {
+        inp.error = error_t(inp.path, line_index, "@block tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 2) {
+        inp.error = error_t(inp.path, line_index, "@block tag must have exactly one arg (@block name).");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@block tag cannot be inside other tag block (missing @end?).");
+        return false;
+    }
+    if (inp.snippet_map.count(tokens[1]) > 0) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@block {}).", tokens[1]));
+        return false;
+    }
+    return true;
+}
+
+static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != vs_tag) {
+        inp.error = error_t(inp.path, line_index, "@vs tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 2) {
+        inp.error = error_t(inp.path, line_index, "@vs tag must have exactly one arg (@vs name).");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@vs tag cannot be inside other tag block (missing @end?).");
+        return false;
+    }
+    if (inp.snippet_map.count(tokens[1]) > 0) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@vs {}).", tokens[1]));
+        return false;
+    }
+    return true;
+}
+
+static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != fs_tag) {
+        inp.error = error_t(inp.path, line_index, "@fs tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 2) {
+        inp.error = error_t(inp.path, line_index, "@fs tag must have exactly one arg (@fs name).");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@fs tag cannot be inside other tag block (missing @end?).");
+        return false;
+    }
+    if (inp.snippet_map.count(tokens[1]) > 0) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@fs {}).", tokens[1]));
+        return false;
+    }
+    return true;
+}
+
+static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != inclblock_tag) {
+        inp.error = error_t(inp.path, line_index, "@include_block tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 2) {
+        inp.error = error_t(inp.path, line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
+        return false;
+    }
+    if (!in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@include_block must be inside a @block, @vs or @fs block.");
+        return false;
+    }
+    if (inp.snippet_map.count(tokens[1]) != 1) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@block '{}' not found for including.", tokens[1]));
+        return false;
+    }
+    return true;
+}
+
+static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens.size() != 1) {
+        inp.error = error_t(inp.path, line_index, "@end tag must be the only word in a line.");
+        return false;
+    }
+    if (!in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@end tag must come after a @block, @vs or @fs tag.");
+        return false;
+    }
+    return true;
+}
+
+static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != prog_tag) {
+        inp.error = error_t(inp.path, line_index, "@program tag must be the first word in line.");
+        return false;
+    }
+    if (tokens.size() != 4) {
+        inp.error = error_t(inp.path, line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@program tag cannot be inside a block tag.");
+        return false;
+    }
+    if (inp.programs.count(tokens[1]) > 0) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@program '{}' already defined.", tokens[1]));
+        return false;
+    }
+    if (inp.vs_map.count(tokens[2]) != 1) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@vs '{}' not found for @program '{}'.", tokens[2], tokens[1]));
+        return false;
+    }
+    if (inp.fs_map.count(tokens[3]) != 1) {
+        inp.error = error_t(inp.path, line_index, fmt::format("@fs '{}' not found for @program '{}'.", tokens[3], tokens[1]));
+        return false;
+    }
+    return true;
+}
+
 /* This parses the splitted input line array for custom tags (@vs, @fs, @block,
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
 */
 static bool parse(input_t& inp) {
     bool in_snippet = false;
+    bool add_line = false;
     snippet_t cur_snippet;
-    const std::string vs_tag = "@vs";
-    const std::string fs_tag = "@fs";
-    const std::string block_tag = "@block";
-    const std::string end_tag = "@end";
-    const std::string prog_tag = "@program";
     std::vector<std::string> tokens;
     int line_index = 0;
     for (const std::string& line : inp.lines) {
+        add_line = in_snippet;
         if (pystring::find(line, block_tag) >= 0) {
             pystring::split(line, tokens);
-            if (tokens[0] != block_tag) {
-                inp.error = error_t(inp.path, line_index, "@block tag must be first word in line.");
-                return false;   
-            }
-            if (tokens.size() != 2) {
-                inp.error = error_t(inp.path, line_index, "@block tag must have exactly one arg (@block name).");
+            if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
             }
-            if (in_snippet) {
-                inp.error = error_t(inp.path, line_index, "@block tag cannot be inside other tag block (missing @end?).");
-                return false;
-            }
-            if (inp.blocks.count(tokens[1]) > 0) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@block '{}' already exists.", tokens[1]));
-                return false;
-            }
-            cur_snippet.start(snippet_t::BLOCK, tokens[1], line_index);
+            cur_snippet = snippet_t(snippet_t::BLOCK, tokens[1]);
+            add_line = false;
             in_snippet = true;
         }
         else if (pystring::find(line, vs_tag) >= 0) {
             pystring::split(line, tokens);
-            if (tokens[0] != vs_tag) {
-                inp.error = error_t(inp.path, line_index, "@vs tag must be first word in line.");
+            if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
             }
-            if (tokens.size() != 2) {
-                inp.error = error_t(inp.path, line_index, "@vs tag must have exactly one arg (@vs name).");
-                return false;
-            }
-            if (in_snippet) {
-                inp.error = error_t(inp.path, line_index, "@vs tag cannot be inside other tag block (missing @end?).");
-                return false;
-            }
-            if (inp.vs.count(tokens[1]) > 0) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@vs '{}' already exists.", tokens[1]));
-                return false;
-            }
-            cur_snippet.start(snippet_t::VS, tokens[1], line_index);
+            cur_snippet = snippet_t(snippet_t::VS, tokens[1]);
+            add_line = false;
             in_snippet = true;
         }
         else if (pystring::find(line, fs_tag) >= 0) {
             pystring::split(line, tokens);
-            if (tokens[0] != fs_tag) {
-                inp.error = error_t(inp.path, line_index, "@fs tag must be first word in line.");
+            if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
             }
-            if (tokens.size() != 2) {
-                inp.error = error_t(inp.path, line_index, "@fs tag must have exactly one arg (@fs name).");
-                return false;
-            }
-            if (in_snippet) {
-                inp.error = error_t(inp.path, line_index, "@fs tag cannot be inside other tag block (missing @end?).");
-                return false;
-            }
-            if (inp.vs.count(tokens[1]) > 0) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@fs '{}' already exists.", tokens[1]));
-                return false;
-            }
-            cur_snippet.start(snippet_t::FS, tokens[1], line_index);
+            cur_snippet = snippet_t(snippet_t::FS, tokens[1]);
+            add_line = false;
             in_snippet = true;
+        }
+        else if (pystring::find(line, inclblock_tag) >= 0) {
+            pystring::split(line, tokens);
+            if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
+                return false;
+            }
+            const snippet_t& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
+            for (int line_index : src_snippet.lines) {
+                cur_snippet.lines.push_back(line_index);
+            }
+            add_line = false;
         }
         else if (pystring::find(line, end_tag) >= 0) {
             pystring::split(line, tokens);
-            if (tokens.size() != 1) {
-                inp.error = error_t(inp.path, line_index, "@end tag must be the only word in a line.");
+            if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
             }
-            if (!in_snippet) {
-                inp.error = error_t(inp.path, line_index, "@end tag must come after a @block, @vs or @fs tag.");
-                return false;
-            }
-            cur_snippet.end(line_index);
-            in_snippet = false;
+            inp.snippet_map[cur_snippet.name] = inp.snippets.size();
             switch (cur_snippet.type) {
                 case snippet_t::BLOCK:
-                    inp.blocks[cur_snippet.name] = inp.snippets.size();
+                    inp.block_map[cur_snippet.name] = inp.snippets.size();
                     break;
                 case snippet_t::VS:
-                    inp.vs[cur_snippet.name] = inp.snippets.size();
+                    inp.vs_map[cur_snippet.name] = inp.snippets.size();
                     break;
                 case snippet_t::FS:
-                    inp.fs[cur_snippet.name] = inp.snippets.size();
+                    inp.fs_map[cur_snippet.name] = inp.snippets.size();
                     break;
                 default: break;
             }
             inp.snippets.push_back(std::move(cur_snippet));
+            add_line = false;
+            in_snippet = false;
         }
         else if (pystring::find(line, prog_tag) >= 0) {
+            assert(!add_line);
             pystring::split(line, tokens);
-            if (tokens[0] != prog_tag) {
-                inp.error = error_t(inp.path, line_index, "@program tag must be the first word in line.");
-                return false;
-            }
-            if (tokens.size() != 4) {
-                inp.error = error_t(inp.path, line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
-                return false;
-            }
-            if (in_snippet) {
-                inp.error = error_t(inp.path, line_index, "@program tag cannot be inside a block tag.");
-                return false;
-            }
-            if (inp.programs.count(tokens[1]) > 0) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@program '{}' already exists.", tokens[1]));
-                return false;
-            }
-            if (inp.vs.count(tokens[2]) != 1) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@vs '{}' not found.", tokens[2]));
-                return false;
-            }
-            if (inp.fs.count(tokens[3]) != 1) {
-                inp.error = error_t(inp.path, line_index, fmt::format("@fs '{}' not found.", tokens[3]));
+            if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
             }
             inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
+            add_line = false;
+        }
+        if (add_line) {
+            cur_snippet.lines.push_back(line_index);
         }
         line_index++;
     }
@@ -272,31 +352,42 @@ void input_t::dump() {
     else {
         fmt::print(stderr, "  error: not set\n");
     }
-    int line_nr = 1;
-    fmt::print(stderr, "  lines:\n");
-    for (const std::string& line : lines) {
-        fmt::print(stderr, "    {}: {}\n", line_nr++, line);
+    {
+        int line_nr = 1;
+        fmt::print(stderr, "  lines:\n");
+        for (const std::string& line : lines) {
+            fmt::print(stderr, "    {}: {}\n", line_nr++, line);
+        }
     }
-    int snippet_nr = 0;
-    fmt::print(stderr, "  snippets:\n");
-    for (const snippet_t& snippet : snippets) {
-        fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
-        fmt::print(stderr, "      name: {}\n", snippet.name);
-        fmt::print(stderr, "      type: {}\n", snippet_t::type_to_str(snippet.type));
-        fmt::print(stderr, "      line_index: {}\n", snippet.line_index);
-        fmt::print(stderr, "      num_lines: {}\n", snippet.num_lines);
+    {
+        int snippet_nr = 0;
+        fmt::print(stderr, "  snippets:\n");
+        for (const snippet_t& snippet : snippets) {
+            fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
+            fmt::print(stderr, "      name: {}\n", snippet.name);
+            fmt::print(stderr, "      type: {}\n", snippet_t::type_to_str(snippet.type));
+            fmt::print(stderr, "      lines:\n");
+            int line_nr = 1;
+            for (int line_index : snippet.lines) {
+                fmt::print(stderr, "        {:3}({:3}): {}\n", line_nr++, line_index+1, lines[line_index]);
+            }
+        }
     }
-    fmt::print(stderr, "  blocks:\n");
-    for (const auto& item : blocks) {
-        fmt::print(stderr, "    block {} => snippet {}\n", item.first, item.second);
+    fmt::print(stderr, "  snippet_map:\n");
+    for (const auto& item : snippet_map) {
+        fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
     }
-    fmt::print(stderr, "  vertex shaders:\n");
-    for (const auto& item : vs) {
-        fmt::print(stderr, "    vs {} => snippet {}\n", item.first, item.second);
+    fmt::print(stderr, "  block_map:\n");
+    for (const auto& item : block_map) {
+        fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
     }
-    fmt::print(stderr, "  fragment shaders:\n");
-    for (const auto& item : fs) {
-        fmt::print(stderr, "    fs {} => snippet {}\n", item.first, item.second);
+    fmt::print(stderr, "  vs_map:\n");
+    for (const auto& item : vs_map) {
+        fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "  fs_map:\n");
+    for (const auto& item : fs_map) {
+        fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
     }
     fmt::print(stderr, "  programs:\n");
     for (const auto& item : programs) {
