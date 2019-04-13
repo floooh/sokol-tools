@@ -67,21 +67,37 @@ struct error_t {
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
     bool valid = false;
+    // format for error message
+    enum msg_format_t {
+        GCC,
+        VSTUDIO
+    };
 
     error_t() { };
     error_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
     error_t(const std::string& m): msg(m), valid(true) { };
+    // print error to stdout
+    void print(msg_format_t fmt);
+    // convert msg_format to string
+    static const char* msg_format_to_str(msg_format_t fmt) {
+        switch (fmt) {
+            case GCC: return "gcc";
+            case VSTUDIO: return "vstudio";
+            default: return "<invalid>";
+        }
+    }
 };
 
 /* result of command-line-args parsing */
 struct args_t {
     bool valid = false;
     int exit_code = 10;
-    std::string input;          // input file path
-    std::string output;         // output file path
-    uint32_t slang = 0;         // combined slang_t bits
-    bool byte_code = false;     // output byte code (for HLSL and MetalSL)
-    bool debug_dump = true;    // print debug-dump info
+    std::string input;                  // input file path
+    std::string output;                 // output file path
+    uint32_t slang = 0;                 // combined slang_t bits
+    bool byte_code = false;             // output byte code (for HLSL and MetalSL)
+    bool debug_dump = false;            // print debug-dump info
+    error_t::msg_format_t error_format = error_t::GCC;  // format for error messages
 
     static args_t parse(int argc, const char** argv);
     void dump();

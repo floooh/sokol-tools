@@ -16,6 +16,7 @@ static const getopt_option_t option_list[] = {
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
     { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s)", "glsl330:glsl100:glsl300es:hlsl5:metal_macos:metal_ios" },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
+    { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|vstudio]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
     GETOPT_OPTIONS_END
 };
@@ -128,6 +129,20 @@ args_t args_t::parse(int argc, const char** argv) {
                         return args;
                     }
                     break;
+                case 'e':
+                    if (0 == strcmp("gcc", ctx.current_opt_arg)) {
+                        args.error_format = error_t::GCC;
+                    }
+                    else if (0 == strcmp("vstudio", ctx.current_opt_arg)) {
+                        args.error_format = error_t::VSTUDIO;
+                    }
+                    else {
+                        fmt::print(stderr, "unknown error format {}, must be 'gcc' or 'vstudio'\n", ctx.current_opt_arg);
+                        args.valid = false;
+                        args.exit_code = 10;
+                        return args;
+                    }
+                    break;
                 case 'h':
                     print_help_string(ctx);
                     args.valid = false;
@@ -151,6 +166,7 @@ void args_t::dump() {
     fmt::print(stderr, "  slang:  '{}'\n", slang_t::bits_to_str(slang));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
+    fmt::print(stderr, "  error_format: {}\n", error_t::msg_format_to_str(error_format));
 }
 
 } // namespace shdc

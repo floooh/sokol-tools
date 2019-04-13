@@ -20,7 +20,7 @@ int main(int argc, const char** argv) {
         inp.dump();
     }
     if (inp.error.valid) {
-        fmt::print(stderr, "error: {}\n", inp.error.msg);
+        inp.error.print(args.error_format);
         return 10;
     }
 
