@@ -157,7 +157,7 @@ args_t args_t::parse(int argc, const char** argv) {
     return args;
 }
 
-void args_t::dump() {
+void args_t::dump_debug() const {
     fmt::print(stderr, "args_t:\n");
     fmt::print(stderr, "  valid: {}\n", valid);
     fmt::print(stderr, "  exit_code: {}\n", exit_code);

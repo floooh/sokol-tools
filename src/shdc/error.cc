@@ -6,7 +6,7 @@
 
 namespace shdc {
 
-void error_t::print(msg_format_t fmt) {
+void error_t::print(msg_format_t fmt) const {
     if (fmt == VSTUDIO) {
         fmt::print("{}({}): error: {}\n", file, line_index+1, msg);
     }

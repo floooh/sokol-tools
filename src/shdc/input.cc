@@ -319,7 +319,7 @@ static bool parse(input_t& inp) {
 /* load file and parse into an input_t object, check valid and error
     fields in returned object
 */
-input_t input_t::load(const std::string& path) {
+input_t input_t::load_and_parse(const std::string& path) {
     input_t inp;
     inp.path = path;
 
@@ -344,7 +344,7 @@ input_t input_t::load(const std::string& path) {
 }
 
 /* print a debug-dump of content to stderr */
-void input_t::dump() {
+void input_t::dump_debug() const {
     fmt::print(stderr, "input_t:\n");
     if (error.valid) {
         fmt::print(stderr, "  error: {}:{}:{}\n", error.file, error.line_index, error.msg);

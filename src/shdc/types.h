@@ -77,7 +77,7 @@ struct error_t {
     error_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
     error_t(const std::string& m): msg(m), valid(true) { };
     // print error to stdout
-    void print(msg_format_t fmt);
+    void print(msg_format_t fmt) const;
     // convert msg_format to string
     static const char* msg_format_to_str(msg_format_t fmt) {
         switch (fmt) {
@@ -100,7 +100,7 @@ struct args_t {
     error_t::msg_format_t error_format = error_t::GCC;  // format for error messages
 
     static args_t parse(int argc, const char** argv);
-    void dump();
+    void dump_debug() const;
 };
 
 /* a code-snippet-range in the source file (used for @vs, @fs, @block code blocks) */
@@ -141,7 +141,7 @@ struct program_t {
 
 /* pre-parsed GLSL source file */
 struct input_t {
-    error_t error;                      // error object for parsing errors
+    error_t error;
     std::string path;                   // filesystem
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // snippet-ranges
@@ -152,8 +152,40 @@ struct input_t {
     std::map<std::string, program_t> programs;    // parsed shader program definitions
 
     input_t() { };
-    static input_t load(const std::string& path);    // load file and parse into input_t
-    void dump();                        // debug-dump content
+    static input_t load_and_parse(const std::string& path);
+    void dump_debug() const;
+};
+
+/* glsl-to-spirv compiler wrapper */
+struct spirv_t {
+    std::vector<error_t> errors;
+
+    static spirv_t compile_glsl(const input_t& inp);
+    void dump_debug() const;
+};
+
+/* spirv-cross wrapper */
+struct spirvcross_t {
+    error_t error;
+
+    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, uint32_t slang_mask);
+    void dump_debug() const;
+};
+
+/* HLSL/Metal to bytecode compiler wrapper */
+struct bytecode_t {
+    error_t error;
+
+    static bytecode_t compile(const input_t& inp, const spirvcross_t& spirvcross, bool gen_bytecode);
+    void dump_debug() const;
+};
+
+/* C header-generator wrapper */
+struct header_t {
+    error_t error;
+
+    static header_t build(const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, const std::string path);
+    void dump_debug() const;
 };
 
 } // namespace shdc
