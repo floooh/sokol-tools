@@ -3,9 +3,11 @@
 */
 #include "types.h"
 #include "fmt/format.h"
+#include "pystring.h"
 #include "ShaderLang.h"
 #include "ResourceLimits.h"
 #include "GlslangToSpv.h"
+#include "spirv-tools/libspirv.hpp"
 
 namespace shdc {
 
@@ -113,8 +115,22 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
     return spirv;
 }
 
-void spirv_t::dump_debug() const {
-    fmt::print(stderr, "spirv_t::dump_debug(): FIXME!\n");
+void spirv_t::dump_debug(const input_t& inp) const {
+    fmt::print(stderr, "spirv_t:\n");
+    // FIXME: dump errors
+    for (const spirv_blob_t& blob : blobs) {
+        fmt::print(stderr, "  SPIR-V for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        spvtools::SpirvTools spirv_tools(SPV_ENV_OPENGL_4_5);
+        std::string dasm_str;
+        spirv_tools.Disassemble(blob.bytecode, &dasm_str, spvtools::SpirvTools::kDefaultDisassembleOption);
+        std::vector<std::string> dasm_lines;
+        pystring::splitlines(dasm_str, dasm_lines);
+        for (const std::string& dasm_line: dasm_lines) {
+            fmt::print(stderr, "    {}\n", dasm_line);
+        }
+        fmt::print(stderr, "\n");
+    }
+    fmt::print(stderr, "\n");
 }
 
 const TBuiltInResource DefaultTBuiltInResource = {

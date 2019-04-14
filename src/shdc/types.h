@@ -169,12 +169,10 @@ struct spirv_t {
     std::vector<error_t> errors;
     std::vector<spirv_blob_t> blobs;
 
-
-
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
     static spirv_t compile_glsl(const input_t& inp);
-    void dump_debug() const;
+    void dump_debug(const input_t& inp) const;
 };
 
 /* spirv-cross wrapper */

@@ -399,6 +399,7 @@ void input_t::dump_debug() const {
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
         fmt::print(stderr, "      line_index: {}\n", prog.line_index);
     }
+    fmt::print("\n");
 }
 
 } // namespace shdc

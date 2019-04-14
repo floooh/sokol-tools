@@ -29,7 +29,7 @@ int main(int argc, const char** argv) {
     spirv_t::initialize_spirv_tools();
     spirv_t spirv = spirv_t::compile_glsl(inp);
     if (args.debug_dump) {
-        spirv.dump_debug();
+        spirv.dump_debug(inp);
     }
     if (!spirv.errors.empty()) {
         for (const error_t& err : spirv.errors) {

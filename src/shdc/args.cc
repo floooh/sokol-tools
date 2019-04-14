@@ -170,6 +170,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  error_format: {}\n", error_t::msg_format_to_str(error_format));
+    fmt::print(stderr, "\n");
 }
 
 } // namespace shdc
