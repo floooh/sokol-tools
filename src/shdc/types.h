@@ -156,12 +156,23 @@ struct input_t {
     void dump_debug() const;
 };
 
+/* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
+struct spirv_blob_t {
+    int snippet_index = -1;         // index into input_t.snippets
+    std::vector<uint32_t> bytecode; // the SPIRV blob
+
+    spirv_blob_t(int snippet_index): snippet_index(snippet_index) { };
+};
+
 /* glsl-to-spirv compiler wrapper */
 struct spirv_t {
     std::vector<error_t> errors;
+    std::vector<spirv_blob_t> blobs;
 
-    static void initialize();
-    static void finalize();
+
+
+    static void initialize_spirv_tools();
+    static void finalize_spirv_tools();
     static spirv_t compile_glsl(const input_t& inp);
     void dump_debug() const;
 };

@@ -5,16 +5,17 @@
 #include "fmt/format.h"
 #include "ShaderLang.h"
 #include "ResourceLimits.h"
+#include "GlslangToSpv.h"
 
 namespace shdc {
 
 extern const TBuiltInResource DefaultTBuiltInResource;  /* actual data at end of file */
 
-void spirv_t::initialize() {
+void spirv_t::initialize_spirv_tools() {
     glslang::InitializeProcess();
 }
 
-void spirv_t::finalize() {
+void spirv_t::finalize_spirv_tools() {
     glslang::FinalizeProcess();
 }
 
@@ -27,14 +28,15 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet) {
     return src;
 }
 
-/* compile a vertex or fragment  shader to SPIRV */
-static bool compile(EShLanguage lang, spirv_t& spirv, const std::string& src) {
+/* compile a vertex or fragment shader to SPIRV */
+static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, int snippet_index) {
     const char* sources[1] = { src.c_str() };
 
-    glslang::TShader shader(lang);
+    // compile GLSL vertex- or fragment-shader
+    glslang::TShader shader(stage);
     // FIXME: add custom defines here: compiler.addProcess(...)
     shader.setStrings(sources, 1);
-    shader.setEnvInput(glslang::EShSourceGlsl, lang, glslang::EShClientOpenGL, 100/*???*/);
+    shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
     shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     if (!shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault)) {
@@ -42,6 +44,37 @@ static bool compile(EShLanguage lang, spirv_t& spirv, const std::string& src) {
         fmt::print(shader.getInfoLog());
         fmt::print(shader.getInfoDebugLog());
         return false;
+    }
+
+    // "link" into a program
+    glslang::TProgram program;
+    program.addShader(&shader);
+    if (!program.link(EShMsgDefault)) {
+        // FIXME: convert error log to error_t objects
+        fmt::print(program.getInfoLog());
+        fmt::print(program.getInfoDebugLog());
+        return false;
+    }
+    if (!program.mapIO()) {
+        // FIXME: convert error log to error_t objects
+        fmt::print(program.getInfoLog());
+        fmt::print(program.getInfoDebugLog());
+    }
+
+    // translate intermediate representation to SPIRV
+    const glslang::TIntermediate* im = program.getIntermediate(stage);
+    assert(im);
+    spv::SpvBuildLogger spv_logger;
+    glslang::SpvOptions spv_options;
+    // FIXME: generate debug info options
+    // FIXME: optimize for size option
+    // FIXME??? dissassemble and validate options
+    spirv.blobs.push_back(spirv_blob_t(snippet_index));
+    glslang::GlslangToSpv(*im, spirv.blobs.back().bytecode, &spv_logger, &spv_options);
+    std::string spirv_log = spv_logger.getAllMessages();
+    if (!spirv_log.empty()) {
+        // FIXME: need to parse string for errors and translate to error_t objects
+        fmt::print(spirv_log);
     }
     return true;
 }
@@ -54,21 +87,30 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
     // FIXME: we may need to compile each source for each target shader dialect,
     // in case we want to add a define #define SOKOL_HLSL/MSL/GLSL etc... to the
     // shader source
-    for (const snippet_t& snippet : inp.snippets) {
+    int snippet_index = 0;
+    for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet);
-            compile(EShLangVertex, spirv, src);
+            if (!compile(EShLangVertex, spirv, src, snippet_index)) {
+                // spirv.errors contains error list
+                return spirv;
+            }
         }
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet);
-            compile(EShLangFragment, spirv, src);
+            if (!compile(EShLangFragment, spirv, src, snippet_index)) {
+                // spirv.errors contains error list
+                return spirv;
+            }
         }
+        snippet_index++;
     }
-
-    fmt::print(stderr, "spirv_t::compile_glsl(): FIXME!\n");
-    return spirv_t();
+    // when arriving here, no compile errors occured
+    // spirv.bytecodes array contains the SPIRV-bytecode
+    // for each shader snippet
+    return spirv;
 }
 
 void spirv_t::dump_debug() const {

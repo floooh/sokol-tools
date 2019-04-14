@@ -25,8 +25,8 @@ int main(int argc, const char** argv) {
         return 10;
     }
 
-    // compile source snippets to SPIRV
-    spirv_t::initialize();
+    // compile source snippets to SPIRV blobs
+    spirv_t::initialize_spirv_tools();
     spirv_t spirv = spirv_t::compile_glsl(inp);
     if (args.debug_dump) {
         spirv.dump_debug();
@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
         }
         return 10;
     }
-    spirv_t::finalize();
+    spirv_t::finalize_spirv_tools();
 
     // cross-translate SPIRV to shader dialects
     spirvcross_t spirvcross = spirvcross_t::translate(inp, spirv, args.slang);
