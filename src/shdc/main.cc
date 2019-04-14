@@ -1,6 +1,4 @@
-#include <stdio.h>
 #include "types.h"
-#include "fmt/format.h"
 
 using namespace shdc;
 
