@@ -10,7 +10,7 @@
 namespace shdc {
 
 static std::string load_file_into_str(const std::string& path) {
-    FILE* f = fopen(path.c_str(), "rb");
+    FILE* f = fopen(path.c_str(), "r");
     if (!f) {
         return std::string();
     }
