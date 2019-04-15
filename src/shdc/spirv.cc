@@ -1,6 +1,7 @@
 /*
     compile GLSL to SPIRV, wrapper around https://github.com/KhronosGroup/glslang
 */
+#include <stdlib.h>
 #include "shdc.h"
 #include "fmt/format.h"
 #include "pystring.h"
@@ -30,8 +31,61 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet) {
     return src;
 }
 
+/* convert a glslang info-log string to error_t's and append to out_errors */
+static void infolog_to_errors(const std::string& log, const input_t& inp, int snippet_index, std::vector<error_t>& out_errors) {
+    /*
+        format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
+        And a last line we need to ignore: "ERROR: N compilation errors. ..."
+    */
+    const snippet_t& snippet = inp.snippets[snippet_index];
+
+    std::vector<std::string> lines;
+    pystring::splitlines(log, lines);
+    std::vector<std::string> tokens;
+    static const std::string colon = ":";
+    for (const std::string& line: lines) {
+        // split by colons
+        pystring::split(line, tokens, colon);
+        if ((tokens.size() > 2) && ((tokens[0] == "ERROR") || (tokens[0] == "WARNING"))) {
+            bool ok = false;
+            int line_index = 0;
+            std::string msg;
+            if (tokens.size() >= 4) {
+                // extract line index and message
+                int snippet_line_index = atoi(tokens[2].c_str());
+                // correct for one-based and prolog #defines
+                if (snippet_line_index > 1) {
+                    snippet_line_index -= 2;
+                }
+                // everything after the 3rd colon is 'msg'
+                for (int i = 3; i < (int)tokens.size(); i++) {
+                    if (msg.empty()) {
+                        msg = tokens[i];
+                    }
+                    else {
+                        msg = fmt::format("{}:{}", msg, tokens[i]);
+                    }
+                }
+                msg = pystring::strip(msg);
+                // snippet-line-index to input source line index
+                if ((snippet_line_index > 0) && (snippet_line_index < (int)snippet.lines.size())) {
+                    line_index = snippet.lines[snippet_line_index];
+                    ok = true;
+                }
+            }
+            if (ok) {
+                out_errors.push_back(error_t(inp.path, line_index, msg));
+            }
+            else {
+                // some error during parsing, still create an error object so the error isn't lost in the void
+                out_errors.push_back(error_t(inp.path, 0, line));
+            }
+        }
+    }
+}
+
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, int snippet_index) {
+static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, const input_t& inp, int snippet_index) {
     const char* sources[1] = { src.c_str() };
 
     // compile GLSL vertex- or fragment-shader
@@ -42,9 +96,8 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, i
     shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     if (!shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault)) {
-        // FIXME: convert error log to error_t objects
-        fmt::print(shader.getInfoLog());
-        fmt::print(shader.getInfoDebugLog());
+        infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
+        infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, spirv.errors);
         return false;
     }
 
@@ -52,15 +105,14 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, i
     glslang::TProgram program;
     program.addShader(&shader);
     if (!program.link(EShMsgDefault)) {
-        // FIXME: convert error log to error_t objects
-        fmt::print(program.getInfoLog());
-        fmt::print(program.getInfoDebugLog());
+        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
+        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
         return false;
     }
     if (!program.mapIO()) {
-        // FIXME: convert error log to error_t objects
-        fmt::print(program.getInfoLog());
-        fmt::print(program.getInfoDebugLog());
+        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
+        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+        return false;
     }
 
     // translate intermediate representation to SPIRV
@@ -94,7 +146,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet);
-            if (!compile(EShLangVertex, spirv, src, snippet_index)) {
+            if (!compile(EShLangVertex, spirv, src, inp, snippet_index)) {
                 // spirv.errors contains error list
                 return spirv;
             }
@@ -102,7 +154,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet);
-            if (!compile(EShLangFragment, spirv, src, snippet_index)) {
+            if (!compile(EShLangFragment, spirv, src, inp, snippet_index)) {
                 // spirv.errors contains error list
                 return spirv;
             }
@@ -115,9 +167,18 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
     return spirv;
 }
 
-void spirv_t::dump_debug(const input_t& inp) const {
+void spirv_t::dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "spirv_t:\n");
-    // FIXME: dump errors
+    if (errors.size() > 0) {
+        fmt::print(stderr, "  error:\n");
+        for (const error_t& err: errors) {
+            fmt::print(stderr, "    {}\n", err.as_string(err_fmt));
+        }
+        fmt::print(stderr, "\n");
+    }
+    else {
+        fmt::print(stderr, "  errors: none\n\n");
+    }
     for (const spirv_blob_t& blob : blobs) {
         fmt::print(stderr, "  SPIR-V for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
         spvtools::SpirvTools spirv_tools(SPV_ENV_OPENGL_4_5);

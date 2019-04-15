@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <vector>
 #include <map>
+#include "fmt/format.h"
 
 namespace shdc {
 
@@ -66,8 +67,18 @@ struct error_t {
     error_t() { };
     error_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
     error_t(const std::string& m): msg(m), valid(true) { };
+    std::string as_string(msg_format_t fmt) const {
+        if (fmt == VSTUDIO) {
+            return fmt::format("{}({}): error: {}", file, line_index+1, msg);
+        }
+        else {
+            return fmt::format("{}:{}:0: error: {}", file, line_index+1, msg);
+        }
+    }
     // print error to stdout
-    void print(msg_format_t fmt) const;
+    void print(msg_format_t fmt) const {
+        fmt::print("{}\n", as_string(fmt));
+    }
     // convert msg_format to string
     static const char* msg_format_to_str(msg_format_t fmt) {
         switch (fmt) {
@@ -162,7 +173,7 @@ struct spirv_t {
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
     static spirv_t compile_glsl(const input_t& inp);
-    void dump_debug(const input_t& inp) const;
+    void dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const;
 };
 
 /* spirv-cross wrapper */
