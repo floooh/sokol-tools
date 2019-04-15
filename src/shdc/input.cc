@@ -40,10 +40,11 @@ static bool remove_comments(std::string& str) {
         if (!(in_winged_comment || in_block_comment)) {
             // not currently in a comment
             if (maybe_start) {
+                // next character after a '/'
                 if (c == '/') {
                     // start of a winged comment
                     in_winged_comment = true;
-                    str[pos-1] = ' ';
+                    str[pos - 1] = ' ';
                     str[pos] = ' ';
                 }
                 else if (c == '*') {
@@ -56,7 +57,7 @@ static bool remove_comments(std::string& str) {
             }
             else {
                 if (c == '/') {
-                    // maybe start of a new comment
+                    // maybe start of a winged or block comment
                     maybe_start = true;
                 }
             }
