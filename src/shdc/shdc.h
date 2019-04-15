@@ -2,7 +2,6 @@
     Shared type definitions for sokol-shdc
 */
 #include <string>
-#include <string.h> /* strcmp */
 #include <stdint.h>
 #include <vector>
 #include <map>
@@ -35,15 +34,6 @@ struct slang_t {
             case METAL_IOS:     return "metal_ios";
             default:            return "<invalid>";
         }
-    }
-    static type_t to_code(const char* str) {
-        if      (0 == strcmp(str, "glsl330")) return GLSL330;
-        else if (0 == strcmp(str, "glsl100")) return GLSL100;
-        else if (0 == strcmp(str, "glsl300es")) return GLSL300ES;
-        else if (0 == strcmp(str, "hlsl5")) return HLSL5;
-        else if (0 == strcmp(str, "metal_macos")) return METAL_MACOS;
-        else if (0 == strcmp(str, "metal_ios")) return METAL_IOS;
-        else return INVALID;
     }
     static std::string bits_to_str(uint32_t mask) {
         std::string res;
@@ -103,7 +93,7 @@ struct args_t {
     void dump_debug() const;
 };
 
-/* a code-snippet-range in the source file (used for @vs, @fs, @block code blocks) */
+/* a named code-snippet (@block, @vs or @fs) in the input source file */
 struct snippet_t {
     enum type_t {
         INVALID,
@@ -139,17 +129,17 @@ struct program_t {
     program_t(const std::string& n, const std::string& vs, const std::string& fs, int l): name(n), vs_name(vs), fs_name(fs), line_index(l) { };
 };
 
-/* pre-parsed GLSL source file */
+/* pre-parsed GLSL source file, with content split into snippets */
 struct input_t {
     error_t error;
     std::string path;                   // filesystem
     std::vector<std::string> lines;     // input source file split into lines
-    std::vector<snippet_t> snippets;    // snippet-ranges
+    std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
-    std::map<std::string, int> block_map;   // name-index mapping of code block snippets
-    std::map<std::string, int> vs_map;      // name-index mapping of vertex shader snippets
-    std::map<std::string, int> fs_map;      // name-index mapping of fragment shader snippets
-    std::map<std::string, program_t> programs;    // parsed shader program definitions
+    std::map<std::string, int> block_map;   // name-index mapping for @block snippets
+    std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
+    std::map<std::string, int> fs_map;      // name-index mapping for @fs snippets
+    std::map<std::string, program_t> programs;    // all @program definitions
 
     input_t() { };
     static input_t load_and_parse(const std::string& path);

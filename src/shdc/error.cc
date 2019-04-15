@@ -1,7 +1,7 @@
 /*
     Error message creation and conversion into IDE-compatible format.
 */
-#include "types.h"
+#include "shdc.h"
 #include "fmt/format.h"
 
 namespace shdc {

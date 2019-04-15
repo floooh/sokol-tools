@@ -3,7 +3,7 @@
     embedded shader source/byte code, uniform block structs
     and sg_shader_desc structs.
 */
-#include "types.h"
+#include "shdc.h"
 #include "fmt/format.h"
 
 namespace shdc {

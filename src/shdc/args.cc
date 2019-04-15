@@ -4,7 +4,7 @@
 #include <vector>
 #include <stdio.h>
 #include "fmt/format.h"
-#include "types.h"
+#include "shdc.h"
 #include "getopt/getopt.h"
 #include "pystring.h"
 
@@ -27,10 +27,10 @@ static void print_help_string(getopt_context_t& ctx) {
         "https://github.com/floooh/sokol-tools\n\n"
         "Usage: sokol-shdc -i input [-o output] [options]\n\n"
         "Where [input] is exactly one .glsl file, and [output] is a C header\n"
-        "with embedded shader source code and/or byte code, and code-generated\n"
+        "with embedded shader source code and/or byte code and code-generated\n"
         "uniform-block and shader-descripton C structs ready for use with sokol_gfx.h\n\n"
-        "The input source file may contains custom '@-tags' to group the\n"
-        "source code for several shaders and reusable code blocks into one file:\n\n"
+        "The input source file contains custom '@-tags' to group the\n"
+        "source code for several shaders and shared code blocks into one file:\n\n"
         "  - @block name: a general reusable code block\n"
         "  - @vs name: a named vertex shader code block\n"
         "  - @fs name: a named fragment shader code block\n"

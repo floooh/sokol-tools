@@ -1,7 +1,7 @@
 /*
     compile GLSL to SPIRV, wrapper around https://github.com/KhronosGroup/glslang
 */
-#include "types.h"
+#include "shdc.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include "ShaderLang.h"

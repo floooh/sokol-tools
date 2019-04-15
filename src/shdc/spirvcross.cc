@@ -3,7 +3,7 @@
     uniform block reflection information, wrapper around
     https://github.com/KhronosGroup/SPIRV-Cross
 */
-#include "types.h"
+#include "shdc.h"
 #include "fmt/format.h"
 
 namespace shdc {

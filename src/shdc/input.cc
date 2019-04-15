@@ -1,7 +1,7 @@
 /*
     code for loading and parsing the input .glsl file with custom-tags
 */
-#include "types.h"
+#include "shdc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "fmt/format.h"

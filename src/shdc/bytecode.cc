@@ -5,7 +5,7 @@
     Uses d3dcompiler.dll for HLSL, and for Metal, invokes the Metal
     compiler toolchain commandline tools.
 */
-#include "types.h"
+#include "shdc.h"
 #include "fmt/format.h"
 
 namespace shdc {
