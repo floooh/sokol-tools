@@ -61,7 +61,8 @@ fips_begin_lib(SPIRV-Cross)
         spirv_reflect.hpp spirv_reflect.cpp
         spirv_cross_util.hpp spirv_cross_util.cpp)
 fips_end_lib()
-target_compile_definitions(SPIRV-Cross PRIVATE SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
+target_compile_definitions(SPIRV-Cross PUBLIC SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
+target_include_directories(SPIRV-Cross PUBLIC SPIRV-Cross)
 
 fips_begin_lib(fmt)
     fips_dir(fmt/src GPOUP .)

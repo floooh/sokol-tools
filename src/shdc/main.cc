@@ -19,7 +19,7 @@ int main(int argc, const char** argv) {
     // load the source and parse tagged blocks
     input_t inp = input_t::load_and_parse(args.input);
     if (args.debug_dump) {
-        inp.dump_debug();
+        inp.dump_debug(args.error_format);
     }
     if (inp.error.valid) {
         inp.error.print(args.error_format);
@@ -43,7 +43,7 @@ int main(int argc, const char** argv) {
     // cross-translate SPIRV to shader dialects
     spirvcross_t spirvcross = spirvcross_t::translate(inp, spirv, args.slang);
     if (args.debug_dump) {
-        spirvcross.dump_debug();
+        spirvcross.dump_debug(args.error_format);
     }
     if (spirvcross.error.valid) {
         spirvcross.error.print(args.error_format);

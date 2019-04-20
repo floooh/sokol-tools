@@ -4,6 +4,7 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
+#include <array>
 #include <map>
 #include "fmt/format.h"
 
@@ -12,8 +13,7 @@ namespace shdc {
 /* the output shader languages to create */
 struct slang_t {
     enum type_t {
-        INVALID,
-        GLSL330,
+        GLSL330 = 0,
         GLSL100,
         GLSL300ES,
         HLSL5,
@@ -154,7 +154,7 @@ struct input_t {
 
     input_t() { };
     static input_t load_and_parse(const std::string& path);
-    void dump_debug() const;
+    void dump_debug(error_t::msg_format_t err_fmt) const;
 };
 
 /* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
@@ -176,12 +176,21 @@ struct spirv_t {
     void dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const;
 };
 
+/* result of a spirv-cross compilation */
+struct spirvcross_source_t {
+    bool valid = false;
+    int snippet_index = -1;
+    std::string source_code;
+    // FIXME reflection info
+};
+
 /* spirv-cross wrapper */
 struct spirvcross_t {
     error_t error;
+    std::array<std::vector<spirvcross_source_t>, slang_t::NUM> sources;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, uint32_t slang_mask);
-    void dump_debug() const;
+    void dump_debug(error_t::msg_format_t err_fmt) const;
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */

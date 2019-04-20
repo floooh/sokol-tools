@@ -345,10 +345,10 @@ input_t input_t::load_and_parse(const std::string& path) {
 }
 
 /* print a debug-dump of content to stderr */
-void input_t::dump_debug() const {
+void input_t::dump_debug(error_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "input_t:\n");
     if (error.valid) {
-        fmt::print(stderr, "  error: {}:{}:{}\n", error.file, error.line_index, error.msg);
+        fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }
     else {
         fmt::print(stderr, "  error: not set\n");
