@@ -63,6 +63,24 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
     return uniform_t::INVALID;
 }
 
+static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
+    if (type.image.arrayed) {
+        if (type.image.dim == spv::Dim2D) {
+            return image_t::IMAGE_ARRAY;
+        }
+    }
+    else {
+        switch (type.image.dim) {
+            case spv::Dim2D:    return image_t::IMAGE_2D;
+            case spv::DimCube:  return image_t::IMAGE_CUBE;
+            case spv::Dim3D:    return image_t::IMAGE_3D;
+            default: break;
+        }
+    }
+    // fallthrough: invalid type
+    return image_t::INVALID;
+}
+
 static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
     spirvcross_refl_t refl;
     // shader stage
@@ -86,7 +104,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
-        refl_ub.name = compiler.get_name(ub_res.base_type_id);
+        refl_ub.name = ub_res.name;
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             uniform_t refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
@@ -99,6 +117,15 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
             refl_ub.uniforms.push_back(refl_uniform);
         }
         refl.uniform_blocks.push_back(refl_ub);
+    }
+    // images
+    for (const Resource& img_res: shd_resources.sampled_images) {
+        image_t refl_img;
+        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+        refl_img.name = img_res.name;
+        const SPIRType& img_type = compiler.get_type(img_res.type_id);
+        refl_img.type = spirtype_to_image_type(img_type);
+        refl.images.push_back(refl_img);
     }
     return refl;
 }
@@ -219,7 +246,7 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt) const {
                 fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
                 fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
                 for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-                    fmt::print(stderr, "        uniform block: {} (slot: {}, size: {})\n", ub.name, ub.slot, ub.size);
+                    fmt::print(stderr, "        uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
                     for (const uniform_t& uniform: ub.uniforms) {
                         fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
                             uniform.name,
@@ -227,6 +254,10 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt) const {
                             uniform.array_count,
                             uniform.offset);
                     }
+                }
+                for (const image_t& img: source.refl.images) {
+                    fmt::print(stderr, "        image: {}, slot: {}, type: {}\n",
+                        img.name, img.slot, image_t::type_to_str(img.type));
                 }
                 fmt::print(stderr, "\n");
             }

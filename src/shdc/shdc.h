@@ -194,12 +194,12 @@ struct uniform_t {
 
     static const char* type_to_str(type_t t) {
         switch (t) {
-            case FLOAT: return "FLOAT";
-            case FLOAT2: return "FLOAT2";
-            case FLOAT3: return "FLOAT3";
-            case FLOAT4: return "FLOAT4";
-            case MAT4: return "MAT4";
-            default: return "INVALID";
+            case FLOAT:     return "FLOAT";
+            case FLOAT2:    return "FLOAT2";
+            case FLOAT3:    return "FLOAT3";
+            case FLOAT4:    return "FLOAT4";
+            case MAT4:      return "MAT4";
+            default:        return "INVALID";
         }
     }
 };
@@ -222,6 +222,16 @@ struct image_t {
     int slot = -1;
     std::string name;
     type_t type = INVALID;
+
+    static const char* type_to_str(type_t t) {
+        switch (t) {
+            case IMAGE_2D:      return "IMAGE_2D";
+            case IMAGE_CUBE:    return "IMAGE_CUBE";
+            case IMAGE_3D:      return "IMAGE_3D";
+            case IMAGE_ARRAY:   return "IMAGE_ARRAY";
+            default:            return "INVALID";
+        }
+    }
 };
 
 struct stage_t {
