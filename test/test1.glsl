@@ -5,6 +5,9 @@
 uniform params {
     mat4 mvp;
 };
+uniform params2 {
+    vec2 bla;
+};
 @end
 
 @block vs_inputs
@@ -24,6 +27,7 @@ layout(location=0) out vec4 fragColor;
 void main() {
     gl_Position = mvp * position;
     color = color0;
+    color.xy += bla;
 }
 @end
 

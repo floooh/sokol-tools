@@ -41,6 +41,68 @@ static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     }
 }
 
+static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
+    if (type.basetype == SPIRType::Float) {
+        if (type.columns == 1) {
+            // scalar or vec
+            switch (type.vecsize) {
+                case 1: return uniform_t::FLOAT;
+                case 2: return uniform_t::FLOAT2;
+                case 3: return uniform_t::FLOAT3;
+                case 4: return uniform_t::FLOAT4;
+            }
+        }
+        else {
+            // a matrix
+            if ((type.vecsize == 4) && (type.columns == 4)) {
+                return uniform_t::MAT4;
+            }
+        }
+    }
+    // fallthrough: invalid type
+    return uniform_t::INVALID;
+}
+
+static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
+    spirvcross_refl_t refl;
+    // shader stage
+    switch (compiler.get_execution_model()) {
+        case spv::ExecutionModelVertex:   refl.stage = stage_t::VS; break;
+        case spv::ExecutionModelFragment: refl.stage = stage_t::FS; break;
+        default: refl.stage = stage_t::INVALID; break;
+    }
+    // find entry point
+    const auto entry_points = compiler.get_entry_points_and_stages();
+    for (const auto& item: entry_points) {
+        if (compiler.get_execution_model() == item.execution_model) {
+            refl.entry_point = item.name;
+            break;
+        }
+    }
+    // uniform blocks
+    ShaderResources shd_resources = compiler.get_shader_resources();
+    for (const Resource& ub_res: shd_resources.uniform_buffers) {
+        uniform_block_t refl_ub;
+        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
+        refl_ub.name = compiler.get_name(ub_res.base_type_id);
+        for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
+            uniform_t refl_uniform;
+            refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
+            const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
+            refl_uniform.type = spirtype_to_uniform_type(m_type);
+            if (m_type.array.size() > 0) {
+                refl_uniform.array_count = m_type.array[0];
+            }
+            refl_uniform.offset = compiler.type_struct_member_offset(ub_type, m_index);
+            refl_ub.uniforms.push_back(refl_uniform);
+        }
+        refl.uniform_blocks.push_back(refl_ub);
+    }
+    return refl;
+}
+
 static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
@@ -56,6 +118,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.refl = parse_reflection(compiler);
     }
     return res;
 }
@@ -72,6 +135,7 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob) {
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.refl = parse_reflection(compiler);
     }
     return res;
 }
@@ -86,6 +150,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.refl = parse_reflection(compiler);
     }
     return res;
 }
@@ -143,16 +208,31 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt) const {
     std::vector<std::string> lines;
     for (int slang = 0; slang < slang_t::NUM; slang++) {
         if (sources[slang].size() > 0) {
-            fmt::print(stderr, "  sources for {}:\n", slang_t::to_str((slang_t::type_t)slang));
+            fmt::print(stderr, "  {}:\n", slang_t::to_str((slang_t::type_t)slang));
             for (const spirvcross_source_t& source: sources[slang]) {
-                fmt::print(stderr, "    snippet {}:\n", source.snippet_index);
+                fmt::print(stderr, "    source for snippet {}:\n", source.snippet_index);
                 pystring::splitlines(source.source_code, lines);
                 for (const std::string& line: lines) {
                     fmt::print(stderr, "      {}\n", line);
                 }
+                fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
+                fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
+                fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
+                for (const uniform_block_t& ub: source.refl.uniform_blocks) {
+                    fmt::print(stderr, "        uniform block: {} (slot: {}, size: {})\n", ub.name, ub.slot, ub.size);
+                    for (const uniform_t& uniform: ub.uniforms) {
+                        fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
+                            uniform.name,
+                            uniform_t::type_to_str(uniform.type),
+                            uniform.array_count,
+                            uniform.offset);
+                    }
+                }
+                fmt::print(stderr, "\n");
             }
         }
     }
+    fmt::print(stderr, "\n");
 }
 
 } // namespace shdc

@@ -7,6 +7,7 @@
 #include <array>
 #include <map>
 #include "fmt/format.h"
+#include "spirv_cross.hpp"
 
 namespace shdc {
 
@@ -176,12 +177,81 @@ struct spirv_t {
     void dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const;
 };
 
+/* reflection info */
+struct uniform_t {
+    enum type_t {
+        INVALID,
+        FLOAT,
+        FLOAT2,
+        FLOAT3,
+        FLOAT4,
+        MAT4,
+    };
+    std::string name;
+    type_t type = INVALID;
+    int array_count = 0;
+    int offset = 0;
+
+    static const char* type_to_str(type_t t) {
+        switch (t) {
+            case FLOAT: return "FLOAT";
+            case FLOAT2: return "FLOAT2";
+            case FLOAT3: return "FLOAT3";
+            case FLOAT4: return "FLOAT4";
+            case MAT4: return "MAT4";
+            default: return "INVALID";
+        }
+    }
+};
+
+struct uniform_block_t {
+    int slot = -1;
+    int size = 0;
+    std::string name;
+    std::vector<uniform_t> uniforms;
+};
+
+struct image_t {
+    enum type_t {
+        INVALID,
+        IMAGE_2D,
+        IMAGE_CUBE,
+        IMAGE_3D,
+        IMAGE_ARRAY
+    };
+    int slot = -1;
+    std::string name;
+    type_t type = INVALID;
+};
+
+struct stage_t {
+    enum type_t {
+        INVALID,
+        VS,
+        FS,
+    };
+    static const char* to_str(type_t t) {
+        switch (t) {
+            case VS: return "VS";
+            case FS: return "FS";
+            default: return "INVALID";
+        }
+    }
+};
+
+struct spirvcross_refl_t {
+    stage_t::type_t stage = stage_t::INVALID;
+    std::string entry_point;
+    std::vector<uniform_block_t> uniform_blocks;
+    std::vector<image_t> images;
+};
+
 /* result of a spirv-cross compilation */
 struct spirvcross_source_t {
     bool valid = false;
     int snippet_index = -1;
     std::string source_code;
-    // FIXME reflection info
+    spirvcross_refl_t refl;
 };
 
 /* spirv-cross wrapper */
