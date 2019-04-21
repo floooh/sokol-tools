@@ -24,14 +24,15 @@ void main() {
 
 // the fragment shader
 @fs my_fs
-uniform sampler2D tex;
+uniform sampler2D tex0;
+uniform sampler2D tex1;
 
 layout(location=0) in vec2 uv;
 layout(location=1) in vec4 color;
 layout(location=0) out vec4 fragColor;
 
 void main() {
-    fragColor = texture(tex, uv) * color;
+    fragColor = texture(tex0, uv) * texture(tex1, uv*2.0) * color;
 }
 @end
 
