@@ -45,6 +45,10 @@ static int roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
+static bool is_glsl(slang_t::type_t slang) {
+    return (slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES);
+}
+
 static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t::type_t slang) {
     for (const uniform_block_t& ub: refl->uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
@@ -66,7 +70,7 @@ static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t
         /* on GL, add padding bytes until struct size is multiple of 16 (because the
            uniform block has been flattened into a vec4 array
         */
-        if ((slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES)) {
+        if (is_glsl(slang)) {
             const int round16 = roundup(cur_offset, 16);
             if (cur_offset != round16) {
                 fmt::print(f, "    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
@@ -74,6 +78,16 @@ static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t
         }
         fmt::print(f, "}} {};\n", ub.name);
         fmt::print(f, "#pragma pack(pop)\n");
+    }
+}
+
+static const char* img_type_to_sokol_type_str(image_t::type_t type) {
+    switch (type) {
+        case image_t::IMAGE_2D: return "SG_IMAGETYPE_2D";
+        case image_t::IMAGE_CUBE: return "SG_IMAGETYPE_CUBE;";
+        case image_t::IMAGE_3D: return "SG_IMAGETYPE_3D";
+        case image_t::IMAGE_ARRAY: return "SG_IMAGETYPE_ARRAY";
+        default: return "INVALID";
     }
 }
 
@@ -98,6 +112,40 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
         /* write uniform-block structs */
         write_uniform_blocks(f, &vs_src->refl, slang);
         write_uniform_blocks(f, &fs_src->refl, slang);
+
+        /* write function which returns a sg_shader_desc */
+        fmt::print(f, "static sg_shader_desc {}_shader_desc(void) {{\n", prog.name);
+        fmt::print(f, "    sg_shader_desc desc;\n");
+        fmt::print(f, "    memset(&desc, 0, sizeof(desc));\n");
+        fmt::print(f, "    desc.label = \"{}_shader\";\n", prog.name);
+        fmt::print(f, "    desc.vs.source = {}_{}_{}_src;\n", prog.name, prog.vs_name, slang_t::to_str(slang));
+        fmt::print(f, "    desc.vs.entry = \"{}\";\n", vs_src->refl.entry_point);
+        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
+            fmt::print(f, "    /* uniform block: {} */\n", ub.name);
+            fmt::print(f, "    desc.vs.uniform_blocks[{}].size = {};\n", ub.slot, is_glsl(slang) ? roundup(ub.size,16):ub.size);
+            /* GLSL uniform blocks are flattened! */
+            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", ub.slot, ub.name);
+            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", ub.slot);
+            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].array_count = {};\n", ub.slot, roundup(ub.size,16)/16);
+        }
+        for (const image_t& img: vs_src->refl.images) {
+            fmt::print(f, "    desc.vs.images[{}].name = \"{}\";\n", img.slot, img.name);
+            fmt::print(f, "    desc.vs.images[{}].type = \"{}\";\n", img.slot, img_type_to_sokol_type_str(img.type));
+        }
+        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
+            fmt::print(f, "    /* uniform block: {} */\n", ub.name);
+            fmt::print(f, "    desc.fs.uniform_blocks[{}].size = {};\n", ub.slot, ub.size);
+            /* GLSL uniform blocks are flattened! */
+            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", ub.slot, ub.name);
+            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", ub.slot);
+            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].array_count = {};\n", ub.slot, roundup(ub.size,16)/16);
+        }
+        for (const image_t& img: fs_src->refl.images) {
+            fmt::print(f, "    desc.fs.images[{}].name = \"{}\";\n", img.slot, img.name);
+            fmt::print(f, "    desc.fs.images[{}].type = \"{}\";\n", img.slot, img_type_to_sokol_type_str(img.type));
+        }
+        fmt::print(f, "    return desc;\n");
+        fmt::print(f, "}}\n");
 
         /* write shader sources */
         std::vector<std::string> vs_lines, fs_lines;
@@ -126,6 +174,7 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp, const spirvcross_t&
     fmt::print(f, "#pragma once\n");
     fmt::print(f, "/* #version:{}# machine generated, don't edit */\n", SOKOL_SHDC_VERSION);
     fmt::print(f, "#include <stdint.h>\n");
+    fmt::print(f, "#include <string.h>\n");
     fmt::print(f, "#if !defined(SOKOL_GFX_INCLUDED)\n");
     fmt::print(f, "#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
     fmt::print(f, "#endif\n");
