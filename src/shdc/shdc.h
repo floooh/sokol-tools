@@ -192,7 +192,7 @@ struct uniform_t {
     };
     std::string name;
     type_t type = INVALID;
-    int array_count = 0;
+    int array_count = 1;
     int offset = 0;
 
     static const char* type_to_str(type_t t) {

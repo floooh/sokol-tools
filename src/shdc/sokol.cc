@@ -19,6 +19,64 @@ static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spi
     return nullptr;
 }
 
+static const char* uniform_type_str(uniform_t::type_t type) {
+    switch (type) {
+        case uniform_t::FLOAT: return "SG_FLOAT";
+        case uniform_t::FLOAT2: return "SG_VEC2";
+        case uniform_t::FLOAT3: return "SG_VEC3";
+        case uniform_t::FLOAT4: return "SG_VEC4";
+        case uniform_t::MAT4: return "SG_MAT4";
+        default: return "FIXME";
+    }
+}
+
+static int uniform_type_size(uniform_t::type_t type) {
+    switch (type) {
+        case uniform_t::FLOAT:  return 4;
+        case uniform_t::FLOAT2: return 8;
+        case uniform_t::FLOAT3: return 12;
+        case uniform_t::FLOAT4: return 16;
+        case uniform_t::MAT4:   return 64;
+        default: return 0;
+    }
+}
+
+static int roundup(int val, int round_to) {
+    return (val + (round_to - 1)) & ~(round_to - 1);
+}
+
+static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t::type_t slang) {
+    for (const uniform_block_t& ub: refl->uniform_blocks) {
+        fmt::print(f, "#pragma pack(push,1)\n");
+        int cur_offset = 0;
+        fmt::print(f, "typedef struct {} {{\n", ub.name);
+        for (const uniform_t& uniform: ub.uniforms) {
+            int next_offset = uniform.offset;
+            if (next_offset > cur_offset) {
+                fmt::print(f, "    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
+            }
+            if (uniform.array_count == 1) {
+                fmt::print(f, "    {}({});\n", uniform_type_str(uniform.type), uniform.name);
+            }
+            else {
+                fmt::print(f, "    {}_ARRAY({},{});\n", uniform_type_str(uniform.type), uniform.name, uniform.array_count);
+            }
+            cur_offset += uniform_type_size(uniform.type) * uniform.array_count;
+        }
+        /* on GL, add padding bytes until struct size is multiple of 16 (because the
+           uniform block has been flattened into a vec4 array
+        */
+        if ((slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES)) {
+            const int round16 = roundup(cur_offset, 16);
+            if (cur_offset != round16) {
+                fmt::print(f, "    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
+            }
+        }
+        fmt::print(f, "}} {};\n", ub.name);
+        fmt::print(f, "#pragma pack(pop)\n");
+    }
+}
+
 static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
@@ -36,6 +94,12 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
+
+        /* write uniform-block structs */
+        write_uniform_blocks(f, &vs_src->refl, slang);
+        write_uniform_blocks(f, &fs_src->refl, slang);
+
+        /* write shader sources */
         std::vector<std::string> vs_lines, fs_lines;
         pystring::splitlines(vs_src->source_code, vs_lines);
         pystring::splitlines(fs_src->source_code, fs_lines);
@@ -64,6 +128,36 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp, const spirvcross_t&
     fmt::print(f, "#include <stdint.h>\n");
     fmt::print(f, "#if !defined(SOKOL_GFX_INCLUDED)\n");
     fmt::print(f, "#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_FLOAT)\n");
+    fmt::print(f, "#define SG_FLOAT(name) float name\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC2)\n");
+    fmt::print(f, "#define SG_VEC2(name) float name[2]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC3)\n");
+    fmt::print(f, "#define SG_VEC3(name) float name[3]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC4)\n");
+    fmt::print(f, "#define SG_VEC4(name) float name[4]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_MAT4)\n");
+    fmt::print(f, "#define SG_MAT4(name) float name[16]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_FLOAT_ARRAY)\n");
+    fmt::print(f, "#define SG_FLOAT_ARRAY(name,num) float name[num]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC2_ARRAY)\n");
+    fmt::print(f, "#define SG_VEC2_ARRAY(name,num) float name[num][2]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC3_ARRAY)\n");
+    fmt::print(f, "#define SG_VEC3(name,num) float name[num][3]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_VEC4_ARRAY)\n");
+    fmt::print(f, "#define SG_VEC4_ARRAY(name,num) float name[num][4]\n");
+    fmt::print(f, "#endif\n");
+    fmt::print(f, "#if !defined(SG_MAT4_ARRAY)\n");
+    fmt::print(f, "#define SG_MAT4(name,num) float name[num][16]\n");
     fmt::print(f, "#endif\n");
     if (args.slang & slang_t::bit(slang_t::GLSL330)) {
         fmt::print(f, "#if defined(SOKOL_GLCORE33)\n");
