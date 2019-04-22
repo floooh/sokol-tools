@@ -61,12 +61,9 @@ int main(int argc, const char** argv) {
     }
 
     // generate the output C header
-    header_t header = header_t::build(inp, spirvcross, bytecode, args.output);
-    if (args.debug_dump) {
-        header.dump_debug();
-    }
-    if (header.error.valid) {
-        header.error.print(args.error_format);
+    error_t err = sokol_t::gen(args, inp, spirvcross, bytecode);
+    if (err.valid) {
+        err.print(args.error_format);
         return 10;
     }
 

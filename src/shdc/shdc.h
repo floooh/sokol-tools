@@ -9,6 +9,9 @@
 #include "fmt/format.h"
 #include "spirv_cross.hpp"
 
+/* version marker for generated header */
+#define SOKOL_SHDC_VERSION (1)
+
 namespace shdc {
 
 /* the output shader languages to create */
@@ -281,12 +284,9 @@ struct bytecode_t {
     void dump_debug() const;
 };
 
-/* C header-generator wrapper */
-struct header_t {
-    error_t error;
-
-    static header_t build(const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, const std::string path);
-    void dump_debug() const;
+/* C header-generator for sokol_gfx.h */
+struct sokol_t {
+    static error_t gen(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode);
 };
 
 } // namespace shdc
