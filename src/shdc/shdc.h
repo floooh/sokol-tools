@@ -9,9 +9,6 @@
 #include "fmt/format.h"
 #include "spirv_cross.hpp"
 
-/* version marker for generated header */
-#define SOKOL_SHDC_VERSION (1)
-
 namespace shdc {
 
 /* the output shader languages to create */
@@ -102,6 +99,8 @@ struct args_t {
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     bool debug_dump = false;            // print debug-dump info
+    bool no_ifdef = false;              // don't emit platform #ifdefs (SOKOL_D3D11 etc...)
+    int gen_version = 1;                // generator-version stamp
     error_t::msg_format_t error_format = error_t::GCC;  // format for error messages
 
     static args_t parse(int argc, const char** argv);
@@ -150,6 +149,7 @@ struct input_t {
     std::string path;                   // filesystem
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
+    std::map<std::string, std::string> type_map;    // @type uniform type definitions
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets

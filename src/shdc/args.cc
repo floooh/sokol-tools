@@ -18,6 +18,8 @@ static const getopt_option_t option_list[] = {
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
     { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|vstudio]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
+    { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
+    { "noifdef", 'n', GETOPT_OPTION_TYPE_NO_ARG, 0, 'n', "don't emit #ifdef SOKOL_XXX"},
     GETOPT_OPTIONS_END
 };
 
@@ -146,6 +148,12 @@ args_t args_t::parse(int argc, const char** argv) {
                         return args;
                     }
                     break;
+                case 'g':
+                    args.gen_version = atoi(ctx.current_opt_arg);
+                    break;
+                case 'n':
+                    args.no_ifdef = true;
+                    break;
                 case 'h':
                     print_help_string(ctx);
                     args.valid = false;
@@ -169,6 +177,8 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  slang:  '{}'\n", slang_t::bits_to_str(slang));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
+    fmt::print(stderr, "  no_ifdef: {}\n", no_ifdef);
+    fmt::print(stderr, "  gen_version: {}\n", gen_version);
     fmt::print(stderr, "  error_format: {}\n", error_t::msg_format_to_str(error_format));
     fmt::print(stderr, "\n");
 }

@@ -96,6 +96,7 @@ static bool remove_comments(std::string& str) {
     return true;
 }
 
+static const std::string type_tag = "@type";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
 static const std::string block_tag = "@block";
@@ -104,6 +105,26 @@ static const std::string end_tag = "@end";
 static const std::string prog_tag = "@program";
 
 /* validate source tags for errors, on error returns false and sets error object in inp */
+static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != type_tag) {
+        inp.error = error_t(inp.path, line_index, "@type tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 3) {
+        inp.error = error_t(inp.path, line_index, "@type tag must have exactly two args (@type type alias)");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@type tag cannot be inside a tag block (missing @end?).");
+        return false;
+    }
+    if (!((tokens[1]=="float")||(tokens[1]=="vec2")||(tokens[1]=="vec3")||(tokens[1]=="vec4")||(tokens[1] == "mat4"))) {
+        inp.error = error_t(inp.path, line_index, "first arg of type tag must be 'float', 'vec2..3' or 'mat4'");
+        return false;
+    }
+    return true;
+}
+
 static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens[0] != block_tag) {
         inp.error = error_t(inp.path, line_index, "@block tag must be first word in line.");
@@ -236,7 +257,18 @@ static bool parse(input_t& inp) {
     int line_index = 0;
     for (const std::string& line : inp.lines) {
         add_line = in_snippet;
-        if (pystring::find(line, block_tag) >= 0) {
+        if (pystring::find(line, type_tag) >= 0) {
+            pystring::split(line, tokens);
+            if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
+                return false;
+            }
+            if (inp.type_map.count(tokens[1]) > 0) {
+                inp.error = error_t(inp.path, line_index, fmt::format("type '{}' already defined!", tokens[1]));
+                return false;
+            }
+            inp.type_map[tokens[1]] = tokens[2];
+        }
+        else if (pystring::find(line, block_tag) >= 0) {
             pystring::split(line, tokens);
             if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
                 return false;
@@ -359,6 +391,10 @@ void input_t::dump_debug(error_t::msg_format_t err_fmt) const {
         for (const std::string& line : lines) {
             fmt::print(stderr, "    {}: {}\n", line_nr++, line);
         }
+    }
+    fmt::print(stderr, "  types:\n");
+    for (const auto& item: type_map) {
+        fmt::print(stderr, "    {}: {}\n", item.first, item.second);
     }
     {
         int snippet_nr = 0;

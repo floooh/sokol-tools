@@ -21,11 +21,11 @@ static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spi
 
 static const char* uniform_type_str(uniform_t::type_t type) {
     switch (type) {
-        case uniform_t::FLOAT: return "SG_FLOAT";
-        case uniform_t::FLOAT2: return "SG_VEC2";
-        case uniform_t::FLOAT3: return "SG_VEC3";
-        case uniform_t::FLOAT4: return "SG_VEC4";
-        case uniform_t::MAT4: return "SG_MAT4";
+        case uniform_t::FLOAT: return "float";
+        case uniform_t::FLOAT2: return "vec2";
+        case uniform_t::FLOAT3: return "vec3";
+        case uniform_t::FLOAT4: return "vec4";
+        case uniform_t::MAT4: return "mat4";
         default: return "FIXME";
     }
 }
@@ -49,7 +49,7 @@ static bool is_glsl(slang_t::type_t slang) {
     return (slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES);
 }
 
-static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t::type_t slang) {
+static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
     for (const uniform_block_t& ub: refl->uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
         int cur_offset = 0;
@@ -59,11 +59,37 @@ static void write_uniform_blocks(FILE* f, const spirvcross_refl_t* refl, slang_t
             if (next_offset > cur_offset) {
                 fmt::print(f, "    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
             }
-            if (uniform.array_count == 1) {
-                fmt::print(f, "    {}({});\n", uniform_type_str(uniform.type), uniform.name);
+            if (inp.type_map.count(uniform_type_str(uniform.type)) > 0) {
+                // user-provided type names
+                if (uniform.array_count == 1) {
+                    fmt::print(f, "    {} {};\n", inp.type_map.at(uniform_type_str(uniform.type)), uniform.name);
+                }
+                else {
+                    fmt::print(f, "    {} {}[{}];\n", inp.type_map.at(uniform_type_str(uniform.type)), uniform.name, uniform.array_count);
+                }
             }
             else {
-                fmt::print(f, "    {}_ARRAY({},{});\n", uniform_type_str(uniform.type), uniform.name, uniform.array_count);
+                // default type names (float)
+                if (uniform.array_count == 1) {
+                    switch (uniform.type) {
+                        case uniform_t::FLOAT:   fmt::print(f, "    float {};\n", uniform.name); break;
+                        case uniform_t::FLOAT2:  fmt::print(f, "    float {}[2];\n", uniform.name); break;
+                        case uniform_t::FLOAT3:  fmt::print(f, "    float {}[3];\n", uniform.name); break;
+                        case uniform_t::FLOAT4:  fmt::print(f, "    float {}[4];\n", uniform.name); break;
+                        case uniform_t::MAT4:    fmt::print(f, "    float {}[16];\n", uniform.name); break;
+                        default:                 fmt::print(f, "    INVALID_UNIFORM_TYPE;\n"); break;
+                    }
+                }
+                else {
+                    switch (uniform.type) {
+                        case uniform_t::FLOAT:   fmt::print(f, "    float {}[{}];\n", uniform.name, uniform.array_count); break;
+                        case uniform_t::FLOAT2:  fmt::print(f, "    float {}[{}][2];\n", uniform.name, uniform.array_count); break;
+                        case uniform_t::FLOAT3:  fmt::print(f, "    float {}[{}][3];\n", uniform.name, uniform.array_count); break;
+                        case uniform_t::FLOAT4:  fmt::print(f, "    float {}[{}][4];\n", uniform.name, uniform.array_count); break;
+                        case uniform_t::MAT4:    fmt::print(f, "    float {}[{}][16];\n", uniform.name, uniform.array_count); break;
+                        default:                 fmt::print(f, "    INVALID_UNIFORM_TYPE;\n"); break;
+                    }
+                }
             }
             cur_offset += uniform_type_size(uniform.type) * uniform.array_count;
         }
@@ -110,8 +136,8 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
         }
 
         /* write uniform-block structs */
-        write_uniform_blocks(f, &vs_src->refl, slang);
-        write_uniform_blocks(f, &fs_src->refl, slang);
+        write_uniform_blocks(f, inp, &vs_src->refl, slang);
+        write_uniform_blocks(f, inp, &fs_src->refl, slang);
 
         /* write function which returns a sg_shader_desc */
         fmt::print(f, "static sg_shader_desc {}_shader_desc(void) {{\n", prog.name);
@@ -172,71 +198,41 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp, const spirvcross_t&
     }
 
     fmt::print(f, "#pragma once\n");
-    fmt::print(f, "/* #version:{}# machine generated, don't edit */\n", SOKOL_SHDC_VERSION);
+    fmt::print(f, "/* #version:{}# machine generated, don't edit */\n", args.gen_version);
     fmt::print(f, "#include <stdint.h>\n");
     fmt::print(f, "#include <string.h>\n");
     fmt::print(f, "#if !defined(SOKOL_GFX_INCLUDED)\n");
     fmt::print(f, "#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
     fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_FLOAT)\n");
-    fmt::print(f, "#define SG_FLOAT(name) float name\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC2)\n");
-    fmt::print(f, "#define SG_VEC2(name) float name[2]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC3)\n");
-    fmt::print(f, "#define SG_VEC3(name) float name[3]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC4)\n");
-    fmt::print(f, "#define SG_VEC4(name) float name[4]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_MAT4)\n");
-    fmt::print(f, "#define SG_MAT4(name) float name[16]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_FLOAT_ARRAY)\n");
-    fmt::print(f, "#define SG_FLOAT_ARRAY(name,num) float name[num]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC2_ARRAY)\n");
-    fmt::print(f, "#define SG_VEC2_ARRAY(name,num) float name[num][2]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC3_ARRAY)\n");
-    fmt::print(f, "#define SG_VEC3(name,num) float name[num][3]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_VEC4_ARRAY)\n");
-    fmt::print(f, "#define SG_VEC4_ARRAY(name,num) float name[num][4]\n");
-    fmt::print(f, "#endif\n");
-    fmt::print(f, "#if !defined(SG_MAT4_ARRAY)\n");
-    fmt::print(f, "#define SG_MAT4(name,num) float name[num][16]\n");
-    fmt::print(f, "#endif\n");
     if (args.slang & slang_t::bit(slang_t::GLSL330)) {
-        fmt::print(f, "#if defined(SOKOL_GLCORE33)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLCORE33)\n"); }
         write_program(f, inp, spirvcross, slang_t::GLSL330);
-        fmt::print(f, "#endif /* SOKOL_GLCORE33 */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLCORE33 */\n"); }
     }
     if (args.slang & slang_t::bit(slang_t::GLSL300ES)) {
-        fmt::print(f, "#if defined(SOKOL_GLES3)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLES3)\n"); }
         write_program(f, inp, spirvcross, slang_t::GLSL300ES);
-        fmt::print(f, "#endif /* SOKOL_GLES3 */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLES3 */\n"); }
     }
     if (args.slang & slang_t::bit(slang_t::GLSL100)) {
-        fmt::print(f, "#if defined(SOKOL_GLES2)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLES2)\n"); }
         write_program(f, inp, spirvcross, slang_t::GLSL100);
-        fmt::print(f, "#endif /* SOKOL_GLES2 */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLES2 */\n"); }
     }
     if (args.slang & slang_t::bit(slang_t::HLSL5)) {
-        fmt::print(f, "#if defined(SOKOL_D3D11)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_D3D11)\n"); }
         write_program(f, inp, spirvcross, slang_t::HLSL5);
-        fmt::print(f, "#endif /* SOKOL_D3D11 */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_D3D11 */\n"); }
     }
     if (args.slang & slang_t::bit(slang_t::METAL_MACOS)) {
-        fmt::print(f, "#if defined(SOKOL_METAL)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_METAL)\n"); }
         write_program(f, inp, spirvcross, slang_t::METAL_MACOS);
-        fmt::print(f, "#endif /* SOKOL_METAL */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_METAL */\n"); }
     }
     if (args.slang & slang_t::bit(slang_t::METAL_IOS)) {
-        fmt::print(f, "#if defined(SOKOL_METAL)\n");
+        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_METAL)\n"); }
         write_program(f, inp, spirvcross, slang_t::METAL_IOS);
-        fmt::print(f, "#endif /* SOKOL_METAL */\n");
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_METAL */\n"); }
     }
     fclose(f);
     return error_t();
