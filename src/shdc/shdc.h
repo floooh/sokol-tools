@@ -62,14 +62,14 @@ struct error_t {
     // format for error message
     enum msg_format_t {
         GCC,
-        VSTUDIO
+        MSVC
     };
 
     error_t() { };
     error_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
     error_t(const std::string& m): msg(m), valid(true) { };
     std::string as_string(msg_format_t fmt) const {
-        if (fmt == VSTUDIO) {
+        if (fmt == MSVC) {
             return fmt::format("{}({}): error: {}", file, line_index+1, msg);
         }
         else {
@@ -84,7 +84,7 @@ struct error_t {
     static const char* msg_format_to_str(msg_format_t fmt) {
         switch (fmt) {
             case GCC: return "gcc";
-            case VSTUDIO: return "vstudio";
+            case MSVC: return "msvc";
             default: return "<invalid>";
         }
     }

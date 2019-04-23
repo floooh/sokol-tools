@@ -16,7 +16,7 @@ static const getopt_option_t option_list[] = {
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
     { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s)", "glsl330:glsl100:glsl300es:hlsl5:metal_macos:metal_ios" },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
-    { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|vstudio]"},
+    { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
     { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
     { "noifdef", 'n', GETOPT_OPTION_TYPE_NO_ARG, 0, 'n', "don't emit #ifdef SOKOL_XXX"},
@@ -138,11 +138,11 @@ args_t args_t::parse(int argc, const char** argv) {
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
                         args.error_format = error_t::GCC;
                     }
-                    else if (0 == strcmp("vstudio", ctx.current_opt_arg)) {
-                        args.error_format = error_t::VSTUDIO;
+                    else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
+                        args.error_format = error_t::MSVC;
                     }
                     else {
-                        fmt::print(stderr, "unknown error format {}, must be 'gcc' or 'vstudio'\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;

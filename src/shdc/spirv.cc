@@ -44,6 +44,10 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     std::vector<std::string> tokens;
     static const std::string colon = ":";
     for (const std::string& line: lines) {
+        // ignore the "compilation terminated" message, nothing useful in there
+        if (pystring::find(line, ": compilation terminated") >= 0) {
+            continue;
+        }
         // split by colons
         pystring::split(line, tokens, colon);
         if ((tokens.size() > 2) && ((tokens[0] == "ERROR") || (tokens[0] == "WARNING"))) {

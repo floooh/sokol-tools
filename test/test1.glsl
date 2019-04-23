@@ -25,6 +25,8 @@ void main() {
     gl_Position = mvp * position;
     color = color0;
     color.xy += bla;
+
+BLUB
 }
 @end
 
