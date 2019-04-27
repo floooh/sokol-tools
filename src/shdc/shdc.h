@@ -181,6 +181,13 @@ struct spirv_t {
 };
 
 /* reflection info */
+struct attr_t {
+    int slot = -1;
+    std::string name;
+    std::string sem_name;
+    int sem_index = 0;
+};
+
 struct uniform_t {
     enum type_t {
         INVALID,
@@ -255,6 +262,7 @@ struct stage_t {
 struct spirvcross_refl_t {
     stage_t::type_t stage = stage_t::INVALID;
     std::string entry_point;
+    std::vector<attr_t> attrs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
 };

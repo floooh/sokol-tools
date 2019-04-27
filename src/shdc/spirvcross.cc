@@ -83,6 +83,7 @@ static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
     spirvcross_refl_t refl;
+    ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
     switch (compiler.get_execution_model()) {
         case spv::ExecutionModelVertex:   refl.stage = stage_t::VS; break;
@@ -97,8 +98,18 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
             break;
         }
     }
+    // vertex attributes
+    if (compiler.get_execution_model() == spv::ExecutionModelVertex) {
+        for (const Resource& stage_input: shd_resources.stage_inputs) {
+            attr_t refl_attr;
+            refl_attr.slot = compiler.get_decoration(stage_input.id, spv::DecorationLocation);
+            refl_attr.name = stage_input.name;
+            refl_attr.sem_name = "TEXCOORD";
+            refl_attr.sem_index = refl_attr.slot;
+            refl.attrs.push_back(refl_attr);
+        }
+    }
     // uniform blocks
-    ShaderResources shd_resources = compiler.get_shader_resources();
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);

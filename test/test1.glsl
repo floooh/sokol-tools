@@ -18,6 +18,7 @@ uniform params2 {
 layout(location=0) in vec4 position;
 layout(location=1) in vec2 texcoord0;
 layout(location=2) in vec4 color0;
+
 layout(location=0) out vec2 uv;
 layout(location=1) out vec4 color;
 
@@ -25,8 +26,6 @@ void main() {
     gl_Position = mvp * position;
     color = color0;
     color.xy += bla;
-
-BLUB
 }
 @end
 
@@ -37,6 +36,7 @@ uniform sampler2D tex1;
 
 layout(location=0) in vec2 uv;
 layout(location=1) in vec4 color;
+
 layout(location=0) out vec4 fragColor;
 
 void main() {

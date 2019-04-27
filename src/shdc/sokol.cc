@@ -10,6 +10,11 @@
 
 namespace shdc {
 
+static const int NUM_VERTEX_ATTRS = 16;         /* SG_MAX_VERTEX_ATTRIBUTES */
+static const int NUM_UNIFORM_BLOCKS = 4;        /* SG_MAX_SHADERSTAGE_UBS */
+static const int NUM_IMAGES = 12;               /* SG_MAX_SHADERSTAGE_IMAGES */
+static const int NUM_UNIFORMBLOCK_MEMBERS = 16; /* SG_MAX_UB_MEMBERS */
+
 static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spirvcross, slang_t::type_t slang, int snippet_index) {
     for (const auto& src: spirvcross.sources[(int)slang]) {
         if (src.snippet_index == snippet_index) {
@@ -117,6 +122,86 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     }
 }
 
+static const attr_t* find_vertex_attr(const spirvcross_refl_t& refl, int slot) {
+    for (const attr_t& attr: refl.attrs) {
+        if (attr.slot == slot) {
+            return &attr;
+        }
+    }
+    return nullptr;
+}
+
+static const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot) {
+    for (const uniform_block_t& ub: refl.uniform_blocks) {
+        if (ub.slot == slot) {
+            return &ub;
+        }
+    }
+    return nullptr;
+}
+
+static const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
+    for (const image_t& img: refl.images) {
+        if (img.slot == slot) {
+            return &img;
+        }
+    }
+    return nullptr;
+}
+
+static void write_stage(FILE* f, const char* stage_name, const program_t& prog, const spirvcross_source_t* src, slang_t::type_t slang) {
+    fmt::print(f, "  {{ /* {} */\n", stage_name);
+    std::vector<std::string> lines;
+    pystring::splitlines(src->source_code, lines);
+    for (const auto& line: lines) {
+        fmt::print(f, "    \"{}\\n\"\n", line);
+    }
+    fmt::print(f, "    ,\n");
+    fmt::print(f, "    0, /* bytecode */\n");
+    fmt::print(f, "    0, /* bytecode_size */\n");
+    fmt::print(f, "    \"{}\", /* entry */\n", src->refl.entry_point);
+    fmt::print(f, "    {{ /* uniform blocks */\n");
+    for (int ub_index = 0; ub_index < NUM_UNIFORM_BLOCKS; ub_index++) {
+        const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
+        fmt::print(f, "      {{\n");
+        if (ub) {
+            fmt::print(f, "        {}, /* size */\n", is_glsl(slang) ? roundup(ub->size,16):ub->size);
+            fmt::print(f, "        {{ /* uniforms */");
+            for (int u_index = 0; u_index < NUM_UNIFORMBLOCK_MEMBERS; u_index++) {
+                if (0 == u_index) {
+                    fmt::print(f, "{{\"{}\",SG_UNIFORMTYPE_FLOAT4,{}}},", ub->name, roundup(ub->size,16)/16);
+                }
+                else {
+                    fmt::print(f, "{{0,0,0}},");
+                }
+            }
+            fmt::print(f, " }},\n");
+        }
+        else {
+            fmt::print(f, "        0, /* size */\n");
+            fmt::print(f, "        {{ /* uniforms */");
+            for (int u_index = 0; u_index < NUM_UNIFORMBLOCK_MEMBERS; u_index++) {
+                fmt::print(f, "{{0,0,0}},");
+            }
+            fmt::print(f, " }},\n");
+        }
+        fmt::print(f, "      }},\n");
+    }
+    fmt::print(f, "    }},\n");
+    fmt::print(f, "    {{ /* images */ ");
+    for (int img_index = 0; img_index < NUM_IMAGES; img_index++) {
+        const image_t* img = find_image(src->refl, img_index);
+        if (img) {
+            fmt::print(f, "{{\"{}\",{}}},", img->name, img_type_to_sokol_type_str(img->type));
+        }
+        else {
+            fmt::print(f, "{{0,0}},");
+        }
+    }
+    fmt::print(f, " }},\n");
+    fmt::print(f, "  }},\n");
+}
+
 static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
@@ -139,54 +224,25 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
         write_uniform_blocks(f, inp, &vs_src->refl, slang);
         write_uniform_blocks(f, inp, &fs_src->refl, slang);
 
-        /* write function which returns a sg_shader_desc */
-        fmt::print(f, "static sg_shader_desc {}_shader_desc(void) {{\n", prog.name);
-        fmt::print(f, "    sg_shader_desc desc;\n");
-        fmt::print(f, "    memset(&desc, 0, sizeof(desc));\n");
-        fmt::print(f, "    desc.label = \"{}_shader\";\n", prog.name);
-        fmt::print(f, "    desc.vs.source = {}_{}_{}_src;\n", prog.name, prog.vs_name, slang_t::to_str(slang));
-        fmt::print(f, "    desc.vs.entry = \"{}\";\n", vs_src->refl.entry_point);
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            fmt::print(f, "    /* uniform block: {} */\n", ub.name);
-            fmt::print(f, "    desc.vs.uniform_blocks[{}].size = {};\n", ub.slot, is_glsl(slang) ? roundup(ub.size,16):ub.size);
-            /* GLSL uniform blocks are flattened! */
-            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", ub.slot, ub.name);
-            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", ub.slot);
-            fmt::print(f, "    desc.vs.uniform_blocks[{}].uniforms[0].array_count = {};\n", ub.slot, roundup(ub.size,16)/16);
+        /* write shader desc */
+        fmt::print(f, "static sg_shader_desc {}_shader_desc = {{\n", prog.name);
+        fmt::print(f, "  0, /* _start_canary */\n");
+        fmt::print(f, "  {{ /*attrs*/");
+        for (int attr_index = 0; attr_index < NUM_VERTEX_ATTRS; attr_index++) {
+            const attr_t* attr = find_vertex_attr(vs_src->refl, attr_index);
+            if (attr) {
+                fmt::print(f, "{{\"{}\",\"{}\",{}}},", attr->name, attr->sem_name, attr->sem_index);
+            }
+            else {
+                fmt::print(f, "{{0,0,0}},");
+            }
         }
-        for (const image_t& img: vs_src->refl.images) {
-            fmt::print(f, "    desc.vs.images[{}].name = \"{}\";\n", img.slot, img.name);
-            fmt::print(f, "    desc.vs.images[{}].type = \"{}\";\n", img.slot, img_type_to_sokol_type_str(img.type));
-        }
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            fmt::print(f, "    /* uniform block: {} */\n", ub.name);
-            fmt::print(f, "    desc.fs.uniform_blocks[{}].size = {};\n", ub.slot, ub.size);
-            /* GLSL uniform blocks are flattened! */
-            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", ub.slot, ub.name);
-            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", ub.slot);
-            fmt::print(f, "    desc.fs.uniform_blocks[{}].uniforms[0].array_count = {};\n", ub.slot, roundup(ub.size,16)/16);
-        }
-        for (const image_t& img: fs_src->refl.images) {
-            fmt::print(f, "    desc.fs.images[{}].name = \"{}\";\n", img.slot, img.name);
-            fmt::print(f, "    desc.fs.images[{}].type = \"{}\";\n", img.slot, img_type_to_sokol_type_str(img.type));
-        }
-        fmt::print(f, "    return desc;\n");
-        fmt::print(f, "}}\n");
-
-        /* write shader sources */
-        std::vector<std::string> vs_lines, fs_lines;
-        pystring::splitlines(vs_src->source_code, vs_lines);
-        pystring::splitlines(fs_src->source_code, fs_lines);
-        fmt::print(f, "static const char* {}_{}_{}_src =\n", prog.name, prog.vs_name, slang_t::to_str(slang));
-        for (const auto& line: vs_lines) {
-            fmt::print(f, "\"{}\\n\"\n", line);
-        }
-        fmt::print(f, ";\n");
-        fmt::print(f, "static const char* {}_{}_{}_src =\n", prog.name, prog.fs_name, slang_t::to_str(slang));
-        for (const auto& line: fs_lines) {
-            fmt::print(f, "\"{}\\n\"\n", line);
-        }
-        fmt::print(f, ";\n");
+        fmt::print(f, " }},\n");
+        write_stage(f, "vs", prog, vs_src, slang);
+        write_stage(f, "fs", prog, fs_src, slang);
+        fmt::print(f, "  \"{}_shader\", /* label */\n", prog.name);
+        fmt::print(f, "  0, /* _end_canary */\n");
+        fmt::print(f, "}};\n");
     }
     return error_t();
 }
