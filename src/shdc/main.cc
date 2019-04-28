@@ -1,5 +1,15 @@
 /*
     sokol-shdc main source file.
+
+    TODO:
+
+    - "@module name" optional, as prefix for all generated structs and variables
+    - no redundant uniform block structs and bind slot variables per
+      module (allows to share bind slots and structs across shaders)
+    - "@include file" simple include mechanism, no header search paths,
+      instead paths are relative to current module file.
+    - rename vertex-output and fragment-inputs to their location and
+      ignore the names
 */
 #include "shdc.h"
 

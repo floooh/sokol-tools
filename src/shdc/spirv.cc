@@ -72,7 +72,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
                 }
                 msg = pystring::strip(msg);
                 // snippet-line-index to input source line index
-                if ((snippet_line_index > 0) && (snippet_line_index < (int)snippet.lines.size())) {
+                if ((snippet_line_index >= 0) && (snippet_line_index < (int)snippet.lines.size())) {
                     line_index = snippet.lines[snippet_line_index];
                     ok = true;
                 }
@@ -110,11 +110,6 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     glslang::TProgram program;
     program.addShader(&shader);
     if (!program.link(EShMsgDefault)) {
-        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
-        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
-        return false;
-    }
-    if (!program.mapIO()) {
         infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
         infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
         return false;

@@ -54,11 +54,20 @@ static bool is_glsl(slang_t::type_t slang) {
     return (slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES);
 }
 
+static void write_bind_slots(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
+    for (const uniform_block_t& ub: refl->uniform_blocks) {
+        fmt::print(f, "static const int {}_slot = {};\n", ub.name, ub.slot);
+    }
+    for (const image_t& img: refl->images) {
+        fmt::print(f, "static const int {}_slot = {};\n", img.name, img.slot);
+    }
+}
+
 static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
     for (const uniform_block_t& ub: refl->uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
         int cur_offset = 0;
-        fmt::print(f, "typedef struct {} {{\n", ub.name);
+        fmt::print(f, "typedef struct {}_t {{\n", ub.name);
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
             if (next_offset > cur_offset) {
@@ -107,7 +116,7 @@ static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_r
                 fmt::print(f, "    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
             }
         }
-        fmt::print(f, "}} {};\n", ub.name);
+        fmt::print(f, "}} {}_t;\n", ub.name);
         fmt::print(f, "#pragma pack(pop)\n");
     }
 }
@@ -220,6 +229,10 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
 
+        /* write buffer and texture bind slot constants */
+        write_bind_slots(f, inp, &vs_src->refl, slang);
+        write_bind_slots(f, inp, &fs_src->refl, slang);
+
         /* write uniform-block structs */
         write_uniform_blocks(f, inp, &vs_src->refl, slang);
         write_uniform_blocks(f, inp, &fs_src->refl, slang);
@@ -255,8 +268,6 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp, const spirvcross_t&
 
     fmt::print(f, "#pragma once\n");
     fmt::print(f, "/* #version:{}# machine generated, don't edit */\n", args.gen_version);
-    fmt::print(f, "#include <stdint.h>\n");
-    fmt::print(f, "#include <string.h>\n");
     fmt::print(f, "#if !defined(SOKOL_GFX_INCLUDED)\n");
     fmt::print(f, "#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
     fmt::print(f, "#endif\n");
