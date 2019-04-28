@@ -54,12 +54,21 @@ static bool is_glsl(slang_t::type_t slang) {
     return (slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES);
 }
 
+static std::string lib_prefix(const input_t& inp) {
+    if (inp.lib.empty()) {
+        return "";
+    }
+    else {
+        return fmt::format("{}_", inp.lib);
+    }
+}
+
 static void write_bind_slots(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
     for (const uniform_block_t& ub: refl->uniform_blocks) {
-        fmt::print(f, "static const int {}_slot = {};\n", ub.name, ub.slot);
+        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), ub.name, ub.slot);
     }
     for (const image_t& img: refl->images) {
-        fmt::print(f, "static const int {}_slot = {};\n", img.name, img.slot);
+        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), img.name, img.slot);
     }
 }
 
@@ -67,7 +76,7 @@ static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_r
     for (const uniform_block_t& ub: refl->uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
         int cur_offset = 0;
-        fmt::print(f, "typedef struct {}_t {{\n", ub.name);
+        fmt::print(f, "typedef struct {}{}_t {{\n", lib_prefix(inp), ub.name);
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
             if (next_offset > cur_offset) {
@@ -238,7 +247,7 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
         write_uniform_blocks(f, inp, &fs_src->refl, slang);
 
         /* write shader desc */
-        fmt::print(f, "static sg_shader_desc {}_shader_desc = {{\n", prog.name);
+        fmt::print(f, "static sg_shader_desc {}{}_shader_desc = {{\n", lib_prefix(inp), prog.name);
         fmt::print(f, "  0, /* _start_canary */\n");
         fmt::print(f, "  {{ /*attrs*/");
         for (int attr_index = 0; attr_index < NUM_VERTEX_ATTRS; attr_index++) {

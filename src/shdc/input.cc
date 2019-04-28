@@ -96,6 +96,7 @@ static bool remove_comments(std::string& str) {
     return true;
 }
 
+static const std::string lib_tag = "@lib";
 static const std::string type_tag = "@type";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
@@ -105,6 +106,26 @@ static const std::string end_tag = "@end";
 static const std::string prog_tag = "@program";
 
 /* validate source tags for errors, on error returns false and sets error object in inp */
+static bool validate_lib_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens[0] != lib_tag) {
+        inp.error = error_t(inp.path, line_index, "@lib tag must be first word in line.");
+        return false;
+    }
+    if (tokens.size() != 2) {
+        inp.error = error_t(inp.path, line_index, "@lib tag must have exactly one arg (@lib name)");
+        return false;
+    }
+    if (in_snippet) {
+        inp.error = error_t(inp.path, line_index, "@lib tag cannot be inside a tag block (missing @end?).");
+        return false;
+    }
+    if (!inp.lib.empty()) {
+        inp.error = error_t(inp.path, line_index, "only one @lib tag per file allowed.");
+        return false;
+    }
+    return true;
+}
+
 static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens[0] != type_tag) {
         inp.error = error_t(inp.path, line_index, "@type tag must be first word in line.");
@@ -257,7 +278,14 @@ static bool parse(input_t& inp) {
     int line_index = 0;
     for (const std::string& line : inp.lines) {
         add_line = in_snippet;
-        if (pystring::find(line, type_tag) >= 0) {
+        if (pystring::find(line, lib_tag) >= 0) {
+            pystring::split(line, tokens);
+            if (!validate_lib_tag(tokens, in_snippet, line_index, inp)) {
+                return false;
+            }
+            inp.lib = tokens[1];
+        }
+        else if (pystring::find(line, type_tag) >= 0) {
             pystring::split(line, tokens);
             if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
                 return false;

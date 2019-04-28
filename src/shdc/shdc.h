@@ -147,6 +147,7 @@ struct program_t {
 struct input_t {
     error_t error;
     std::string path;                   // filesystem
+    std::string lib;                    // optional library (namespace/module) name
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> type_map;    // @type uniform type definitions

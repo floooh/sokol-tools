@@ -1,3 +1,4 @@
+@lib bla
 /*
     this is a comment
 */
