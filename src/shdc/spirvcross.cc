@@ -193,50 +193,123 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     return res;
 }
 
-spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, uint32_t slang_mask) {
-    spirvcross_t spv_cross;
-    for (const auto& blob: spirv.blobs) {
-        for (int slang = 0; slang < slang_t::NUM; slang++) {
-            spirvcross_source_t src;
-            if (slang_mask & slang_t::bit((slang_t::type_t)slang)) {
-                switch (slang) {
-                    case slang_t::GLSL330:
-                        src = to_glsl(blob, 330, false);
-                        break;
-                    case slang_t::GLSL100:
-                        src = to_glsl(blob, 100, true);
-                        break;
-                    case slang_t::GLSL300ES:
-                        src = to_glsl(blob, 300, true);
-                        break;
-                    case slang_t::HLSL5:
-                        src = to_hlsl5(blob);
-                        break;
-                    case slang_t::METAL_MACOS:
-                        src = to_msl(blob, CompilerMSL::Options::macOS);
-                        break;
-                    case slang_t::METAL_IOS:
-                        src = to_msl(blob, CompilerMSL::Options::iOS);
-                        break;
-                }
-                if (src.valid) {
-                    src.snippet_index = blob.snippet_index;
-                    spv_cross.sources[slang].push_back(std::move(src));
+static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+    for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
+        if (spv_cross.unique_uniform_blocks[i].name == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+    for (int i = 0; i < (int)spv_cross.unique_images.size(); i++) {
+        if (spv_cross.unique_images[i].name == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// find all identical uniform blocks across all shaders, and check for collisions
+static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
+    for (spirvcross_source_t& src: spv_cross.sources) {
+        for (uniform_block_t& ub: src.refl.uniform_blocks) {
+            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.name);
+            if (other_ub_index >= 0) {
+                if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
+                    // identical uniform block already exists, take note of the index
+                    ub.unique_index = other_ub_index;
                 }
                 else {
-                    const int line_num = inp.snippets[blob.snippet_index].lines[0];
-                    std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
-                    spv_cross.error = error_t(inp.path, line_num, err_msg);
-                    return spv_cross;
+                    spv_cross.error = error_t(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    return false;
                 }
             }
+            else {
+                // a new unique uniform block
+                ub.unique_index = (int) spv_cross.unique_uniform_blocks.size();
+                spv_cross.unique_uniform_blocks.push_back(ub);
+            }
+        }
+    }
+    return true;
+}
+
+// find all identical images across all shaders, and check for collisions
+static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
+    for (spirvcross_source_t& src: spv_cross.sources) {
+        for (image_t& img: src.refl.images) {
+            int other_img_index = find_unique_image_by_name(spv_cross, img.name);
+            if (other_img_index >= 0) {
+                if (img.equals(spv_cross.unique_images[other_img_index])) {
+                    // identical image already exists, take note of the index
+                    img.unique_index = other_img_index;
+                }
+                else {
+                    spv_cross.error = error_t(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    return false;
+                }
+            }
+            else {
+                // new unique image
+                img.unique_index = (int) spv_cross.unique_images.size();
+                spv_cross.unique_images.push_back(img);
+            }
+        }
+    }
+    return true;
+}
+
+spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
+    spirvcross_t spv_cross;
+    for (const auto& blob: spirv.blobs) {
+        spirvcross_source_t src;
+        switch (slang) {
+            case slang_t::GLSL330:
+                src = to_glsl(blob, 330, false);
+                break;
+            case slang_t::GLSL100:
+                src = to_glsl(blob, 100, true);
+                break;
+            case slang_t::GLSL300ES:
+                src = to_glsl(blob, 300, true);
+                break;
+            case slang_t::HLSL5:
+                src = to_hlsl5(blob);
+                break;
+            case slang_t::METAL_MACOS:
+                src = to_msl(blob, CompilerMSL::Options::macOS);
+                break;
+            case slang_t::METAL_IOS:
+                src = to_msl(blob, CompilerMSL::Options::iOS);
+                break;
+            default: break;
+        }
+        if (src.valid) {
+            src.snippet_index = blob.snippet_index;
+            spv_cross.sources.push_back(std::move(src));
+        }
+        else {
+            const int line_num = inp.snippets[blob.snippet_index].lines[0];
+            std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
+            spv_cross.error = error_t(inp.path, line_num, err_msg);
+            return spv_cross;
+        }
+        if (!gather_unique_uniform_blocks(inp, spv_cross)) {
+            // error has been set in spv_cross.error
+            return spv_cross;
+        }
+        if (!gather_unique_images(inp, spv_cross)) {
+            // error has been set in spv_cross.error
+            return spv_cross;
         }
     }
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt) const {
-    fmt::print(stderr, "spirvcross_t:\n");
+void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t slang) const {
+    fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
     if (error.valid) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }
@@ -244,35 +317,30 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt) const {
         fmt::print(stderr, "  error: not set\n");
     }
     std::vector<std::string> lines;
-    for (int slang = 0; slang < slang_t::NUM; slang++) {
-        if (sources[slang].size() > 0) {
-            fmt::print(stderr, "  {}:\n", slang_t::to_str((slang_t::type_t)slang));
-            for (const spirvcross_source_t& source: sources[slang]) {
-                fmt::print(stderr, "    source for snippet {}:\n", source.snippet_index);
-                pystring::splitlines(source.source_code, lines);
-                for (const std::string& line: lines) {
-                    fmt::print(stderr, "      {}\n", line);
-                }
-                fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
-                fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
-                fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
-                for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-                    fmt::print(stderr, "        uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
-                    for (const uniform_t& uniform: ub.uniforms) {
-                        fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
-                            uniform.name,
-                            uniform_t::type_to_str(uniform.type),
-                            uniform.array_count,
-                            uniform.offset);
-                    }
-                }
-                for (const image_t& img: source.refl.images) {
-                    fmt::print(stderr, "        image: {}, slot: {}, type: {}\n",
-                        img.name, img.slot, image_t::type_to_str(img.type));
-                }
-                fmt::print(stderr, "\n");
+    for (const spirvcross_source_t& source: sources) {
+        fmt::print(stderr, "    source for snippet {}:\n", source.snippet_index);
+        pystring::splitlines(source.source_code, lines);
+        for (const std::string& line: lines) {
+            fmt::print(stderr, "      {}\n", line);
+        }
+        fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
+        fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
+        fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
+        for (const uniform_block_t& ub: source.refl.uniform_blocks) {
+            fmt::print(stderr, "        uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
+            for (const uniform_t& uniform: ub.uniforms) {
+                fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
+                    uniform.name,
+                    uniform_t::type_to_str(uniform.type),
+                    uniform.array_count,
+                    uniform.offset);
             }
         }
+        for (const image_t& img: source.refl.images) {
+            fmt::print(stderr, "        image: {}, slot: {}, type: {}\n",
+                img.name, img.slot, image_t::type_to_str(img.type));
+        }
+        fmt::print(stderr, "\n");
     }
     fmt::print(stderr, "\n");
 }

@@ -213,6 +213,13 @@ struct uniform_t {
             default:        return "INVALID";
         }
     }
+
+    bool equals(const uniform_t& other) const {
+        return (name == other.name) &&
+               (type == other.type) &&
+               (array_count == other.array_count) &&
+               (offset == other.offset);
+    }
 };
 
 struct uniform_block_t {
@@ -220,6 +227,23 @@ struct uniform_block_t {
     int size = 0;
     std::string name;
     std::vector<uniform_t> uniforms;
+    int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
+
+    bool equals(const uniform_block_t& other) const {
+        if ((slot != other.slot) ||
+            (size != other.size) ||
+            (name != other.name) ||
+            (uniforms.size() != other.uniforms.size()))
+        {
+            return false;
+        }
+        for (int i = 0; i < (int)uniforms.size(); i++) {
+            if (!uniforms[i].equals(other.uniforms[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
 };
 
 struct image_t {
@@ -233,6 +257,7 @@ struct image_t {
     int slot = -1;
     std::string name;
     type_t type = INVALID;
+    int unique_index = -1;      // index into spirvcross_t.unique_images
 
     static const char* type_to_str(type_t t) {
         switch (t) {
@@ -242,6 +267,10 @@ struct image_t {
             case IMAGE_ARRAY:   return "IMAGE_ARRAY";
             default:            return "INVALID";
         }
+    }
+
+    bool equals(const image_t& other) {
+        return (slot == other.slot) && (name == other.name) && (type == other.type);
     }
 };
 
@@ -279,10 +308,12 @@ struct spirvcross_source_t {
 /* spirv-cross wrapper */
 struct spirvcross_t {
     error_t error;
-    std::array<std::vector<spirvcross_source_t>, slang_t::NUM> sources;
+    std::vector<spirvcross_source_t> sources;
+    std::vector<uniform_block_t> unique_uniform_blocks;
+    std::vector<image_t> unique_images;
 
-    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, uint32_t slang_mask);
-    void dump_debug(error_t::msg_format_t err_fmt) const;
+    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
+    void dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */
@@ -295,7 +326,7 @@ struct bytecode_t {
 
 /* C header-generator for sokol_gfx.h */
 struct sokol_t {
-    static error_t gen(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode);
+    static error_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 } // namespace shdc

@@ -8,13 +8,22 @@
 @type vec4 hmm_vec4
 @type mat4 hmm_mat4
 
-@vs my_vs
-uniform params {
+@block uniforms
+layout(binding=0) uniform params {
     mat4 mvp;
 };
-uniform params2 {
+layout(binding=1) uniform params2 {
     vec2 bla;
 };
+@end
+
+@block textures
+layout(binding=0) uniform sampler2D tex0;
+layout(binding=1) uniform sampler2D tex1;
+@end
+
+@vs vs1
+@include_block uniforms
 
 layout(location=0) in vec4 position;
 layout(location=1) in vec2 texcoord0;
@@ -31,9 +40,8 @@ void main() {
 @end
 
 // the fragment shader
-@fs my_fs
-uniform sampler2D tex0;
-uniform sampler2D tex1;
+@fs fs1
+@include_block textures
 
 layout(location=0) in vec2 uv;
 layout(location=1) in vec4 color;
@@ -46,5 +54,33 @@ void main() {
 @end
 
 /* and the program */
-@program my_prog my_vs my_fs
+@program prog1 vs1 fs1
 
+@vs vs2
+layout(binding=0) uniform params {
+    mat4 mvp;
+};
+layout(binding=1) uniform params2 {
+    vec2 bla;
+};
+
+layout(location=0) in vec4 pos;
+layout(location=0) out vec2 uv;
+
+void main() {
+    gl_Position = mvp * pos;
+    uv = pos.xy;
+}
+@end
+
+@fs fs2
+@include_block textures
+layout(location=0) in vec2 uv;
+layout(location=0) out vec4 fragColor;
+
+void main() {
+    fragColor = texture(tex0, uv) + texture(tex1, uv);
+}
+@end
+
+@program prog2 vs2 fs2

@@ -15,8 +15,8 @@ static const int NUM_UNIFORM_BLOCKS = 4;        /* SG_MAX_SHADERSTAGE_UBS */
 static const int NUM_IMAGES = 12;               /* SG_MAX_SHADERSTAGE_IMAGES */
 static const int NUM_UNIFORMBLOCK_MEMBERS = 16; /* SG_MAX_UB_MEMBERS */
 
-static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spirvcross, slang_t::type_t slang, int snippet_index) {
-    for (const auto& src: spirvcross.sources[(int)slang]) {
+static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spirvcross, int snippet_index) {
+    for (const auto& src: spirvcross.sources) {
         if (src.snippet_index == snippet_index) {
             return &src;
         }
@@ -63,17 +63,8 @@ static std::string lib_prefix(const input_t& inp) {
     }
 }
 
-static void write_bind_slots(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
-    for (const uniform_block_t& ub: refl->uniform_blocks) {
-        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), ub.name, ub.slot);
-    }
-    for (const image_t& img: refl->images) {
-        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), img.name, img.slot);
-    }
-}
-
-static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_refl_t* refl, slang_t::type_t slang) {
-    for (const uniform_block_t& ub: refl->uniform_blocks) {
+static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+    for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
         int cur_offset = 0;
         fmt::print(f, "typedef struct {}{}_t {{\n", lib_prefix(inp), ub.name);
@@ -220,13 +211,25 @@ static void write_stage(FILE* f, const char* stage_name, const program_t& prog, 
     fmt::print(f, "  }},\n");
 }
 
-static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static void write_resources(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+    // bind slot constants for uniform blocks and images
+    for (const auto& ub: spirvcross.unique_uniform_blocks) {
+        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), ub.name, ub.slot);
+    }
+    for (const image_t& img: spirvcross.unique_images) {
+        fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), img.name, img.slot);
+    }
+    // uniform block C structs
+    write_uniform_blocks(f, inp, spirvcross, slang);
+}
+
+static error_t write_programs(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        const spirvcross_source_t* vs_src = find_spirvcross_source(spirvcross, slang, vs_snippet_index);
-        const spirvcross_source_t* fs_src = find_spirvcross_source(spirvcross, slang, fs_snippet_index);
+        const spirvcross_source_t* vs_src = find_spirvcross_source(spirvcross, vs_snippet_index);
+        const spirvcross_source_t* fs_src = find_spirvcross_source(spirvcross, fs_snippet_index);
         if (!vs_src) {
             return error_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
@@ -237,14 +240,6 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
-
-        /* write buffer and texture bind slot constants */
-        write_bind_slots(f, inp, &vs_src->refl, slang);
-        write_bind_slots(f, inp, &fs_src->refl, slang);
-
-        /* write uniform-block structs */
-        write_uniform_blocks(f, inp, &vs_src->refl, slang);
-        write_uniform_blocks(f, inp, &fs_src->refl, slang);
 
         /* write shader desc */
         fmt::print(f, "static sg_shader_desc {}{}_shader_desc = {{\n", lib_prefix(inp), prog.name);
@@ -269,46 +264,44 @@ static error_t write_program(FILE* f, const input_t& inp, const spirvcross_t& sp
     return error_t();
 }
 
-error_t sokol_t::gen(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode) {
+static const char* sokol_define(slang_t::type_t slang) {
+    switch (slang) {
+        case slang_t::GLSL330:      return "SOKOL_GLCORE33";
+        case slang_t::GLSL100:      return "SOKOL_GLES2";
+        case slang_t::GLSL300ES:    return "SOKOL_GLES3";
+        case slang_t::HLSL5:        return "SOKOL_HLSL5";
+        case slang_t::METAL_MACOS:  return "SOKOL_METAL";
+        case slang_t::METAL_IOS:    return "SOKOL_METAL";
+        default: return "<INVALID>";
+    }
+}
+
+error_t sokol_t::gen(const args_t& args, const input_t& inp,
+                     const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
+                     const std::array<bytecode_t,slang_t::NUM>& bytecode)
+{
+    // FIXME: probably better to write everything into vec<string> first
+    // and don't create an output file at all when an error occurs
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
         return error_t(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
-
     fmt::print(f, "#pragma once\n");
     fmt::print(f, "/* #version:{}# machine generated, don't edit */\n", args.gen_version);
     fmt::print(f, "#if !defined(SOKOL_GFX_INCLUDED)\n");
     fmt::print(f, "#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
     fmt::print(f, "#endif\n");
-    if (args.slang & slang_t::bit(slang_t::GLSL330)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLCORE33)\n"); }
-        write_program(f, inp, spirvcross, slang_t::GLSL330);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLCORE33 */\n"); }
-    }
-    if (args.slang & slang_t::bit(slang_t::GLSL300ES)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLES3)\n"); }
-        write_program(f, inp, spirvcross, slang_t::GLSL300ES);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLES3 */\n"); }
-    }
-    if (args.slang & slang_t::bit(slang_t::GLSL100)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_GLES2)\n"); }
-        write_program(f, inp, spirvcross, slang_t::GLSL100);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_GLES2 */\n"); }
-    }
-    if (args.slang & slang_t::bit(slang_t::HLSL5)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_D3D11)\n"); }
-        write_program(f, inp, spirvcross, slang_t::HLSL5);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_D3D11 */\n"); }
-    }
-    if (args.slang & slang_t::bit(slang_t::METAL_MACOS)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_METAL)\n"); }
-        write_program(f, inp, spirvcross, slang_t::METAL_MACOS);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_METAL */\n"); }
-    }
-    if (args.slang & slang_t::bit(slang_t::METAL_IOS)) {
-        if (!args.no_ifdef) { fmt::print(f, "#if defined(SOKOL_METAL)\n"); }
-        write_program(f, inp, spirvcross, slang_t::METAL_IOS);
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* SOKOL_METAL */\n"); }
+    error_t err;
+    for (int i = 0; i < slang_t::NUM; i++) {
+        slang_t::type_t slang = (slang_t::type_t) i;
+        if (!args.no_ifdef) { fmt::print(f, "#if defined({})\n", sokol_define(slang)); }
+        write_resources(f, inp, spirvcross[i], slang);
+        err = write_programs(f, inp, spirvcross[i], slang);
+        if (err.valid) {
+            fclose(f);
+            return err;
+        }
+        if (!args.no_ifdef) { fmt::print(f, "#endif /* {} */\n", sokol_define(slang)); }
     }
     fclose(f);
     return error_t();

@@ -4,7 +4,7 @@
     TODO:
 
     - [DONE] "@lib name" optional, as prefix for all generated structs and variables
-    - no redundant uniform block structs and bind slot variables per
+    - [DONE] no redundant uniform block structs and bind slot variables per
       module (allows to share bind slots and structs across shaders)
     - rename vertex-output and fragment-inputs to their location and
       ignore the names
@@ -51,23 +51,30 @@ int main(int argc, const char** argv) {
     spirv_t::finalize_spirv_tools();
 
     // cross-translate SPIRV to shader dialects
-    spirvcross_t spirvcross = spirvcross_t::translate(inp, spirv, args.slang);
-    if (args.debug_dump) {
-        spirvcross.dump_debug(args.error_format);
-    }
-    if (spirvcross.error.valid) {
-        spirvcross.error.print(args.error_format);
-        return 10;
+    std::array<spirvcross_t,slang_t::NUM> spirvcross;
+    for (int i = 0; i < slang_t::NUM; i++) {
+        slang_t::type_t slang = (slang_t::type_t)i;
+        spirvcross[i] = spirvcross_t::translate(inp, spirv, slang);
+        if (args.debug_dump) {
+            spirvcross[i].dump_debug(args.error_format, slang);
+        }
+        if (spirvcross[i].error.valid) {
+            spirvcross[i].error.print(args.error_format);
+            return 10;
+        }
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    bytecode_t bytecode = bytecode_t::compile(inp, spirvcross, args.byte_code);
-    if (args.debug_dump) {
-        bytecode.dump_debug();
-    }
-    if (bytecode.error.valid) {
-        bytecode.error.print(args.error_format);
-        return 10;
+    std::array<bytecode_t, slang_t::NUM> bytecode;
+    for (int i = 0; i < slang_t::NUM; i++) {
+        bytecode[i] = bytecode_t::compile(inp, spirvcross[i], args.byte_code);
+        if (args.debug_dump) {
+            bytecode[i].dump_debug();
+        }
+        if (bytecode[i].error.valid) {
+            bytecode[i].error.print(args.error_format);
+            return 10;
+        }
     }
 
     // generate the output C header
