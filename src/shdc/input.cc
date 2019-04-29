@@ -107,10 +107,6 @@ static const std::string prog_tag = "@program";
 
 /* validate source tags for errors, on error returns false and sets error object in inp */
 static bool validate_lib_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != lib_tag) {
-        inp.error = error_t(inp.path, line_index, "@lib tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 2) {
         inp.error = error_t(inp.path, line_index, "@lib tag must have exactly one arg (@lib name)");
         return false;
@@ -127,10 +123,6 @@ static bool validate_lib_tag(const std::vector<std::string>& tokens, bool in_sni
 }
 
 static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != type_tag) {
-        inp.error = error_t(inp.path, line_index, "@type tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 3) {
         inp.error = error_t(inp.path, line_index, "@type tag must have exactly two args (@type type alias)");
         return false;
@@ -147,10 +139,6 @@ static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_sn
 }
 
 static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != block_tag) {
-        inp.error = error_t(inp.path, line_index, "@block tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 2) {
         inp.error = error_t(inp.path, line_index, "@block tag must have exactly one arg (@block name).");
         return false;
@@ -167,10 +155,6 @@ static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_s
 }
 
 static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != vs_tag) {
-        inp.error = error_t(inp.path, line_index, "@vs tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 2) {
         inp.error = error_t(inp.path, line_index, "@vs tag must have exactly one arg (@vs name).");
         return false;
@@ -187,10 +171,6 @@ static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snip
 }
 
 static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != fs_tag) {
-        inp.error = error_t(inp.path, line_index, "@fs tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 2) {
         inp.error = error_t(inp.path, line_index, "@fs tag must have exactly one arg (@fs name).");
         return false;
@@ -207,10 +187,6 @@ static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snip
 }
 
 static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != inclblock_tag) {
-        inp.error = error_t(inp.path, line_index, "@include_block tag must be first word in line.");
-        return false;
-    }
     if (tokens.size() != 2) {
         inp.error = error_t(inp.path, line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
         return false;
@@ -239,10 +215,6 @@ static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_sni
 }
 
 static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens[0] != prog_tag) {
-        inp.error = error_t(inp.path, line_index, "@program tag must be the first word in line.");
-        return false;
-    }
     if (tokens.size() != 4) {
         inp.error = error_t(inp.path, line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
         return false;
@@ -278,92 +250,91 @@ static bool parse(input_t& inp) {
     int line_index = 0;
     for (const std::string& line : inp.lines) {
         add_line = in_snippet;
-        if (pystring::find(line, lib_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_lib_tag(tokens, in_snippet, line_index, inp)) {
+        pystring::split(line, tokens);
+        if (tokens.size() > 0) {
+            if (tokens[0] == lib_tag) {
+                if (!validate_lib_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                inp.lib = tokens[1];
+            }
+            else if (tokens[0] == type_tag) {
+                if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                if (inp.type_map.count(tokens[1]) > 0) {
+                    inp.error = error_t(inp.path, line_index, fmt::format("type '{}' already defined!", tokens[1]));
+                    return false;
+                }
+                inp.type_map[tokens[1]] = tokens[2];
+            }
+            else if (tokens[0] == block_tag) {
+                if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                cur_snippet = snippet_t(snippet_t::BLOCK, tokens[1]);
+                add_line = false;
+                in_snippet = true;
+            }
+            else if (tokens[0] == vs_tag) {
+                if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                cur_snippet = snippet_t(snippet_t::VS, tokens[1]);
+                add_line = false;
+                in_snippet = true;
+            }
+            else if (tokens[0] == fs_tag) {
+                if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                cur_snippet = snippet_t(snippet_t::FS, tokens[1]);
+                add_line = false;
+                in_snippet = true;
+            }
+            else if (tokens[0] == inclblock_tag) {
+                if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                const snippet_t& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
+                for (int line_index : src_snippet.lines) {
+                    cur_snippet.lines.push_back(line_index);
+                }
+                add_line = false;
+            }
+            else if (tokens[0] == end_tag) {
+                if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                inp.snippet_map[cur_snippet.name] = inp.snippets.size();
+                switch (cur_snippet.type) {
+                    case snippet_t::BLOCK:
+                        inp.block_map[cur_snippet.name] = inp.snippets.size();
+                        break;
+                    case snippet_t::VS:
+                        inp.vs_map[cur_snippet.name] = inp.snippets.size();
+                        break;
+                    case snippet_t::FS:
+                        inp.fs_map[cur_snippet.name] = inp.snippets.size();
+                        break;
+                    default: break;
+                }
+                inp.snippets.push_back(std::move(cur_snippet));
+                add_line = false;
+                in_snippet = false;
+            }
+            else if (tokens[0] == prog_tag) {
+                assert(!add_line);
+                if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
+                add_line = false;
+            }
+            else if (tokens[0][0] == '@') {
+                inp.error = error_t(inp.path, line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
             }
-            inp.lib = tokens[1];
-        }
-        else if (pystring::find(line, type_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            if (inp.type_map.count(tokens[1]) > 0) {
-                inp.error = error_t(inp.path, line_index, fmt::format("type '{}' already defined!", tokens[1]));
-                return false;
-            }
-            inp.type_map[tokens[1]] = tokens[2];
-        }
-        else if (pystring::find(line, block_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            cur_snippet = snippet_t(snippet_t::BLOCK, tokens[1]);
-            add_line = false;
-            in_snippet = true;
-        }
-        else if (pystring::find(line, vs_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            cur_snippet = snippet_t(snippet_t::VS, tokens[1]);
-            add_line = false;
-            in_snippet = true;
-        }
-        else if (pystring::find(line, fs_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            cur_snippet = snippet_t(snippet_t::FS, tokens[1]);
-            add_line = false;
-            in_snippet = true;
-        }
-        else if (pystring::find(line, inclblock_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            const snippet_t& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
-            for (int line_index : src_snippet.lines) {
-                cur_snippet.lines.push_back(line_index);
-            }
-            add_line = false;
-        }
-        else if (pystring::find(line, end_tag) >= 0) {
-            pystring::split(line, tokens);
-            if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            inp.snippet_map[cur_snippet.name] = inp.snippets.size();
-            switch (cur_snippet.type) {
-                case snippet_t::BLOCK:
-                    inp.block_map[cur_snippet.name] = inp.snippets.size();
-                    break;
-                case snippet_t::VS:
-                    inp.vs_map[cur_snippet.name] = inp.snippets.size();
-                    break;
-                case snippet_t::FS:
-                    inp.fs_map[cur_snippet.name] = inp.snippets.size();
-                    break;
-                default: break;
-            }
-            inp.snippets.push_back(std::move(cur_snippet));
-            add_line = false;
-            in_snippet = false;
-        }
-        else if (pystring::find(line, prog_tag) >= 0) {
-            assert(!add_line);
-            pystring::split(line, tokens);
-            if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
-                return false;
-            }
-            inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
-            add_line = false;
         }
         if (add_line) {
             cur_snippet.lines.push_back(line_index);
