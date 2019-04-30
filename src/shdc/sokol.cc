@@ -10,20 +10,6 @@
 
 namespace shdc {
 
-static const int NUM_VERTEX_ATTRS = 16;         /* SG_MAX_VERTEX_ATTRIBUTES */
-static const int NUM_UNIFORM_BLOCKS = 4;        /* SG_MAX_SHADERSTAGE_UBS */
-static const int NUM_IMAGES = 12;               /* SG_MAX_SHADERSTAGE_IMAGES */
-static const int NUM_UNIFORMBLOCK_MEMBERS = 16; /* SG_MAX_UB_MEMBERS */
-
-static const spirvcross_source_t* find_spirvcross_source(const spirvcross_t& spirvcross, int snippet_index) {
-    for (const auto& src: spirvcross.sources) {
-        if (src.snippet_index == snippet_index) {
-            return &src;
-        }
-    }
-    return nullptr;
-}
-
 static const char* uniform_type_str(uniform_t::type_t type) {
     switch (type) {
         case uniform_t::FLOAT: return "float";
@@ -63,7 +49,7 @@ static std::string lib_prefix(const input_t& inp) {
     }
 }
 
-static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static void write_ub_structs(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         fmt::print(f, "#pragma pack(push,1)\n");
         int cur_offset = 0;
@@ -124,20 +110,11 @@ static void write_uniform_blocks(FILE* f, const input_t& inp, const spirvcross_t
 static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     switch (type) {
         case image_t::IMAGE_2D: return "SG_IMAGETYPE_2D";
-        case image_t::IMAGE_CUBE: return "SG_IMAGETYPE_CUBE;";
+        case image_t::IMAGE_CUBE: return "SG_IMAGETYPE_CUBE";
         case image_t::IMAGE_3D: return "SG_IMAGETYPE_3D";
         case image_t::IMAGE_ARRAY: return "SG_IMAGETYPE_ARRAY";
         default: return "INVALID";
     }
-}
-
-static const attr_t* find_vertex_attr(const spirvcross_refl_t& refl, int slot) {
-    for (const attr_t& attr: refl.attrs) {
-        if (attr.slot == slot) {
-            return &attr;
-        }
-    }
-    return nullptr;
 }
 
 static const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot) {
@@ -158,25 +135,25 @@ static const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
     return nullptr;
 }
 
-static void write_stage(FILE* f, const char* stage_name, const program_t& prog, const spirvcross_source_t* src, slang_t::type_t slang) {
+static void write_stage(FILE* f, const char* stage_name, const program_t& prog, const spirvcross_source_t& src, slang_t::type_t slang) {
     fmt::print(f, "  {{ /* {} */\n", stage_name);
     std::vector<std::string> lines;
-    pystring::splitlines(src->source_code, lines);
+    pystring::splitlines(src.source_code, lines);
     for (const auto& line: lines) {
         fmt::print(f, "    \"{}\\n\"\n", line);
     }
     fmt::print(f, "    ,\n");
     fmt::print(f, "    0, /* bytecode */\n");
     fmt::print(f, "    0, /* bytecode_size */\n");
-    fmt::print(f, "    \"{}\", /* entry */\n", src->refl.entry_point);
+    fmt::print(f, "    \"{}\", /* entry */\n", src.refl.entry_point);
     fmt::print(f, "    {{ /* uniform blocks */\n");
-    for (int ub_index = 0; ub_index < NUM_UNIFORM_BLOCKS; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
+    for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
+        const uniform_block_t* ub = find_uniform_block(src.refl, ub_index);
         fmt::print(f, "      {{\n");
         if (ub) {
             fmt::print(f, "        {}, /* size */\n", is_glsl(slang) ? roundup(ub->size,16):ub->size);
             fmt::print(f, "        {{ /* uniforms */");
-            for (int u_index = 0; u_index < NUM_UNIFORMBLOCK_MEMBERS; u_index++) {
+            for (int u_index = 0; u_index < uniform_t::NUM; u_index++) {
                 if (0 == u_index) {
                     fmt::print(f, "{{\"{}\",SG_UNIFORMTYPE_FLOAT4,{}}},", ub->name, roundup(ub->size,16)/16);
                 }
@@ -189,7 +166,7 @@ static void write_stage(FILE* f, const char* stage_name, const program_t& prog, 
         else {
             fmt::print(f, "        0, /* size */\n");
             fmt::print(f, "        {{ /* uniforms */");
-            for (int u_index = 0; u_index < NUM_UNIFORMBLOCK_MEMBERS; u_index++) {
+            for (int u_index = 0; u_index < uniform_t::NUM; u_index++) {
                 fmt::print(f, "{{0,0,0}},");
             }
             fmt::print(f, " }},\n");
@@ -198,8 +175,8 @@ static void write_stage(FILE* f, const char* stage_name, const program_t& prog, 
     }
     fmt::print(f, "    }},\n");
     fmt::print(f, "    {{ /* images */ ");
-    for (int img_index = 0; img_index < NUM_IMAGES; img_index++) {
-        const image_t* img = find_image(src->refl, img_index);
+    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
+        const image_t* img = find_image(src.refl, img_index);
         if (img) {
             fmt::print(f, "{{\"{}\",{}}},", img->name, img_type_to_sokol_type_str(img->type));
         }
@@ -211,16 +188,26 @@ static void write_stage(FILE* f, const char* stage_name, const program_t& prog, 
     fmt::print(f, "  }},\n");
 }
 
-static void write_resources(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
-    // bind slot constants for uniform blocks and images
-    for (const auto& ub: spirvcross.unique_uniform_blocks) {
+static void write_bind_slots(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+    // vertex attributes
+    for (const spirvcross_source_t& src: spirvcross.sources) {
+        if (src.refl.stage == stage_t::VS) {
+            for (const attr_t& attr: src.refl.inputs) {
+                if (attr.slot >= 0) {
+                    const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
+                    fmt::print(f, "static const int {}{}_{} = {};\n", lib_prefix(inp), vs_snippet.name, attr.name, attr.slot);
+                }
+            }
+        }
+    }
+    // uniform block bind slots
+    for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), ub.name, ub.slot);
     }
+    // image bind slots
     for (const image_t& img: spirvcross.unique_images) {
         fmt::print(f, "static const int {}{}_slot = {};\n", lib_prefix(inp), img.name, img.slot);
     }
-    // uniform block C structs
-    write_uniform_blocks(f, inp, spirvcross, slang);
 }
 
 static error_t write_programs(FILE* f, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
@@ -228,27 +215,29 @@ static error_t write_programs(FILE* f, const input_t& inp, const spirvcross_t& s
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        const spirvcross_source_t* vs_src = find_spirvcross_source(spirvcross, vs_snippet_index);
-        const spirvcross_source_t* fs_src = find_spirvcross_source(spirvcross, fs_snippet_index);
-        if (!vs_src) {
+        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        if (vs_src_index < 0) {
             return error_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.vs_name, prog.name));
         }
-        if (!fs_src) {
+        if (fs_src_index < 0) {
             return error_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
+        const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
+        const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
 
         /* write shader desc */
         fmt::print(f, "static sg_shader_desc {}{}_shader_desc = {{\n", lib_prefix(inp), prog.name);
         fmt::print(f, "  0, /* _start_canary */\n");
         fmt::print(f, "  {{ /*attrs*/");
-        for (int attr_index = 0; attr_index < NUM_VERTEX_ATTRS; attr_index++) {
-            const attr_t* attr = find_vertex_attr(vs_src->refl, attr_index);
-            if (attr) {
-                fmt::print(f, "{{\"{}\",\"{}\",{}}},", attr->name, attr->sem_name, attr->sem_index);
+        for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
+            const attr_t& attr = vs_src.refl.inputs[attr_index];
+            if (attr.slot >= 0) {
+                fmt::print(f, "{{\"{}\",\"{}\",{}}},", attr.name, attr.sem_name, attr.sem_index);
             }
             else {
                 fmt::print(f, "{{0,0,0}},");
@@ -294,14 +283,17 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
     error_t err;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
-        if (!args.no_ifdef) { fmt::print(f, "#if defined({})\n", sokol_define(slang)); }
-        write_resources(f, inp, spirvcross[i], slang);
-        err = write_programs(f, inp, spirvcross[i], slang);
-        if (err.valid) {
-            fclose(f);
-            return err;
+        if (args.slang & slang_t::bit(slang)) {
+            if (!args.no_ifdef) { fmt::print(f, "#if defined({})\n", sokol_define(slang)); }
+            write_bind_slots(f, inp, spirvcross[i], slang);
+            write_ub_structs(f, inp, spirvcross[i], slang);
+            err = write_programs(f, inp, spirvcross[i], slang);
+            if (err.valid) {
+                fclose(f);
+                return err;
+            }
+            if (!args.no_ifdef) { fmt::print(f, "#endif /* {} */\n", sokol_define(slang)); }
         }
-        if (!args.no_ifdef) { fmt::print(f, "#endif /* {} */\n", sokol_define(slang)); }
     }
     fclose(f);
     return error_t();

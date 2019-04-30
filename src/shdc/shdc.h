@@ -183,13 +183,22 @@ struct spirv_t {
 
 /* reflection info */
 struct attr_t {
+    static const int NUM = 16;      // must be identical with NUM_VERTEX_ATTRS
     int slot = -1;
     std::string name;
     std::string sem_name;
     int sem_index = 0;
+
+    bool equals(const attr_t& rhs) const {
+        return (slot == rhs.slot) &&
+               (name == rhs.name) &&
+               (sem_name == rhs.sem_name) &&
+               (sem_index == rhs.sem_index);
+    }
 };
 
 struct uniform_t {
+    static const int NUM = 16;      // must be identical with SG_MAX_UB_MEMBERS
     enum type_t {
         INVALID,
         FLOAT,
@@ -223,6 +232,7 @@ struct uniform_t {
 };
 
 struct uniform_block_t {
+    static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
     int slot = -1;
     int size = 0;
     std::string name;
@@ -247,6 +257,7 @@ struct uniform_block_t {
 };
 
 struct image_t {
+    static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
     enum type_t {
         INVALID,
         IMAGE_2D,
@@ -292,7 +303,8 @@ struct stage_t {
 struct spirvcross_refl_t {
     stage_t::type_t stage = stage_t::INVALID;
     std::string entry_point;
-    std::vector<attr_t> attrs;
+    std::array<attr_t, attr_t::NUM> inputs;
+    std::array<attr_t, attr_t::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
 };
@@ -313,6 +325,7 @@ struct spirvcross_t {
     std::vector<image_t> unique_images;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
+    int find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 

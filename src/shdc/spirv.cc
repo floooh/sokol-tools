@@ -100,6 +100,7 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     shader.setAutoMapBindings(true);
+    shader.setAutoMapLocations(true);
     if (!shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault)) {
         infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
         infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, spirv.errors);
@@ -110,6 +111,11 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     glslang::TProgram program;
     program.addShader(&shader);
     if (!program.link(EShMsgDefault)) {
+        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
+        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+        return false;
+    }
+    if (!program.mapIO()) {
         infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
         infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
         return false;

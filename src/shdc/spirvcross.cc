@@ -14,6 +14,15 @@ using namespace spirv_cross;
 
 namespace shdc {
 
+int spirvcross_t::find_source_by_snippet_index(int snippet_index) const {
+    for (int i = 0; i < (int)sources.size(); i++) {
+        if (sources[i].snippet_index == snippet_index) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     /* go though all uniform block matrixes and decorate them with
         column-major, this is needed in the HLSL backend to fix the
@@ -98,16 +107,22 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
             break;
         }
     }
-    // vertex attributes
-    if (compiler.get_execution_model() == spv::ExecutionModelVertex) {
-        for (const Resource& stage_input: shd_resources.stage_inputs) {
-            attr_t refl_attr;
-            refl_attr.slot = compiler.get_decoration(stage_input.id, spv::DecorationLocation);
-            refl_attr.name = stage_input.name;
-            refl_attr.sem_name = "TEXCOORD";
-            refl_attr.sem_index = refl_attr.slot;
-            refl.attrs.push_back(refl_attr);
-        }
+    // stage inputs and outputs
+    for (const Resource& res_attr: shd_resources.stage_inputs) {
+        attr_t refl_attr;
+        refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
+        refl_attr.name = res_attr.name;
+        refl_attr.sem_name = "TEXCOORD";
+        refl_attr.sem_index = refl_attr.slot;
+        refl.inputs[refl_attr.slot] = refl_attr;
+    }
+    for (const Resource& res_attr: shd_resources.stage_outputs) {
+        attr_t refl_attr;
+        refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
+        refl_attr.name = res_attr.name;
+        refl_attr.sem_name = "TEXCOORD";
+        refl_attr.sem_index = refl_attr.slot;
+        refl.outputs[refl_attr.slot] = refl_attr;
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
@@ -261,6 +276,33 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
     return true;
 }
 
+// check that the vertex shader outputs match the fragment shader inputs for each program
+// FIXME: this should also check the attribute's type
+static error_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
+    for (const auto& prog_item: inp.programs) {
+        const program_t& prog = prog_item.second;
+        int vs_snippet_index = inp.vs_map.at(prog.vs_name);
+        int fs_snippet_index = inp.fs_map.at(prog.fs_name);
+        int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
+        assert((vs_src_index >= 0) && (fs_src_index >= 0));
+        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
+        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
+        assert(vs_snippet_index == vs_src.snippet_index);
+        assert(fs_snippet_index == fs_src.snippet_index);
+        for (int i = 0; i < attr_t::NUM; i++) {
+            const attr_t& vs_out = vs_src.refl.outputs[i];
+            const attr_t& fs_inp = fs_src.refl.inputs[i];
+            if (!vs_out.equals(fs_inp)) {
+                return error_t(inp.path, prog.line_index,
+                    fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
+                    prog.vs_name, prog.fs_name, i, vs_out.name, fs_inp.name));
+            }
+        }
+    }
+    return error_t();
+}
+
 spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
@@ -305,6 +347,12 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             return spv_cross;
         }
     }
+    // check that vertex-shader outputs match their fragment shader inputs
+    error_t err = validate_linking(inp, spv_cross);
+    if (err.valid) {
+        spv_cross.error = err;
+        return spv_cross;
+    }
     return spv_cross;
 }
 
@@ -326,8 +374,20 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t sla
         fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
         fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
         fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
+        fmt::print(stderr, "      inputs:\n");
+        for (const attr_t& attr: source.refl.inputs) {
+            if (attr.slot >= 0) {
+                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
+            }
+        }
+        fmt::print(stderr, "      outputs:\n");
+        for (const attr_t& attr: source.refl.outputs) {
+            if (attr.slot >= 0) {
+                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
+            }
+        }
         for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-            fmt::print(stderr, "        uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
+            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
             for (const uniform_t& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
                     uniform.name,
@@ -337,7 +397,7 @@ void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t sla
             }
         }
         for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "        image: {}, slot: {}, type: {}\n",
+            fmt::print(stderr, "      image: {}, slot: {}, type: {}\n",
                 img.name, img.slot, image_t::type_to_str(img.type));
         }
         fmt::print(stderr, "\n");
