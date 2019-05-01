@@ -97,7 +97,7 @@ static bool remove_comments(std::string& str) {
 }
 
 static const std::string lib_tag = "@lib";
-static const std::string type_tag = "@type";
+static const std::string type_tag = "@ctype";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
 static const std::string block_tag = "@block";
@@ -124,11 +124,11 @@ static bool validate_lib_tag(const std::vector<std::string>& tokens, bool in_sni
 
 static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 3) {
-        inp.error = error_t(inp.path, line_index, "@type tag must have exactly two args (@type type alias)");
+        inp.error = error_t(inp.path, line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
         return false;
     }
     if (in_snippet) {
-        inp.error = error_t(inp.path, line_index, "@type tag cannot be inside a tag block (missing @end?).");
+        inp.error = error_t(inp.path, line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
         return false;
     }
     if (!((tokens[1]=="float")||(tokens[1]=="vec2")||(tokens[1]=="vec3")||(tokens[1]=="vec4")||(tokens[1] == "mat4"))) {

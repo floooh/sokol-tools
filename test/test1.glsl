@@ -2,11 +2,11 @@
 /*
     this is a comment
 */
-@type float float
-@type vec2 hmm_vec2
-@type vec3 hmm_vec3
-@type vec4 hmm_vec4
-@type mat4 hmm_mat4
+@ctype float float
+@ctype vec2 hmm_vec2
+@ctype vec3 hmm_vec3
+@ctype vec4 hmm_vec4
+@ctype mat4 hmm_mat4
 
 @block uniforms
 layout(binding=0) uniform params {
