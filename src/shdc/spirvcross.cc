@@ -204,6 +204,8 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
         res.valid = true;
         res.source_code = std::move(src);
         res.refl = parse_reflection(compiler);
+        // Metal's entry point function are called main0() because main() is reserved
+        res.refl.entry_point += "0";
     }
     return res;
 }

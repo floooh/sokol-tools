@@ -95,6 +95,18 @@ static const char* sokol_define(slang_t::type_t slang) {
     }
 }
 
+static const char* sokol_backend(slang_t::type_t slang) {
+    switch (slang) {
+        case slang_t::GLSL330:      return "SG_BACKEND_GLCORE33";
+        case slang_t::GLSL100:      return "SG_BACKEND_GLES2";
+        case slang_t::GLSL300ES:    return "SG_BACKEND_GLES3";
+        case slang_t::HLSL5:        return "SG_BACKEND_HLSL5";
+        case slang_t::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
+        case slang_t::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
+        default: return "<INVALID>";
+    }
+}
+
 static void write_header(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     L("/*\n");
     L("    #version:{}# (machine generated, don't edit!)\n\n", args.gen_version);
@@ -111,7 +123,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
         const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
         L("        Shader program '{}':\n", prog.name);
-        L("            Desc struct: {}{}_shader_desc\n", lib_prefix(inp), prog.name);
+        L("            Get shader desc: {}{}_shader_desc()\n", lib_prefix(inp), prog.name);
         L("            Vertex shader: {}\n", prog.vs_name);
         L("                Attribute slots:\n");
         const snippet_t& vs_snippet = inp.snippets[vs_src.snippet_index];
@@ -147,7 +159,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("    Shader descriptor structs:\n\n");
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("        sg_shader {} = sg_make_shader(&{}{}_shader_desc);\n", prog.name, lib_prefix(inp), prog.name);
+        L("        sg_shader {} = sg_make_shader({}{}_shader_desc());\n", prog.name, lib_prefix(inp), prog.name);
     }
     L("\n");
     for (const spirvcross_source_t& src: spirvcross.sources) {
@@ -272,7 +284,9 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
     L("  {{ /* {} */\n", stage_name);
     std::vector<std::string> lines;
     pystring::splitlines(src.source_code, lines);
-    for (const auto& line: lines) {
+    for (std::string line: lines) {
+        // escape special characters
+        line = pystring::replace(line, "\"", "\\\"");
         L("    \"{}\\n\"\n", line);
     }
     L("    ,\n");
@@ -321,7 +335,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
     L("  }},\n");
 }
 
-static void write_programs(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
@@ -333,7 +347,7 @@ static void write_programs(const input_t& inp, const spirvcross_t& spirvcross, s
         const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
 
         /* write shader desc */
-        L("static sg_shader_desc {}{}_shader_desc = {{\n", lib_prefix(inp), prog.name);
+        L("static sg_shader_desc {}{}_shader_desc_{} = {{\n", lib_prefix(inp), prog.name, slang_t::to_str(slang));
         L("  0, /* _start_canary */\n");
         L("  {{ /*attrs*/");
         for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
@@ -404,11 +418,33 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
             write_vertex_attrs(inp, spirvcross[i]);
             write_images_bind_slots(inp, spirvcross[i]);
             write_uniform_blocks(inp, spirvcross[i], slang);
-            write_programs(inp, spirvcross[i], slang);
+            write_shader_descs(inp, spirvcross[i], slang);
             if (!args.no_ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
             }
         }
+    }
+
+    // write access functions which return sg_shader_desc pointers
+    for (const auto& item: inp.programs) {
+        const program_t& prog = item.second;
+        L("static const sg_shader_desc* {}{}_shader_desc(void) {{\n", lib_prefix(inp), prog.name);
+        for (int i = 0; i < slang_t::NUM; i++) {
+            slang_t::type_t slang = (slang_t::type_t) i;
+            if (args.slang & slang_t::bit(slang)) {
+                if (!args.no_ifdef) {
+                    L("    #if defined({})\n", sokol_define(slang));
+                }
+                L("    if (sg_query_backend() == {}) {{\n", sokol_backend(slang));
+                L("        return &{}{}_shader_desc_{};\n", lib_prefix(inp), prog.name, slang_t::to_str(slang));
+                L("    }}\n");
+                if (!args.no_ifdef) {
+                    L("    #endif /* {} */\n", sokol_define(slang));
+                }
+            }
+        }
+        L("    return 0; /* can't happen */\n");
+        L("}}\n");
     }
 
     // write result into output file
