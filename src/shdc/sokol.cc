@@ -266,14 +266,10 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
             }
             cur_offset += uniform_type_size(uniform.type) * uniform.array_count;
         }
-        /* on GL, add padding bytes until struct size is multiple of 16 (because the
-           uniform block has been flattened into a vec4 array
-        */
-        if (is_glsl(slang)) {
-            const int round16 = roundup(cur_offset, 16);
-            if (cur_offset != round16) {
-                L("    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
-            }
+        /* pad to multiple of 16-bytes struct size */
+        const int round16 = roundup(cur_offset, 16);
+        if (cur_offset != round16) {
+            L("    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
         }
         L("}} {}_t;\n", ub.name);
         L("#pragma pack(pop)\n");
@@ -298,7 +294,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
         const uniform_block_t* ub = find_uniform_block(src.refl, ub_index);
         L("      {{\n");
         if (ub) {
-            L("        {}, /* size */\n", is_glsl(slang) ? roundup(ub->size,16):ub->size);
+            L("        {}, /* size */\n", roundup(ub->size,16));
             L("        {{ /* uniforms */");
             for (int u_index = 0; u_index < uniform_t::NUM; u_index++) {
                 if (0 == u_index) {
@@ -401,6 +397,7 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
     L("#pragma once\n");
     error_t err;
     bool comment_header_written = false;
+    bool common_decls_written = false;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
@@ -412,12 +409,15 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
                 write_header(args, inp, spirvcross[i]);
                 comment_header_written = true;
             }
+            if (!common_decls_written) {
+                common_decls_written = true;
+                write_vertex_attrs(inp, spirvcross[i]);
+                write_images_bind_slots(inp, spirvcross[i]);
+                write_uniform_blocks(inp, spirvcross[i], slang);
+            }
             if (!args.no_ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
             }
-            write_vertex_attrs(inp, spirvcross[i]);
-            write_images_bind_slots(inp, spirvcross[i]);
-            write_uniform_blocks(inp, spirvcross[i], slang);
             write_shader_descs(inp, spirvcross[i], slang);
             if (!args.no_ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
