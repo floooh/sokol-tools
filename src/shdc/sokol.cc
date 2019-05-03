@@ -42,10 +42,6 @@ static int roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
-static bool is_glsl(slang_t::type_t slang) {
-    return (slang == slang_t::GLSL330) || (slang == slang_t::GLSL100) || (slang == slang_t::GLSL300ES);
-}
-
 static std::string lib_prefix(const input_t& inp) {
     if (inp.lib.empty()) {
         return "";
@@ -208,7 +204,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
             const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
             for (const attr_t& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
-                    L("static const int {}{}_{} = {};\n", lib_prefix(inp), vs_snippet.name, attr.name, attr.slot);
+                    L("#define {}{}_{} ({})\n", lib_prefix(inp), vs_snippet.name, attr.name, attr.slot);
                 }
             }
         }
@@ -217,13 +213,13 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 
 static void write_images_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const image_t& img: spirvcross.unique_images) {
-        L("static const int {}{}_slot = {};\n", lib_prefix(inp), img.name, img.slot);
+        L("#define {}{}_slot ({})\n", lib_prefix(inp), img.name, img.slot);
     }
 }
 
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
-        L("static const int {}{}_slot = {};\n", lib_prefix(inp), ub.name, ub.slot);
+        L("#define {}{}_slot ({})\n", lib_prefix(inp), ub.name, ub.slot);
         L("#pragma pack(push,1)\n");
         int cur_offset = 0;
         L("typedef struct {}{}_t {{\n", lib_prefix(inp), ub.name);
@@ -364,7 +360,7 @@ static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcros
     }
 }
 
-static error_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
@@ -372,21 +368,21 @@ static error_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, 
         int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
         int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
         if (vs_src_index < 0) {
-            return error_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
+            return errmsg_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.vs_name, prog.name));
         }
         if (fs_src_index < 0) {
-            return error_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
+            return errmsg_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
     }
     // all ok
-    return error_t();
+    return errmsg_t();
 }
 
-error_t sokol_t::gen(const args_t& args, const input_t& inp,
+errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
@@ -395,13 +391,13 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
     file_content.clear();
 
     L("#pragma once\n");
-    error_t err;
+    errmsg_t err;
     bool comment_header_written = false;
     bool common_decls_written = false;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            error_t err = check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, spirvcross[i], slang);
             if (err.valid) {
                 return err;
             }
@@ -450,11 +446,11 @@ error_t sokol_t::gen(const args_t& args, const input_t& inp,
     // write result into output file
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
-        return error_t(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return errmsg_t(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);
-    return error_t();
+    return errmsg_t();
 }
 
 } // namespace shdc

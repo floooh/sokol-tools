@@ -38,7 +38,7 @@ int main(int argc, const char** argv) {
         spirv.dump_debug(inp, args.error_format);
     }
     if (!spirv.errors.empty()) {
-        for (const error_t& err : spirv.errors) {
+        for (const errmsg_t& err : spirv.errors) {
             err.print(args.error_format);
         }
         return 10;
@@ -73,7 +73,7 @@ int main(int argc, const char** argv) {
     }
 
     // generate the output C header
-    error_t err = sokol_t::gen(args, inp, spirvcross, bytecode);
+    errmsg_t err = sokol_t::gen(args, inp, spirvcross, bytecode);
     if (err.valid) {
         err.print(args.error_format);
         return 10;

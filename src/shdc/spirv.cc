@@ -31,8 +31,8 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet) {
     return src;
 }
 
-/* convert a glslang info-log string to error_t's and append to out_errors */
-static void infolog_to_errors(const std::string& log, const input_t& inp, int snippet_index, std::vector<error_t>& out_errors) {
+/* convert a glslang info-log string to errmsg_t's and append to out_errors */
+static void infolog_to_errors(const std::string& log, const input_t& inp, int snippet_index, std::vector<errmsg_t>& out_errors) {
     /*
         format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
         And a last line we need to ignore: "ERROR: N compilation errors. ..."
@@ -78,11 +78,11 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
                 }
             }
             if (ok) {
-                out_errors.push_back(error_t(inp.path, line_index, msg));
+                out_errors.push_back(errmsg_t(inp.path, line_index, msg));
             }
             else {
                 // some error during parsing, still create an error object so the error isn't lost in the void
-                out_errors.push_back(error_t(inp.path, 0, line));
+                out_errors.push_back(errmsg_t(inp.path, 0, line));
             }
         }
     }
@@ -133,7 +133,7 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     glslang::GlslangToSpv(*im, spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
-        // FIXME: need to parse string for errors and translate to error_t objects
+        // FIXME: need to parse string for errors and translate to errmsg_t objects
         fmt::print(spirv_log);
     }
     return true;
@@ -173,11 +173,11 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
     return spirv;
 }
 
-void spirv_t::dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const {
+void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "spirv_t:\n");
     if (errors.size() > 0) {
         fmt::print(stderr, "  error:\n");
-        for (const error_t& err: errors) {
+        for (const errmsg_t& err: errors) {
             fmt::print(stderr, "    {}\n", err.as_string(err_fmt));
         }
         fmt::print(stderr, "\n");

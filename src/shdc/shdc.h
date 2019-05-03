@@ -53,8 +53,8 @@ struct slang_t {
     }
 };
 
-/* an error object with filename, line number and message */
-struct error_t {
+/* an error message object with filename, line number and message */
+struct errmsg_t {
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
@@ -65,9 +65,9 @@ struct error_t {
         MSVC
     };
 
-    error_t() { };
-    error_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
-    error_t(const std::string& m): msg(m), valid(true) { };
+    errmsg_t() { };
+    errmsg_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
+    errmsg_t(const std::string& m): msg(m), valid(true) { };
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
             return fmt::format("{}({}): error: {}", file, line_index+1, msg);
@@ -101,7 +101,7 @@ struct args_t {
     bool debug_dump = false;            // print debug-dump info
     bool no_ifdef = false;              // don't emit platform #ifdefs (SOKOL_D3D11 etc...)
     int gen_version = 1;                // generator-version stamp
-    error_t::msg_format_t error_format = error_t::GCC;  // format for error messages
+    errmsg_t::msg_format_t error_format = errmsg_t::GCC;  // format for error messages
 
     static args_t parse(int argc, const char** argv);
     void dump_debug() const;
@@ -145,7 +145,7 @@ struct program_t {
 
 /* pre-parsed GLSL source file, with content split into snippets */
 struct input_t {
-    error_t error;
+    errmsg_t error;
     std::string path;                   // filesystem
     std::string lib;                    // optional library (namespace/module) name
     std::vector<std::string> lines;     // input source file split into lines
@@ -159,7 +159,7 @@ struct input_t {
 
     input_t() { };
     static input_t load_and_parse(const std::string& path);
-    void dump_debug(error_t::msg_format_t err_fmt) const;
+    void dump_debug(errmsg_t::msg_format_t err_fmt) const;
 };
 
 /* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
@@ -172,13 +172,13 @@ struct spirv_blob_t {
 
 /* glsl-to-spirv compiler wrapper */
 struct spirv_t {
-    std::vector<error_t> errors;
+    std::vector<errmsg_t> errors;
     std::vector<spirv_blob_t> blobs;
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
     static spirv_t compile_glsl(const input_t& inp);
-    void dump_debug(const input_t& inp, error_t::msg_format_t err_fmt) const;
+    void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 
 /* reflection info */
@@ -319,19 +319,19 @@ struct spirvcross_source_t {
 
 /* spirv-cross wrapper */
 struct spirvcross_t {
-    error_t error;
+    errmsg_t error;
     std::vector<spirvcross_source_t> sources;
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<image_t> unique_images;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
-    void dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t slang) const;
+    void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */
 struct bytecode_t {
-    error_t error;
+    errmsg_t error;
 
     static bytecode_t compile(const input_t& inp, const spirvcross_t& spirvcross, bool gen_bytecode);
     void dump_debug() const;
@@ -339,7 +339,7 @@ struct bytecode_t {
 
 /* C header-generator for sokol_gfx.h */
 struct sokol_t {
-    static error_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 } // namespace shdc

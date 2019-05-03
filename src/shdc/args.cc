@@ -136,10 +136,10 @@ args_t args_t::parse(int argc, const char** argv) {
                     break;
                 case 'e':
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
-                        args.error_format = error_t::GCC;
+                        args.error_format = errmsg_t::GCC;
                     }
                     else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
-                        args.error_format = error_t::MSVC;
+                        args.error_format = errmsg_t::MSVC;
                     }
                     else {
                         fmt::print(stderr, "unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
@@ -179,7 +179,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  no_ifdef: {}\n", no_ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
-    fmt::print(stderr, "  error_format: {}\n", error_t::msg_format_to_str(error_format));
+    fmt::print(stderr, "  error_format: {}\n", errmsg_t::msg_format_to_str(error_format));
     fmt::print(stderr, "\n");
 }
 

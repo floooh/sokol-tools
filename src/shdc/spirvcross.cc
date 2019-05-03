@@ -239,7 +239,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = error_t(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    spv_cross.error = errmsg_t(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
                     return false;
                 }
             }
@@ -264,7 +264,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                     img.unique_index = other_img_index;
                 }
                 else {
-                    spv_cross.error = error_t(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    spv_cross.error = errmsg_t(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return false;
                 }
             }
@@ -280,7 +280,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
 
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
-static error_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
+static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         int vs_snippet_index = inp.vs_map.at(prog.vs_name);
@@ -296,13 +296,13 @@ static error_t validate_linking(const input_t& inp, const spirvcross_t& spv_cros
             const attr_t& vs_out = vs_src.refl.outputs[i];
             const attr_t& fs_inp = fs_src.refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
-                return error_t(inp.path, prog.line_index,
+                return errmsg_t(inp.path, prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
                     prog.vs_name, prog.fs_name, i, vs_out.name, fs_inp.name));
             }
         }
     }
-    return error_t();
+    return errmsg_t();
 }
 
 spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
@@ -337,7 +337,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         else {
             const int line_num = inp.snippets[blob.snippet_index].lines[0];
             std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
-            spv_cross.error = error_t(inp.path, line_num, err_msg);
+            spv_cross.error = errmsg_t(inp.path, line_num, err_msg);
             return spv_cross;
         }
         if (!gather_unique_uniform_blocks(inp, spv_cross)) {
@@ -350,7 +350,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         }
     }
     // check that vertex-shader outputs match their fragment shader inputs
-    error_t err = validate_linking(inp, spv_cross);
+    errmsg_t err = validate_linking(inp, spv_cross);
     if (err.valid) {
         spv_cross.error = err;
         return spv_cross;
@@ -358,7 +358,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(error_t::msg_format_t err_fmt, slang_t::type_t slang) const {
+void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
     fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
     if (error.valid) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
