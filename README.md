@@ -41,19 +41,22 @@ and clone the repository **with submodules**:
 > ./fips build
 ```
 
-...on Linux:
-```
-> ./fips set config linux-make-release
-# or with ninja
-> ./fips set config linux-ninja-release
-> ./fips build
-```
-
 ...on Windows:
 ```
 > ./fips set config win64-vstudio-release
 > ./fips build
 ```
+
+...on Linux:
+
+The executables for Linux must be compiled via Docker since the use static
+linking with musl, and Alpine Linux in Docker is the easiest option for this.
+
+```
+> cd docker
+> ./build.sh
+```
+The compiled Linux executable will be in the same directory (docker/)
 
 #### Run
 List the compilation targets with:
@@ -100,3 +103,4 @@ Many thanks to:
 - https://github.com/KhronosGroup/SPIRV-Cross
 - https://github.com/KhronosGroup/SPIRV-Tools.git
 - https://github.com/KhronosGroup/SPIRV-Headers
+
