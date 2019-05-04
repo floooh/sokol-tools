@@ -11,7 +11,7 @@ namespace shdc {
 static std::string file_content;
 
 #if defined(_MSC_VER)
-#define L(str, ...) file_content.append(fmt::format(str, ))
+#define L(str, ...) file_content.append(fmt::format(str, __VA_ARGS__))
 #else
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
