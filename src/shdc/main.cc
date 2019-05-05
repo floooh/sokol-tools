@@ -49,13 +49,15 @@ int main(int argc, const char** argv) {
     std::array<spirvcross_t,slang_t::NUM> spirvcross;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
-        spirvcross[i] = spirvcross_t::translate(inp, spirv, slang);
-        if (args.debug_dump) {
-            spirvcross[i].dump_debug(args.error_format, slang);
-        }
-        if (spirvcross[i].error.valid) {
-            spirvcross[i].error.print(args.error_format);
-            return 10;
+        if (args.slang & slang_t::bit(slang)) {
+            spirvcross[i] = spirvcross_t::translate(inp, spirv, slang);
+            if (args.debug_dump) {
+                spirvcross[i].dump_debug(args.error_format, slang);
+            }
+            if (spirvcross[i].error.valid) {
+                spirvcross[i].error.print(args.error_format);
+                return 10;
+            }
         }
     }
 

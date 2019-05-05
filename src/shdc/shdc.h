@@ -107,6 +107,29 @@ struct args_t {
     void dump_debug() const;
 };
 
+/* per-shader compile options */
+struct option_t {
+    enum type_t {
+        INVALID = 0,
+        FIXUP_CLIPSPACE = (1<<0),
+        FLIP_VERT_Y = (1<<1),
+
+        NUM
+    };
+
+    static type_t from_string(const std::string& str) {
+        if (str == "fixup_clipspace") {
+            return FIXUP_CLIPSPACE;
+        }
+        else if (str == "flip_vert_y") {
+            return FLIP_VERT_Y;
+        }
+        else {
+            return INVALID;
+        }
+    }
+};
+
 /* a named code-snippet (@block, @vs or @fs) in the input source file */
 struct snippet_t {
     enum type_t {
@@ -116,6 +139,7 @@ struct snippet_t {
         FS
     };
     type_t type = INVALID;
+    std::array<uint32_t, slang_t::NUM> options = { };
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
@@ -147,7 +171,7 @@ struct program_t {
 struct input_t {
     errmsg_t error;
     std::string path;                   // filesystem
-    std::string lib;                    // optional library (namespace/module) name
+    std::string module;                 // optional module name
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> type_map;    // @type uniform type definitions

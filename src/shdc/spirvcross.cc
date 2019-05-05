@@ -156,13 +156,14 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
     return refl;
 }
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles) {
+static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, uint32_t opt_mask) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.version = glsl_version;
     options.es = is_gles;
     options.enable_420pack_extension = false;
-    options.vertex.fixup_clipspace = false;    /* ??? */
+    options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
+    options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(options);
     fix_ub_matrix_force_colmajor(compiler);
     flatten_uniform_blocks(compiler);
@@ -176,12 +177,16 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     return res;
 }
 
-static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob) {
+static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask) {
     CompilerHLSL compiler(blob.bytecode);
-    CompilerHLSL::Options options;
-    options.shader_model = 50;
-    options.point_size_compat = true;
-    compiler.set_hlsl_options(options);
+    CompilerGLSL::Options commonOptions;
+    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
+    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+    compiler.set_common_options(commonOptions);
+    CompilerHLSL::Options hlslOptions;
+    hlslOptions.shader_model = 50;
+    hlslOptions.point_size_compat = true;
+    compiler.set_hlsl_options(hlslOptions);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
@@ -193,11 +198,15 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob) {
     return res;
 }
 
-static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat) {
+static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask) {
     CompilerMSL compiler(blob.bytecode);
-    CompilerMSL::Options options;
-    options.platform = plat;
-    compiler.set_msl_options(options);
+    CompilerGLSL::Options commonOptions;
+    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
+    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+    compiler.set_common_options(commonOptions);
+    CompilerMSL::Options mslOptions;
+    mslOptions.platform = plat;
+    compiler.set_msl_options(mslOptions);
     std::string src = compiler.compile();
     spirvcross_source_t res;
     if (!src.empty()) {
@@ -309,24 +318,25 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
+        uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl(blob, 330, false);
+                src = to_glsl(blob, 330, false, opt_mask);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl(blob, 100, true);
+                src = to_glsl(blob, 100, true, opt_mask);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, 300, true);
+                src = to_glsl(blob, 300, true, opt_mask);
                 break;
             case slang_t::HLSL5:
-                src = to_hlsl5(blob);
+                src = to_hlsl5(blob, opt_mask);
                 break;
             case slang_t::METAL_MACOS:
-                src = to_msl(blob, CompilerMSL::Options::macOS);
+                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask);
                 break;
             case slang_t::METAL_IOS:
-                src = to_msl(blob, CompilerMSL::Options::iOS);
+                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask);
                 break;
             default: break;
         }

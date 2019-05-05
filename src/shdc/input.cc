@@ -96,7 +96,7 @@ static bool remove_comments(std::string& str) {
     return true;
 }
 
-static const std::string lib_tag = "@lib";
+static const std::string module_tag = "@module";
 static const std::string type_tag = "@ctype";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
@@ -104,19 +104,22 @@ static const std::string block_tag = "@block";
 static const std::string inclblock_tag = "@include_block";
 static const std::string end_tag = "@end";
 static const std::string prog_tag = "@program";
+static const std::string glsl_options_tag = "@glsl_options";
+static const std::string hlsl_options_tag = "@hlsl_options";
+static const std::string msl_options_tag = "@msl_options";
 
 /* validate source tags for errors, on error returns false and sets error object in inp */
-static bool validate_lib_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t(inp.path, line_index, "@lib tag must have exactly one arg (@lib name)");
+        inp.error = errmsg_t(inp.path, line_index, "@module tag must have exactly one arg (@lib name)");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t(inp.path, line_index, "@lib tag cannot be inside a tag block (missing @end?).");
+        inp.error = errmsg_t(inp.path, line_index, "@module tag cannot be inside a tag block (missing @end?).");
         return false;
     }
-    if (!inp.lib.empty()) {
-        inp.error = errmsg_t(inp.path, line_index, "only one @lib tag per file allowed.");
+    if (!inp.module.empty()) {
+        inp.error = errmsg_t(inp.path, line_index, "only one @module tag per file allowed.");
         return false;
     }
     return true;
@@ -238,6 +241,24 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
     return true;
 }
 
+static bool validate_options_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+    if (tokens.size() < 2) {
+        inp.error = errmsg_t(inp.path, line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
+        return false;
+    }
+    if (cur_snippet.type != snippet_t::VS) {
+        inp.error = errmsg_t(inp.path, line_index, fmt::format("{} must be inside a @vs block", tokens[0]));
+        return false;
+    }
+    for (int i = 1; i < (int)tokens.size(); i++) {
+        if (option_t::from_string(tokens[i]) == option_t::INVALID) {
+            inp.error = errmsg_t(inp.path, line_index, fmt::format("unknown option '{}' (must be 'fixup_clipspace', 'flip_vert_y')", tokens[i]));
+            return false;
+        }
+    }
+    return true;
+}
+
 /* This parses the splitted input line array for custom tags (@vs, @fs, @block,
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
@@ -252,11 +273,11 @@ static bool parse(input_t& inp) {
         add_line = in_snippet;
         pystring::split(line, tokens);
         if (tokens.size() > 0) {
-            if (tokens[0] == lib_tag) {
-                if (!validate_lib_tag(tokens, in_snippet, line_index, inp)) {
+            if (tokens[0] == module_tag) {
+                if (!validate_module_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.lib = tokens[1];
+                inp.module = tokens[1];
             }
             else if (tokens[0] == type_tag) {
                 if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
@@ -267,6 +288,39 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 inp.type_map[tokens[1]] = tokens[2];
+            }
+            else if (tokens[0] == glsl_options_tag) {
+                if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
+                    return false;
+                }
+                for (int i = 1; i < (int)tokens.size(); i++) {
+                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    cur_snippet.options[slang_t::GLSL330] |= option_bit;
+                    cur_snippet.options[slang_t::GLSL100] |= option_bit;
+                    cur_snippet.options[slang_t::GLSL300ES] |= option_bit;
+                }
+                add_line = false;
+            }
+            else if (tokens[0] == hlsl_options_tag) {
+                if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
+                    return false;
+                }
+                for (int i = 1; i < (int)tokens.size(); i++) {
+                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    cur_snippet.options[slang_t::HLSL5] |= option_bit;
+                }
+                add_line = false;
+            }
+            else if (tokens[0] == msl_options_tag) {
+                if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
+                    return false;
+                }
+                for (int i = 1; i < (int)tokens.size(); i++) {
+                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    cur_snippet.options[slang_t::METAL_MACOS] |= option_bit;
+                    cur_snippet.options[slang_t::METAL_IOS] |= option_bit;
+                }
+                add_line = false;
             }
             else if (tokens[0] == block_tag) {
                 if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
@@ -320,6 +374,7 @@ static bool parse(input_t& inp) {
                     default: break;
                 }
                 inp.snippets.push_back(std::move(cur_snippet));
+                cur_snippet = snippet_t();
                 add_line = false;
                 in_snippet = false;
             }

@@ -1,4 +1,4 @@
-@lib bla
+@module bla
 /*
     this is a comment
 */
@@ -23,6 +23,7 @@ layout(binding=1) uniform sampler2D tex1;
 @end
 
 @vs vs1
+@msl_options flip_vert_y
 @include_block uniforms
 
 layout(location=0) in vec4 position;
