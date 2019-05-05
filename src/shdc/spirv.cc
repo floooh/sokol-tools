@@ -23,8 +23,29 @@ void spirv_t::finalize_spirv_tools() {
 }
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const snippet_t& snippet) {
+static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang) {
     std::string src = "#version 450\n";
+    bool is_glsl = false;
+    bool is_hlsl = false;
+    bool is_msl = false;
+    switch (slang) {
+        case slang_t::GLSL330:
+        case slang_t::GLSL100:
+        case slang_t::GLSL300ES:
+            is_glsl = true;
+            break;
+        case slang_t::HLSL5:
+            is_hlsl = true;
+            break;
+        case slang_t::METAL_MACOS:
+        case slang_t::METAL_IOS:
+            is_msl = true;
+            break;
+        default: break;
+    }
+    src += fmt::format("#define SOKOL_GLSL ({})\n", is_glsl ? 1 : 0);
+    src += fmt::format("#define SOKOL_HLSL ({})\n", is_hlsl ? 1 : 0);
+    src += fmt::format("#define SOKOL_MSL ({})\n", is_msl ? 1 : 0);
     for (int line_index : snippet.lines) {
         src += fmt::format("{}\n", inp.lines[line_index]);
     }
@@ -58,8 +79,8 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
                 // extract line index and message
                 int snippet_line_index = atoi(tokens[2].c_str());
                 // correct for one-based and prolog #defines
-                if (snippet_line_index > 1) {
-                    snippet_line_index -= 2;
+                if (snippet_line_index >= 1) {
+                    snippet_line_index -= 5;
                 }
                 // everything after the 3rd colon is 'msg'
                 for (int i = 3; i < (int)tokens.size(); i++) {
@@ -140,7 +161,7 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
 }
 
 /* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_glsl(const input_t& inp) {
+spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang) {
     spirv_t spirv;
 
     // compile shader-snippets
@@ -151,7 +172,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
-            std::string src = merge_source(inp, snippet);
+            std::string src = merge_source(inp, snippet, slang);
             if (!compile(EShLangVertex, spirv, src, inp, snippet_index)) {
                 // spirv.errors contains error list
                 return spirv;
@@ -159,7 +180,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp) {
         }
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
-            std::string src = merge_source(inp, snippet);
+            std::string src = merge_source(inp, snippet, slang);
             if (!compile(EShLangFragment, spirv, src, inp, snippet_index)) {
                 // spirv.errors contains error list
                 return spirv;

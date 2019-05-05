@@ -201,7 +201,7 @@ struct spirv_t {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_glsl(const input_t& inp);
+    static spirv_t compile_glsl(const input_t& inp, slang_t::type_t slang);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 

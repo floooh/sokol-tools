@@ -33,15 +33,18 @@ int main(int argc, const char** argv) {
 
     // compile source snippets to SPIRV blobs
     spirv_t::initialize_spirv_tools();
-    spirv_t spirv = spirv_t::compile_glsl(inp);
-    if (args.debug_dump) {
-        spirv.dump_debug(inp, args.error_format);
-    }
-    if (!spirv.errors.empty()) {
-        for (const errmsg_t& err : spirv.errors) {
-            err.print(args.error_format);
+    std::array<spirv_t,slang_t::NUM> spirv;
+    for (int i = 0; i < slang_t::NUM; i++) {
+        spirv[i] = spirv_t::compile_glsl(inp, (slang_t::type_t)i);
+        if (args.debug_dump) {
+            spirv[i].dump_debug(inp, args.error_format);
         }
-        return 10;
+        if (!spirv[i].errors.empty()) {
+            for (const errmsg_t& err : spirv[i].errors) {
+                err.print(args.error_format);
+            }
+            return 10;
+        }
     }
     spirv_t::finalize_spirv_tools();
 
@@ -50,7 +53,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirvcross[i] = spirvcross_t::translate(inp, spirv, slang);
+            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }
