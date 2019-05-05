@@ -33,7 +33,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "uniform-block and shader-descripton C structs ready for use with sokol_gfx.h\n\n"
         "The input source file contains custom '@-tags' to group the\n"
         "source code for several shaders and shared code blocks into one file:\n\n"
-        "  - @module name: optional shader module name, will be used as prefix in generated code"
+        "  - @module name: optional shader module name, will be used as prefix in generated code\n"
         "  - @ctype type ctype: a type-alias for generated uniform block structs\n"
         "    (where type is float, vec2, vec3, vec4 or mat4)\n"
         "  - @block name: a general reusable code block\n"
