@@ -18,10 +18,10 @@ shader dialects:
 
 This cross-compilation happens via existing Khronos open source projects:
 
-- https://github.com/KhronosGroup/glslang: for compiling GLSL to SPIR-V
-- https://github.com/KhronosGroup/SPIRV-Tools: the SPIR-V optimizer is used
+- [glslang](https://github.com/KhronosGroup/glslang): for compiling GLSL to SPIR-V
+- [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools): the SPIR-V optimizer is used
 to run optimization passes on the intermediate SPIRV
-- https://github.com/KhronosGroup/SPIRV-Cross: for translating the SPIRV
+- [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross): for translating the SPIRV
 bytecode to GLSL dialects, HLSL and Metal
 
 Error messages from ```glslang``` are mapped back to the original annotated
