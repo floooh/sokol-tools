@@ -1,8 +1,14 @@
 # sokol-tools
 
-WIP!
-
 Command line tools for the [sokol headers](https://github.com/floooh/sokol).
+
+## Documentation
+
+- [sokol_shdc](docs/sokol-shdc.md): shader-cross-compiler and code-generator for sokol_gfx.h
+
+## Precompiled binaries and fips-integration files:
+
+https://github.com/floooh/sokol-tools-bin
 
 ## Howto Clone, Build, Run and Debug:
 
@@ -49,14 +55,20 @@ and clone the repository **with submodules**:
 
 ...on Linux:
 
-The executables for Linux must be compiled via Docker since the use static
-linking with musl, and Alpine Linux in Docker is the easiest option for this.
+The executables for Linux **must** be compiled via Docker since they use
+static linking with musl, and Alpine Linux in Docker is the easiest option for this.
 
 ```
 > cd docker
 > ./build.sh
 ```
 The compiled Linux executable will be in the same directory (docker/)
+
+Creating a statically linked Linux executable with glibc instead of
+musl will create an executable which will most likely crash before
+main() is entered (this also means that development under Linux 
+with the current build settings isn't possible, at least the
+static linking flags must be removed from the cmake files for this).
 
 #### Run
 List the compilation targets with:
