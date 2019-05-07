@@ -35,15 +35,18 @@ int main(int argc, const char** argv) {
     spirv_t::initialize_spirv_tools();
     std::array<spirv_t,slang_t::NUM> spirv;
     for (int i = 0; i < slang_t::NUM; i++) {
-        spirv[i] = spirv_t::compile_glsl(inp, (slang_t::type_t)i);
-        if (args.debug_dump) {
-            spirv[i].dump_debug(inp, args.error_format);
-        }
-        if (!spirv[i].errors.empty()) {
-            for (const errmsg_t& err : spirv[i].errors) {
-                err.print(args.error_format);
+        slang_t::type_t slang = (slang_t::type_t)i;
+        if (args.slang & slang_t::bit(slang)) {
+            spirv[i] = spirv_t::compile_glsl(inp, slang);
+            if (args.debug_dump) {
+                spirv[i].dump_debug(inp, args.error_format);
             }
-            return 10;
+            if (!spirv[i].errors.empty()) {
+                for (const errmsg_t& err : spirv[i].errors) {
+                    err.print(args.error_format);
+                }
+                return 10;
+            }
         }
     }
     spirv_t::finalize_spirv_tools();

@@ -96,7 +96,7 @@ static const char* sokol_backend(slang_t::type_t slang) {
         case slang_t::GLSL330:      return "SG_BACKEND_GLCORE33";
         case slang_t::GLSL100:      return "SG_BACKEND_GLES2";
         case slang_t::GLSL300ES:    return "SG_BACKEND_GLES3";
-        case slang_t::HLSL5:        return "SG_BACKEND_HLSL5";
+        case slang_t::HLSL5:        return "SG_BACKEND_D3D11";
         case slang_t::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
         case slang_t::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
         default: return "<INVALID>";
