@@ -33,7 +33,7 @@ IDEs like Visual Studio, Xcode or VSCode:
 
 Shader files are 'annotated' with custom **@-tags** which add meta-information to
 the GLSL source files. This is used for packing vertex- and fragment-shaders
-into the same code, mark and include reusable code blocks, and provide
+into the same source file, mark and include reusable code blocks, and provide
 additional information for the C code-generation (note the ```@vs```,
 ```@fs```, ```@end``` and ```@program``` tags):
 
