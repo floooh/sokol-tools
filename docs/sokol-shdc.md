@@ -5,7 +5,7 @@ Shader-code-generator for sokol_gfx.h
 ## Feature Overview
 
 sokol-shdc is a shader-cross-compiler and -code-generator command line tool
-which translates an 'annotated GLSL' source file into a C header with for use
+which translates an 'annotated GLSL' source file into a C header for use
 with sokol_gfx.
 
 Shaders are written in 'modern GLSL' (v450) and translated into the following
