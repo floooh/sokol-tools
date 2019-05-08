@@ -11,7 +11,7 @@
 namespace shdc {
 
 bytecode_t bytecode_t::compile(const input_t& inp, const spirvcross_t& spirvcross, bool gen_bytecode) {
-    fmt::print(stderr, "bytecode_t::compile(): FIXME!\n");
+    //fmt::print(stderr, "bytecode_t::compile(): FIXME!\n");
     return bytecode_t();
 }
 
