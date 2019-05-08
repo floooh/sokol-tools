@@ -113,7 +113,7 @@ imports:
 
 The [sokol-tools-bin](https://github.com/floooh/sokol-tools-bin) repository
 contains precompiled 64-bit executables for macOS, Linux and Windows, and the
-necessary fips-files to hook the shader compiler into the build projess.
+necessary fips-files to hook the shader compiler into the build project.
 
 After adding the new dependency to fips.yml, fetch and update the dependencies of your project:
 
