@@ -147,8 +147,9 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
+    spv_options.disableOptimizer = false;
+    spv_options.optimizeSize = true;
     // FIXME: generate debug info options
-    // FIXME: optimize for size option
     // FIXME??? dissassemble and validate options
     spirv.blobs.push_back(spirv_blob_t(snippet_index));
     glslang::GlslangToSpv(*im, spirv.blobs.back().bytecode, &spv_logger, &spv_options);
