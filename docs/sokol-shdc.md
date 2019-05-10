@@ -182,7 +182,262 @@ generated files look different on each platform, or even build config.
 
 ## Standalone Usage
 
+```sokol-shdc``` can be invoked from the command line to convert exactly
+ony annotated-GLSL source file into exactly one C header file.
+
+Precompiled 64-bit executables for Windows, Linux and macOS are here:
+
+https://github.com/floooh/sokol-tools-bin
+
+Run ```sokol-shdc --help``` to see a short help text and the list of available options.
+
+For a quick test, copy the following into a file named ```shd.glsl```:
+
+```glsl
+@vs vs
+in vec4 pos;
+void main() {
+    gl_Position = pos;
+}
+@end
+
+@fs fs
+out vec4 frag_color;
+void main() {
+    frag_color = vec4(1.0, 0.0, 0.0, 1.0);
+}
+@end
+
+@program shd vs fs
+```
+
+...and then run:
+
+```bash
+> ./sokol-shdc --input shd.glsl --output shd.h --slang glsl330:hlsl5:metal_macos
+```
+
+...this should generate a C header named ```shd.h``` in the current directory.
+
 ## Shader Tags Reference
+
+The following ```@-tags``` can be used in *annotated GLSL* source files:
+
+### @vs [name]
+
+Starts a named vertex shader code block. The code between
+the ```@vs``` and the next ```@end``` will be compiled as a vertex shader.
+
+Example:
+
+```glsl
+@vs my_vertex_shader
+uniform vs_params {
+    mat4 mvp;
+};
+
+in vec4 position;
+in vec4 color0;
+
+out vec4 color;
+
+void main() {
+    gl_Position = mvp * position;
+    color = color0;
+}
+@end
+```
+
+### @fs [name]
+
+Starts a named fragment shader code block. The code between the ```@fs``` and
+the next ```@end``` will be compiled as a fragment shader:
+
+Example:
+
+```glsl
+@fs my_fragment_shader
+in vec4 color;
+out vec4 frag_color;
+
+void main() {
+    frag_color = color;
+}
+@end
+```
+
+### @program [name] [vs] [fs]
+
+The ```@program``` tag links a vertex- and fragment-shader into a named
+shader program. The program name will be used for naming the generated
+```sg_shader_desc``` C struct and a C function to get a pointer to the
+generated shader desc.
+
+At least one ```@program``` tag must exist in an annotated GLSL source file.
+
+Example for the above vertex- and fragment-shader snippets:
+
+```glsl
+@program my_program my_vertex_shader my_fragment_shader
+```
+
+This will generate a C function:
+
+```C
+static const sg_shader_desc* my_program_shader_desc(void);
+```
+
+### @block [name]
+
+The ```@block``` tag starts a named code block which can be included in
+other ```@vs```, ```@fs``` or ```@block``` code blocks. This is useful
+for sharing code between functions.
+
+Example for having a common lighting function shared between two fragment
+shaders:
+
+```glsl
+@block lighting
+vec3 light(vec3 base_color, vec3 eye_vec, vec3 normal, vec3 light_vec) {
+    ...
+}
+@end
+
+@fs fs_1
+@include_block lighting
+
+out vec4 frag_color;
+void main() {
+    frag_color = vec4(light(...), 1.0);
+}
+@end
+
+@fs fs_2
+@include_block lighting
+
+out vec4 frag_color;
+void main() {
+    frag_color = vec4(0.5 * light(...), 1.0);
+}
+@end
+```
+
+### @end
+
+The ```@end``` tag closes a ```@vs```, ```@fs``` or ```@block``` code block.
+
+### @include_block [name]
+
+```@include_block``` includes a ```@block``` into another code block. 
+This is useful for sharing code snippets between different shaders.
+
+### @ctype [glsl_type] [c_type]
+
+The ```@ctype``` defines a type-mapping from GLSL to C in uniform blocks for
+the GLSL types ```float```, ```vec2```, ```vec3```, ```vec4``` and ```mat4```
+(these are the currently valid types for use in GLSL uniform blocks).
+
+Consider the following GLSL uniform block without ```@ctype``` tags:
+
+```glsl
+@vs my_vs
+uniform shape_uniforms {
+    mat4 mvp;
+    mat4 model;
+    vec4 shape_color;
+    vec4 light_dir;
+    vec4 eye_pos;
+};
+@end
+```
+
+On the C side, this will be turned into a C struct like this:
+
+```c
+typedef struct shape_uniforms_t {
+    float mvp[16];
+    float model[16];
+    float shape_color[4];
+    float light_dir[4];
+    float eye_pos[4];
+} shape_uniforms_t;
+```
+
+But what if your C/C++ code uses a math library like HandmadeMath.h or
+GLM?
+
+That's where the ```@ctype``` tag comes in. For instance, with HandmadeMath.h
+you would add the following two @ctypes at the top of the GLSL file to 
+map the GLSL types to their matching hmm_* types:
+
+```glsl
+@ctype mat4 hmm_mat4
+@ctype vec4 hmm_vec4
+
+@vs my_vs
+uniform shape_uniforms {
+    mat4 mvp;
+    mat4 model;
+    vec4 shape_color;
+    vec4 light_dir;
+    vec4 eye_pos;
+};
+@end
+```
+
+With this change, the uniform block struct on the C is generated like this now:
+
+```c
+typedef struct shape_uniforms_t {
+    hmm_mat4 mvp;
+    hmm_mat4 model;
+    hmm_vec4 shape_color;
+    hmm_vec4 light_dir;
+    hmm_vec4 eye_pos;
+} shape_uniforms_t;
+```
+
+### @module [name]
+
+The optional ```@module``` tag defines a 'namespace prefix' for all generated
+C types, values, defines and functions.
+
+For instance, when adding a ```@module``` tag to the above @ctype-example:
+
+```glsl
+@module bla
+
+@ctype mat4 hmm_mat4
+@ctype vec4 hmm_vec4
+
+@vs my_vs
+uniform shape_uniforms {
+    mat4 mvp;
+    mat4 model;
+    vec4 shape_color;
+    vec4 light_dir;
+    vec4 eye_pos;
+};
+@end
+```
+
+...the generated C uniform block struct (allong with all other identifiers)
+would get a prefix ```bla_```:
+
+```c
+typedef struct bla_shape_uniforms_t {
+    hmm_mat4 mvp;
+    hmm_mat4 model;
+    hmm_vec4 shape_color;
+    hmm_vec4 light_dir;
+    hmm_vec4 eye_pos;
+} bla_shape_uniforms_t;
+```
+
+### @glsl_option, @hlsl_option, @msl_option
+
+[TODO]
+
 
 ## Programming Considerations
 
