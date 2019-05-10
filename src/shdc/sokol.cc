@@ -267,7 +267,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         if (cur_offset != round16) {
             L("    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
         }
-        L("}} {}_t;\n", ub.name);
+        L("}} {}{}_t;\n", mod_prefix(inp), ub.name);
         L("#pragma pack(pop)\n");
     }
 }
