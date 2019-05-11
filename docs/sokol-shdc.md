@@ -59,7 +59,7 @@ void main() {
 @program triangle vs fs
 ```
 
-The generated C header contains the following data:
+The generated C header contains:
 
 - human-readable reflection info in a comment block, as well as
 copy-pastable example code
@@ -87,7 +87,6 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
     }
 });
 ```
-
 
 ## Build Process Integration with fips.
 
@@ -182,8 +181,8 @@ generated files look different on each platform, or even build config.
 
 ## Standalone Usage
 
-```sokol-shdc``` can be invoked from the command line to convert exactly
-ony annotated-GLSL source file into exactly one C header file.
+```sokol-shdc``` can be invoked from the command line to convert 
+one annotated-GLSL source file into one C header file.
 
 Precompiled 64-bit executables for Windows, Linux and macOS are here:
 
@@ -218,6 +217,63 @@ void main() {
 ```
 
 ...this should generate a C header named ```shd.h``` in the current directory.
+
+### Command Line Reference
+
+- **-h --help**: Print usage information and exit
+- **-i --input=[GLSL file]**: The path to the input GLSL file, this must be either
+relative to the current working directory, or an absolute path. 
+- **-o --output=[C header]**: The path to the generated C header, either relative
+to the current working directory, or as absolute path. The target directory must
+exist.
+- **-l --slang=[shader languages]**: One or multiple output shader languages. If
+multiple languages are provided, they must be separated by a **colon**. Valid 
+shader language names are:
+    - **glsl330**: desktop GL
+    - **glsl100**: GLES2 / WebGL
+    - **glsl330es**: GLES3 / WebGL2
+    - **hlsl5**: D3D11
+    - **metal_macos**: Metal on macOS
+    - **metal_ios**: Metal on iOS
+
+  For instance, to generate header with support for all supported GLSL dialects:
+
+  ```
+  --slang glsl330:glsl100:glsl330es
+  ```
+
+- **-b --bytecode**: If possible, compile shaders to bytecode instead of
+embedding source code. The restrictions to generate shader bytecode are as
+follows:
+    - target language must be **hlsl5**, **metal_macos** or **metal_ios**
+    - sokol-shdc must run on the respective platforms:
+        - **hlsl5**: only possible when sokol-shdc is running on Windows
+        - **metal_macos, metal_ios**: only possible when sokol-shdc is running on macOS
+
+  ...if these restrictions are not met, sokol-shdc will fall back to generating
+  shader source code without returning an error.
+- **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
+or Visual-Studio-compatible, the default is **gcc**
+- **-g --genver=[integer]**: set a version number to embed in the generated header,
+this is useful to detect whether all shader files need to be recompiled because 
+the tooling has been updated (sokol-shdc will not this check though, this must be
+done in the build-system-integration)
+- **-n --noifdef**: by default, the C header generator will surround all 3D-backend-
+specific code with an **#ifdef/#endif** pair which checks for the sokol-gfx
+backend defines:
+    - SOKOL_GLCORE33
+    - SOKOL_GLES2
+    - SOKOL_GLES3
+    - SOKOL_D3D11
+    - SOKOL_METAL
+
+  Sometimes this is useful, sometimes it isn't. You can disable those
+  backend-checks with the **--noifdef** option. One situation where it makes
+  sense to disable the ifdefs is for application that use GLES3/WebGL2, but
+  must be able to fall back to GLES2/WebGL.
+- **-d --dump**: Enable verbose debug output, this basically dumps all internal
+information to stdout. Useful for debugging and understanding how sokol-shdc
+works, but not much else :)
 
 ## Shader Tags Reference
 
@@ -436,16 +492,62 @@ typedef struct bla_shape_uniforms_t {
 
 ### @glsl_option, @hlsl_option, @msl_option
 
-[TODO]
+These tags can be used to define per-shader SPIRV-Cross compiler options.
 
+GL, D3D and Metal have different opinions where the origin of an image
+is, or whether clipspace-z goes from 0..+1 or from -1..+1, and the
+option-tags allow fine-control over those aspects with the following
+options:
+
+- **fixup_clipspace**:
+    - GLSL: In vertex shaders, rewrite [0, w] depth (Vulkan/D3D style) to [-w, w] depth (GL style).
+    - HLSL: In vertex shaders, rewrite [-w, w] depth (GL style) to [0, w] depth.
+    - MSL: In vertex shaders, rewrite [-w, w] depth (GL style) to [0, w] depth.
+- **flip_vert_y**: Inverts gl_Position.y or equivalent. (all shader languages)
+
+Currently, ```@glsl_option```, ```@hlsl_option``` and ```@msl_option``` are only
+allowed inside ```@vs, @end``` blocks.
 
 ## Programming Considerations
 
+### Target Shader Language Defines
+
+In the input GLSL source, use the following checks for code that should only
+be compiled for a specific target shader language:
+
+```GLSL
+#if SOKOL_GLSL
+    // target shader language is a GLSL dialect
+#endif
+
+#if SOKOL_HLSL
+    // target shader language is HLSL
+#endif
+
+#if SOKOL_MSL
+    // target shader language is MetalSL
+#endif
+```
+
+Normally, SPIRV-Cross does its best to 'normalize' the differences between
+GLSL, HLSL and MSL, but sometimes it's still necessary to write different
+code for different target languages.
+
+These checks are evaluated by the initial compiler pass which compiles
+GLSL v450 to SPIR-V, and only make sense inside ```@vs```, ```@fs``` 
+and ```@block``` code-blocks.
+
 ### Creating shaders and pipeline objects
+
+[TODO]
 
 ### Binding images and uniform blocks
 
+[TODO]
+
 ### Named or explicit binding
+
+[TODO]
 
 ### Uniform blocks and C structs
 
