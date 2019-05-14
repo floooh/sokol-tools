@@ -539,15 +539,87 @@ and ```@block``` code-blocks.
 
 ### Creating shaders and pipeline objects
 
+The generated C header will contain one function for each shader program
+which returns a pointer to a completely initialized static sg_shader_desc
+structure, so creating a shader object becomes a one-liner.
+
+For instance, with the following ```@program``` in the 
+GLSL file:
+
+```glsl
+@program shape vs fs
+```
+
+The following code would be used to create the shader object:
+```c
+sg_shader shd = sg_make_shader(shape_shader_desc());
+```
+
+When creating a pipeline object, the shader code generator will
+provide integer constants for the vertex attribute locations.
+
+Consider the following vertex shader inputs in the GLSL source code:
+
+```glsl
+@vs vs
+in vec4 position;
+in vec3 normal;
+in vec2 texcoords;
+...
+@end
+```
+
+The vertex attribute description in the ```sg_pipeline_desc``` struct
+could look like this (note the attribute indices names ```vs_position```, etc...):
+
+```c
+sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
+    .layout = {
+        .attrs = {
+            [vs_position].format = SG_VERTEXFORMAT_FLOAT3,
+            [vs_normal].format = SG_VERTEXFORMAT_BYTE4N,
+            [vs_texcoords].format = SG_VERTEXFORMAT_SHORT2
+        }
+    },
+    ...
+});
+```
+
+You can also provide explicit vertex attribute location in the shader
+code:
+
+```glsl
+@vs vs
+layout(location=0) in vec4 position;
+layout(location=1) in vec3 normal;
+layout(location=2) in vec2 texcoords;
+...
+@end
+```
+
+When the shader code uses explicit location, the generated location
+constants can be ignored on the C side:
+
+```c
+sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
+    .layout = {
+        .attrs = {
+            [0].format = SG_VERTEXFORMAT_FLOAT3,
+            [1].format = SG_VERTEXFORMAT_BYTE4N,
+            [2].format = SG_VERTEXFORMAT_SHORT2
+        }
+    },
+    ...
+});
+```
+
+### Binding uniforms blocks and images
+
+Similar to the vertex attribute location constants, the C code generator
+also provides bind slot constants for images and uniform blocks.
+
 [TODO]
 
-### Binding images and uniform blocks
-
-[TODO]
-
-### Named or explicit binding
-
-[TODO]
 
 ### Uniform blocks and C structs
 
