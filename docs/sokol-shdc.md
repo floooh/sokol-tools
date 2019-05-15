@@ -708,5 +708,22 @@ sg_apply_bindings(&(sg_bindings){
 
 ### Uniform blocks and C structs
 
-(type restrictions, type mapping to C/C++, flattened uniform
-blocks in GL)
+There are a few caveats with uniform blocks:
+
+- Member types are currently restricted to:
+    - float
+    - vec2
+    - vec3
+    - vec4
+    - mat4
+
+    This limitation is currently also present in sokol_gfx.h
+    itself (SG_UNIFORMTYPE_*). More float-based types like
+    mat2 and mat3 will most likely be added in the future, 
+    but there's currently no portable way to support integer
+    types across all backends.
+
+- In GL, uniform blocks will be 'flattened' to arrays of vec4,
+this allows to update uniform data with a single call to glUniform4v
+per uniform block, no matter how many members a uniform block
+actually has
