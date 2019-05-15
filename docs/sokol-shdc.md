@@ -96,7 +96,7 @@ build process. That way the edit-compile-test loop for shader
 programming is the same as for regular C or C++ code.
 
 Support for [fips](https://github.com/floooh/fips) projects comes
-out-of-the box. For other build systems, oryol-shdc must be called
+out-of-the box. For other build systems, sokol-shdc must be called
 from a custom build job, or a custom rule to build .h files from
 .glsl files.
 
