@@ -178,7 +178,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     }
     L("    Image bind slots, use as index in sg_bindings.vs_images[] or .fs_images[]\n\n");
     for (const image_t& img: spirvcross.unique_images) {
-        L("        {}{}_slot = {};\n", mod_prefix(inp), img.name, img.slot);
+        L("        SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
     L("\n");
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
