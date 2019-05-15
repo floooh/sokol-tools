@@ -81,8 +81,8 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
     .shader = shd,
     .layout = {
         .attrs = {
-            [vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-            [vs_color0].format = SG_VERTEXFORMAT_FLOAT4
+            [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
+            [ATTR_vs_color0].format = SG_VERTEXFORMAT_FLOAT4
         }
     }
 });
@@ -576,9 +576,9 @@ could look like this (note the attribute indices names ```vs_position```, etc...
 sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
     .layout = {
         .attrs = {
-            [vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-            [vs_normal].format = SG_VERTEXFORMAT_BYTE4N,
-            [vs_texcoords].format = SG_VERTEXFORMAT_SHORT2
+            [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
+            [ATTR_vs_normal].format = SG_VERTEXFORMAT_BYTE4N,
+            [ATTR_vs_texcoords].format = SG_VERTEXFORMAT_SHORT2
         }
     },
     ...
@@ -613,13 +613,98 @@ sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 });
 ```
 
-### Binding uniforms blocks and images
+### Binding uniforms blocks
 
 Similar to the vertex attribute location constants, the C code generator
 also provides bind slot constants for images and uniform blocks.
 
-[TODO]
+Consider the following uniform block in GLSL:
 
+```glsl
+uniform vs_params {
+    mat4 mvp;
+};
+```
+
+The C header code generator will create a C struct and a 'bind slot' constant
+for the uniform block:
+
+```c
+#define vs_params_slot (0)
+typedef struct vs_params_t {
+    hmm_mat4 mvp;
+} vs_params_t;
+```
+
+...which both are used in the ```sg_apply_uniforms()``` call like this:
+
+```c
+vs_params_t vs_params = {
+    .mvp = ...
+};
+sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
+```
+
+The GLSL uniform block can have an explicit bind slot:
+
+```glsl
+layout(binding=0) uniform vs_params {
+    mat4 mvp;
+};
+```
+
+In this case the generated bind slot constant can be ignored since it has
+been explicitely defined as 0:
+
+```c
+vs_params_t vs_params = {
+    .mvp = ...
+};
+sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &vs_params, sizeof(vs_params));
+```
+
+### Binding images
+
+When using a texture sampler in a GLSL vertex- or fragment-shader like this:
+
+```glsl
+uniform sampler2D tex;
+...
+```
+
+The C header code generator will create bind-slot constants with the same
+naming convention as uniform blocks:
+
+```C
+#define SLOT_tex (0)
+```
+
+This is used in the ```sg_bindings``` struct as index into the ```vs_images```
+or ```fs_images``` bind slot array:
+
+```c
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .fs_images[SLOT_tex] = img
+});
+```
+
+Just like with uniform blocks, texture sampler bind slots can
+be defined explicitely in the GLSL shader:
+
+```glsl
+layout(binding=0) uniform sampler2D tex;
+...
+```
+
+...in this case the code-generated bind-slot constant can be ignored:
+
+```c
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .fs_images[0] = img
+});
+```
 
 ### Uniform blocks and C structs
 
