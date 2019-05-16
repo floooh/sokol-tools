@@ -64,7 +64,9 @@ The generated C header contains:
 - human-readable reflection info in a comment block, as well as
 copy-pastable example code
 - complete ```sg_shader_desc``` structs for each shader dialect
-- for each shader program a C function which returns a pointer to the right ```sg_shader_desc``` for the current sokol-gfx backend (including a runtime fallback from GLES3/WebGL2 to GLES2/WebGL)
+- for each shader program, a C function which returns a pointer to the right
+```sg_shader_desc``` for the current sokol-gfx backend (including a runtime
+fallback from GLES3/WebGL2 to GLES2/WebGL)
 - constants for vertex attribute locations, uniform-block- and image-bind-slots
 
 For instance, creating a shader and pipeline object for the above simple *triangle*
@@ -76,7 +78,7 @@ sg_shader shd = sg_make_shader(triangle_shader_desc());
 
 // create a pipeline object with this shader, and 
 // code-generated vertex attribute location constants
-// (vs_position and vs_color0)
+// (ATTR_vs_position and ATTR_vs_color0)
 pip = sg_make_pipeline(&(sg_pipeline_desc){
     .shader = shd,
     .layout = {
@@ -127,15 +129,15 @@ Finally, for each GLSL shader file, add the cmake macro ```sokol_shader()``` to 
 fips_begin_app(triangle windowed)
     ...
     sokol_shader(triangle.glsl ${slang})
-fips_end()
+fips_end_app()
 ```
 
 The ```${slang}``` variable (short for shader-language, but you can call it
 any way you want) must resolve to a string with the shader dialects you want
-to have generated.
+to generate.
 
 I recommend to initialize this ${slang} variable together with the 
-target-platform definitions for sokol_gfx.h For instance, the [sokol-app
+target-platform defines for sokol_gfx.h For instance, the [sokol-app
 samples](https://github.com/floooh/sokol-samples/tree/master/sapp) have the following
 block in their CMakeLists.txt file:
 
@@ -441,7 +443,7 @@ uniform shape_uniforms {
 @end
 ```
 
-With this change, the uniform block struct on the C is generated like this now:
+With this change, the uniform block struct on the C side is generated like this now:
 
 ```c
 typedef struct shape_uniforms_t {
@@ -490,14 +492,15 @@ typedef struct bla_shape_uniforms_t {
 } bla_shape_uniforms_t;
 ```
 
-### @glsl_option, @hlsl_option, @msl_option
+### @glsl_options, @hlsl_options, @msl_options
 
-These tags can be used to define per-shader SPIRV-Cross compiler options.
+These tags can be used to define per-shader/per-language options for SPIRV-Cross
+when compiling SPIR-V to GLSL, HLSL or MSL.
 
 GL, D3D and Metal have different opinions where the origin of an image
 is, or whether clipspace-z goes from 0..+1 or from -1..+1, and the
 option-tags allow fine-control over those aspects with the following
-options:
+arguments:
 
 - **fixup_clipspace**:
     - GLSL: In vertex shaders, rewrite [0, w] depth (Vulkan/D3D style) to [-w, w] depth (GL style).
@@ -508,12 +511,23 @@ options:
 Currently, ```@glsl_option```, ```@hlsl_option``` and ```@msl_option``` are only
 allowed inside ```@vs, @end``` blocks.
 
+Example from the [mrt-sapp sample](https://floooh.github.io/sokol-html5/wasm/mrt-sapp.html),
+this renders a fullscreen-quad to blit an offscreen-render-target image to screen,
+which should be flipped vertically for GLSL targets:
+
+```glsl
+@vs vs_fsq
+@glsl_options flip_vert_y
+...
+@end
+```
+
 ## Programming Considerations
 
 ### Target Shader Language Defines
 
-In the input GLSL source, use the following checks for code that should only
-be compiled for a specific target shader language:
+In the input GLSL source, use the following checks for to conditionally
+compile code for the different target shader languages:
 
 ```GLSL
 #if SOKOL_GLSL
@@ -570,7 +584,7 @@ in vec2 texcoords;
 ```
 
 The vertex attribute description in the ```sg_pipeline_desc``` struct
-could look like this (note the attribute indices names ```vs_position```, etc...):
+could look like this (note the attribute indices names ```ATTR_vs_position```, etc...):
 
 ```c
 sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
@@ -585,8 +599,8 @@ sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 });
 ```
 
-You can also provide explicit vertex attribute location in the shader
-code:
+It's also possible to provide explicit vertex attribute location in the
+shader code:
 
 ```glsl
 @vs vs
@@ -630,7 +644,7 @@ The C header code generator will create a C struct and a 'bind slot' constant
 for the uniform block:
 
 ```c
-#define vs_params_slot (0)
+#define SLOT_vs_params (0)
 typedef struct vs_params_t {
     hmm_mat4 mvp;
 } vs_params_t;
