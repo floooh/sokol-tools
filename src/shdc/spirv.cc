@@ -148,7 +148,9 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
     spv_options.disableOptimizer = false;
-    spv_options.optimizeSize = true;
+    // NOTE: optimizeSize generated invalid WebGL shader code 
+    // (when a loop statement "for (;;)" is generated, this seems to be illegal WebGL shader code)
+    //spv_options.optimizeSize = true;
     // FIXME: generate debug info options
     // FIXME??? dissassemble and validate options
     spirv.blobs.push_back(spirv_blob_t(snippet_index));
