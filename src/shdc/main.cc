@@ -49,7 +49,6 @@ int main(int argc, const char** argv) {
             }
         }
     }
-    spirv_t::finalize_spirv_tools();
 
     // cross-translate SPIRV to shader dialects
     std::array<spirvcross_t,slang_t::NUM> spirvcross;
@@ -66,6 +65,7 @@ int main(int argc, const char** argv) {
             }
         }
     }
+    spirv_t::finalize_spirv_tools();
 
     // compile shader-byte code if requested (HLSL / Metal)
     std::array<bytecode_t, slang_t::NUM> bytecode;

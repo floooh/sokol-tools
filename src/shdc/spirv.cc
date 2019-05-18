@@ -9,6 +9,7 @@
 #include "ResourceLimits.h"
 #include "GlslangToSpv.h"
 #include "spirv-tools/libspirv.hpp"
+#include "spirv-tools/optimizer.hpp"
 
 namespace shdc {
 
@@ -109,6 +110,53 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     }
 }
 
+/* this is a clone of SpvTools.cpp/SpirvToolsLegalize with better control over
+    what optimization passes are run (some passes may generate shader code
+    which translates to valid GLSL, but invalid WebGL GLSL - e.g. simple
+    bounded for-loops are converted to what looks like an unbounded loop
+    ("for (;;) { }") to WebGL
+*/
+static void spirv_optimize(std::vector<uint32_t>& spirv) {
+    spv_target_env target_env = SPV_ENV_UNIVERSAL_1_2;
+    spvtools::Optimizer optimizer(target_env);
+    optimizer.SetMessageConsumer(
+        [](spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
+            // FIXME
+        });
+
+    optimizer.RegisterPass(spvtools::CreateDeadBranchElimPass());
+    optimizer.RegisterPass(spvtools::CreateMergeReturnPass());
+    optimizer.RegisterPass(spvtools::CreateInlineExhaustivePass());
+    optimizer.RegisterPass(spvtools::CreateEliminateDeadFunctionsPass());
+    optimizer.RegisterPass(spvtools::CreateScalarReplacementPass());
+    optimizer.RegisterPass(spvtools::CreateLocalAccessChainConvertPass());
+    optimizer.RegisterPass(spvtools::CreateLocalSingleBlockLoadStoreElimPass());
+    optimizer.RegisterPass(spvtools::CreateLocalSingleStoreElimPass());
+    optimizer.RegisterPass(spvtools::CreateSimplificationPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
+    optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateDeadBranchElimPass());
+// NOTE: it's the BlockMergePass which moves the init statement of a for-loop
+//       out of the for-statement, which makes it invalid for WebGL
+//    optimizer.RegisterPass(spvtools::CreateBlockMergePass());
+// NOTE: this is the pass which may create invalid WebGL code
+//    optimizer.RegisterPass(spvtools::CreateLocalMultiStoreElimPass());
+    optimizer.RegisterPass(spvtools::CreateIfConversionPass());
+    optimizer.RegisterPass(spvtools::CreateSimplificationPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
+    optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
+    optimizer.RegisterPass(spvtools::CreateRedundancyEliminationPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
+
+    spvtools::OptimizerOptions spvOptOptions;
+    spvOptOptions.set_run_validator(false); // The validator may run as a seperate step later on
+    optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
+}
+
 /* compile a vertex or fragment shader to SPIRV */
 static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, const input_t& inp, int snippet_index) {
     const char* sources[1] = { src.c_str() };
@@ -147,10 +195,9 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
-    spv_options.disableOptimizer = false;
-    // NOTE: optimizeSize generated invalid WebGL shader code 
-    // (when a loop statement "for (;;)" is generated, this seems to be illegal WebGL shader code)
-    //spv_options.optimizeSize = true;
+    // disable the optimizer passes, we'll run our own after the translation
+    spv_options.disableOptimizer = true;
+    spv_options.optimizeSize = false;
     // FIXME: generate debug info options
     // FIXME??? dissassemble and validate options
     spirv.blobs.push_back(spirv_blob_t(snippet_index));
@@ -160,6 +207,8 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
         // FIXME: need to parse string for errors and translate to errmsg_t objects
         fmt::print(spirv_log);
     }
+    // run optimizer passes
+    spirv_optimize(spirv.blobs.back().bytecode);
     return true;
 }
 
@@ -168,9 +217,6 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang) {
     spirv_t spirv;
 
     // compile shader-snippets
-    // FIXME: we may need to compile each source for each target shader dialect,
-    // in case we want to add a define #define SOKOL_HLSL/MSL/GLSL etc... to the
-    // shader source
     int snippet_index = 0;
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
