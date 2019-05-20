@@ -409,6 +409,8 @@ static bool parse(input_t& inp) {
 input_t input_t::load_and_parse(const std::string& path) {
     input_t inp;
     inp.path = path;
+    std::string dir;
+    pystring::os::path::split(dir, inp.filename, path);
 
     std::string str = load_file_into_str(path);
     if (str.empty()) {
@@ -439,6 +441,9 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     else {
         fmt::print(stderr, "  error: not set\n");
     }
+    fmt::print(stderr, "  path: {}\n", path);
+    fmt::print(stderr, "  filename: {}\n", filename);
+    fmt::print(stderr, "  module: {}\n", module);
     {
         int line_nr = 1;
         fmt::print(stderr, "  lines:\n");

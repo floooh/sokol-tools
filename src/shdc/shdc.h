@@ -96,6 +96,7 @@ struct args_t {
     int exit_code = 10;
     std::string input;                  // input file path
     std::string output;                 // output file path
+    std::string tmpdir;                 // directory for temporary files
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     bool debug_dump = false;            // print debug-dump info
@@ -170,7 +171,8 @@ struct program_t {
 /* pre-parsed GLSL source file, with content split into snippets */
 struct input_t {
     errmsg_t error;
-    std::string path;                   // filesystem
+    std::string path;                   // path of input file
+    std::string filename;               // filename split from path
     std::string module;                 // optional module name
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
@@ -355,9 +357,9 @@ struct spirvcross_t {
 
 /* HLSL/Metal to bytecode compiler wrapper */
 struct bytecode_t {
-    errmsg_t error;
+    std::vector<errmsg_t> errors;
 
-    static bytecode_t compile(const input_t& inp, const spirvcross_t& spirvcross, bool gen_bytecode);
+    static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     void dump_debug() const;
 };
 

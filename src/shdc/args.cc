@@ -20,6 +20,7 @@ static const getopt_option_t option_list[] = {
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
     { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
     { "noifdef", 'n', GETOPT_OPTION_TYPE_NO_ARG, 0, 'n', "don't emit #ifdef SOKOL_XXX"},
+    { "tmpdir", 't', GETOPT_OPTION_TYPE_REQUIRED, 0, 't', "directory for temporary files (use output dir if not specified)", "[dir]"},
     GETOPT_OPTIONS_END
 };
 
@@ -68,7 +69,7 @@ static bool parse_slang(args_t& args, const char* str) {
             }
         }
         if (!item_valid) {
-            fmt::print(stderr, "error: unknown shader language '{}'\n", item);
+            fmt::print(stderr, "sokol-shdc: unknown shader language '{}'\n", item);
             args.valid = false;
             args.exit_code = 10;
             return false;
@@ -80,16 +81,26 @@ static bool parse_slang(args_t& args, const char* str) {
 static void validate(args_t& args) {
     bool err = false;
     if (args.input.empty()) {
-        fmt::print(stderr, "error: no input file (--input [path])\n");
+        fmt::print(stderr, "sokol-shdc: no input file (--input [path])\n");
         err = true;
     }
     if (args.output.empty()) {
-        fmt::print(stderr, "error: no output file (--output [path])\n");
+        fmt::print(stderr, "sokol-shdc: no output file (--output [path])\n");
         err = true;
     }
     if (args.slang == 0) {
-        fmt::print(stderr, "error: no shader languages (--slang ...)\n");
+        fmt::print(stderr, "sokol-shdc: no shader languages (--slang ...)\n");
         err = true;
+    }
+    if (args.tmpdir.empty()) {
+        std::string tail;
+        pystring::os::path::split(args.tmpdir, tail, args.output);
+        args.tmpdir += "/";
+    }
+    else {
+        if (!pystring::endswith(args.tmpdir, "/")) {
+            args.tmpdir += "/";
+        }
     }
     if (err) {
         args.valid = false;
@@ -112,15 +123,15 @@ args_t args_t::parse(int argc, const char** argv) {
         while ((opt = getopt_next(&ctx)) != -1) {
             switch (opt) {
                 case '+':
-                    fmt::print(stderr, "error: got argument without flag: {}\n", ctx.current_opt_arg);
+                    fmt::print(stderr, "sokol-shdc: got argument without flag: {}\n", ctx.current_opt_arg);
                     args.valid = false;
                     return args;
                 case '?':
-                    fmt::print(stderr, "error: unknown flag {}\n", ctx.current_opt_arg);
+                    fmt::print(stderr, "sokol-shdc: unknown flag {}\n", ctx.current_opt_arg);
                     args.valid = false;
                     return args;
                 case '!':
-                    fmt::print(stderr, "error: invalid use of flag {}\n", ctx.current_opt_arg);
+                    fmt::print(stderr, "sokol-shdc: invalid use of flag {}\n", ctx.current_opt_arg);
                     args.valid = false;
                     return args;
                 case 'i':
@@ -149,7 +160,7 @@ args_t args_t::parse(int argc, const char** argv) {
                         args.error_format = errmsg_t::MSVC;
                     }
                     else {
-                        fmt::print(stderr, "unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "sokol-shdc: unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;
@@ -181,6 +192,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  exit_code: {}\n", exit_code);
     fmt::print(stderr, "  input:  '{}'\n", input);
     fmt::print(stderr, "  output: '{}'\n", output);
+    fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
     fmt::print(stderr, "  slang:  '{}'\n", slang_t::bits_to_str(slang));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
