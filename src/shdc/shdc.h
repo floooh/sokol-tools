@@ -356,8 +356,15 @@ struct spirvcross_t {
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */
+struct bytecode_blob_t {
+    bool valid = false;
+    int snippet_index = -1;
+    std::vector<uint8_t> data;
+};
+
 struct bytecode_t {
     std::vector<errmsg_t> errors;
+    std::vector<bytecode_blob_t> blobs;
 
     static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     void dump_debug() const;
