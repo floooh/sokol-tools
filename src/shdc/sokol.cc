@@ -297,7 +297,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
                     L("{{\"{}\",SG_UNIFORMTYPE_FLOAT4,{}}},", ub->name, roundup(ub->size,16)/16);
                 }
                 else {
-                    L("{{0,0,0}},");
+                    L("{{0,SG_UNIFORMTYPE_INVALID,0}},");
                 }
             }
             L(" }},\n");
@@ -306,7 +306,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
             L("        0, /* size */\n");
             L("        {{ /* uniforms */");
             for (int u_index = 0; u_index < uniform_t::NUM; u_index++) {
-                L("{{0,0,0}},");
+                L("{{0,SG_UNIFORMTYPE_INVALID,0}},");
             }
             L(" }},\n");
         }
@@ -320,7 +320,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
             L("{{\"{}\",{}}},", img->name, img_type_to_sokol_type_str(img->type));
         }
         else {
-            L("{{0,0}},");
+            L("{{0,_SG_IMAGETYPE_DEFAULT}},");
         }
     }
     L(" }},\n");
