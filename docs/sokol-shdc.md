@@ -17,6 +17,9 @@ shader dialects:
 - HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 
+> NOTE: even though bytecode-generation for Metal and D3D11 is described in
+this document as if it would already work, this is not yet implemented
+
 This cross-compilation happens via existing Khronos open source projects:
 
 - [glslang](https://github.com/KhronosGroup/glslang): for compiling GLSL to SPIR-V
