@@ -529,7 +529,7 @@ which should be flipped vertically for GLSL targets:
 
 ### Target Shader Language Defines
 
-In the input GLSL source, use the following checks for to conditionally
+In the input GLSL source, use the following checks to conditionally
 compile code for the different target shader languages:
 
 ```GLSL
