@@ -90,16 +90,11 @@ static bool cc(const std::string& src_path, const std::string& out_dia, const st
     return 0 == runcmd(cmdline, output, slang);
 }
 
-// run the metal librarian pass
-static bool ar(const std::string& air_path, const std::string& lib_path, slang_t::type_t slang, std::string& output) {
-    std::string cmdline = fmt::format("metal-ar r {} {}", lib_path, air_path);
-    return 0 == runcmd(cmdline, output, slang);
-}
-
 // run the metal linker pass
-static bool link(const std::string& lib_path, const std::string& bin_path, slang_t::type_t slang, std::string& output) {
+static bool link(const std::string& lib_path, const std::string& bin_path, slang_t::type_t slang) {
+    std::string dummy_output;
     std::string cmdline = fmt::format("metallib -o {} {}", bin_path, lib_path);
-    return 0 == runcmd(cmdline, output, slang);
+    return 0 == runcmd(cmdline, dummy_output, slang);
 }
 
 static bytecode_t compile_metal(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
@@ -115,7 +110,6 @@ static bytecode_t compile_metal(const args_t& args, const input_t& inp, const sp
         src_path = fmt::format("{}{}.metal", base_path, snippet.name);
         dia_path = fmt::format("{}{}.dia", base_path, snippet.name);
         air_path = fmt::format("{}{}.air", base_path, snippet.name);
-        lib_path = fmt::format("{}{}.metal-ar", base_path, snippet.name);
         bin_path = fmt::format("{}{}.metallib", base_path, snippet.name);
         // write metal source code to temp file
         if (!write_source(src.source_code, src_path)) {
@@ -123,18 +117,13 @@ static bytecode_t compile_metal(const args_t& args, const input_t& inp, const sp
             error = true;
             break;
         }
-        // run the compiler pass
+        // compiler pass
         if (!cc(src_path, dia_path, air_path, slang, output)) {
             error = true;
             break;
         }
-        // run the librarian pass
-        if (!ar(air_path, lib_path, slang, output)) {
-            error = true;
-            break;
-        }
-        // run the linker pass
-        if (!link(lib_path, bin_path, slang, output)) {
+        // linker pass
+        if (!link(air_path, bin_path, slang)) {
             error = true;
             break;
         }

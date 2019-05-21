@@ -195,6 +195,8 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
+    // generateDebugInfo emits SPIRV OpLine statements, but SPIRV-Cross ignores those...
+    //spv_options.generateDebugInfo = true;
     // disable the optimizer passes, we'll run our own after the translation
     spv_options.disableOptimizer = true;
     spv_options.optimizeSize = false;
