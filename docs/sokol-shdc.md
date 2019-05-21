@@ -261,7 +261,7 @@ follows:
 or Visual-Studio-compatible, the default is **gcc**
 - **-g --genver=[integer]**: set a version number to embed in the generated header,
 this is useful to detect whether all shader files need to be recompiled because 
-the tooling has been updated (sokol-shdc will not this check though, this must be
+the tooling has been updated (sokol-shdc will not check this though, this must be
 done in the build-system-integration)
 - **-n --noifdef**: by default, the C header generator will surround all 3D-backend-
 specific code with an **#ifdef/#endif** pair which checks for the sokol-gfx
