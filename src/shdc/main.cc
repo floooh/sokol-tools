@@ -42,10 +42,16 @@ int main(int argc, const char** argv) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
             if (!spirv[i].errors.empty()) {
+                bool has_errors = false;
                 for (const errmsg_t& err: spirv[i].errors) {
+                    if (err.type == errmsg_t::ERROR) {
+                        has_errors = true;
+                    }
                     err.print(args.error_format);
                 }
-                return 10;
+                if (has_errors) {
+                    return 10;
+                }
             }
         }
     }
@@ -78,10 +84,16 @@ int main(int argc, const char** argv) {
                     bytecode[i].dump_debug();
                 }
                 if (!bytecode[i].errors.empty()) {
+                    bool has_errors = false;
                     for (const errmsg_t& err: bytecode[i].errors) {
+                        if (err.type == errmsg_t::ERROR) {
+                            has_errors = true;
+                        }
                         err.print(args.error_format);
                     }
-                    return 10;
+                    if (has_errors) {
+                        return 10;
+                    }
                 }
             }
         }

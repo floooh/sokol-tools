@@ -267,7 +267,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    spv_cross.error = errmsg_t::error(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
                     return false;
                 }
             }
@@ -292,7 +292,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                     img.unique_index = other_img_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    spv_cross.error = errmsg_t::error(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return false;
                 }
             }
@@ -324,7 +324,7 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
             const attr_t& vs_out = vs_src.refl.outputs[i];
             const attr_t& fs_inp = fs_src.refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
-                return errmsg_t(inp.path, prog.line_index,
+                return errmsg_t::error(inp.path, prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
                     prog.vs_name, prog.fs_name, i, vs_out.name, fs_inp.name));
             }
@@ -366,7 +366,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         else {
             const int line_num = inp.snippets[blob.snippet_index].lines[0];
             std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
-            spv_cross.error = errmsg_t(inp.path, line_num, err_msg);
+            spv_cross.error = errmsg_t::error(inp.path, line_num, err_msg);
             return spv_cross;
         }
         if (!gather_unique_uniform_blocks(inp, spv_cross)) {

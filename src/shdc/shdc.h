@@ -55,6 +55,11 @@ struct slang_t {
 
 /* an error message object with filename, line number and message */
 struct errmsg_t {
+    enum type_t {
+        ERROR,
+        WARNING,
+    };
+    type_t type = ERROR;
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
@@ -65,15 +70,31 @@ struct errmsg_t {
         MSVC
     };
 
-    errmsg_t() { };
-    errmsg_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
-    errmsg_t(const std::string& m): msg(m), valid(true) { };
+    static errmsg_t error(const std::string& file, int line, const std::string& msg) {
+        errmsg_t err;
+        err.type = ERROR;
+        err.file = file;
+        err.msg = msg;
+        err.line_index = line;
+        err.valid = true;
+        return err;
+    }
+    static errmsg_t warning(const std::string& file, int line, const std::string& msg) {
+        errmsg_t err;
+        err.type = WARNING;
+        err.file = file;
+        err.msg = msg;
+        err.line_index = line;
+        err.valid = true;
+        return err;
+    }
+
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
-            return fmt::format("{}({}): error: {}", file, line_index+1, msg);
+            return fmt::format("{}({}): {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
         }
         else {
-            return fmt::format("{}:{}:0: error: {}", file, line_index+1, msg);
+            return fmt::format("{}:{}:0: {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
         }
     }
     // print error to stdout
