@@ -227,6 +227,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
             int next_offset = uniform.offset;
             if (next_offset > cur_offset) {
                 L("    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
+                cur_offset = next_offset;
             }
             if (inp.type_map.count(uniform_type_str(uniform.type)) > 0) {
                 // user-provided type names

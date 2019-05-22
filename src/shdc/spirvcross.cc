@@ -40,6 +40,22 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
+static void fix_bind_slots(Compiler& compiler) {
+    int ub_slot = 0;
+    ShaderResources res = compiler.get_shader_resources();
+    for (const Resource& ub_res: res.uniform_buffers) {
+        if (!compiler.has_decoration(ub_res.id, spv::DecorationBinding)) {
+            compiler.set_decoration(ub_res.id, spv::DecorationBinding, ub_slot++);
+        }
+    }
+    int img_slot = 0;
+    for (const Resource& img_res: res.sampled_images) {
+        if (!compiler.has_decoration(img_res.id, spv::DecorationBinding)) {
+            compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
+        }
+    }
+}
+
 static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     /* this flattens each uniform block into a vec4 array, in WebGL/GLES2 this
         allows more efficient uniform updates
@@ -165,6 +181,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(options);
+    fix_bind_slots(compiler);
     fix_ub_matrix_force_colmajor(compiler);
     flatten_uniform_blocks(compiler);
     std::string src = compiler.compile();
@@ -187,6 +204,7 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask)
     hlslOptions.shader_model = 50;
     hlslOptions.point_size_compat = true;
     compiler.set_hlsl_options(hlslOptions);
+    fix_bind_slots(compiler);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
@@ -207,6 +225,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     CompilerMSL::Options mslOptions;
     mslOptions.platform = plat;
     compiler.set_msl_options(mslOptions);
+    fix_bind_slots(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
     if (!src.empty()) {

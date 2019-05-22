@@ -236,7 +236,7 @@ multiple languages are provided, they must be separated by a **colon**. Valid
 shader language names are:
     - **glsl330**: desktop GL
     - **glsl100**: GLES2 / WebGL
-    - **glsl330es**: GLES3 / WebGL2
+    - **glsl300es**: GLES3 / WebGL2
     - **hlsl5**: D3D11
     - **metal_macos**: Metal on macOS
     - **metal_ios**: Metal on iOS
@@ -244,7 +244,7 @@ shader language names are:
   For instance, to generate header with support for all supported GLSL dialects:
 
   ```
-  --slang glsl330:glsl100:glsl330es
+  --slang glsl330:glsl100:glsl300es
   ```
 
 - **-b --bytecode**: If possible, compile shaders to bytecode instead of
@@ -261,7 +261,7 @@ follows:
 or Visual-Studio-compatible, the default is **gcc**
 - **-g --genver=[integer]**: set a version number to embed in the generated header,
 this is useful to detect whether all shader files need to be recompiled because 
-the tooling has been updated (sokol-shdc will not this check though, this must be
+the tooling has been updated (sokol-shdc will not check this though, this must be
 done in the build-system-integration)
 - **-n --noifdef**: by default, the C header generator will surround all 3D-backend-
 specific code with an **#ifdef/#endif** pair which checks for the sokol-gfx
@@ -529,7 +529,7 @@ which should be flipped vertically for GLSL targets:
 
 ### Target Shader Language Defines
 
-In the input GLSL source, use the following checks for to conditionally
+In the input GLSL source, use the following checks to conditionally
 compile code for the different target shader languages:
 
 ```GLSL
