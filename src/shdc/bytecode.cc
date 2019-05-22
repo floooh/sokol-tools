@@ -12,6 +12,15 @@
 
 namespace shdc {
 
+int bytecode_t::find_blob_by_snippet_index(int snippet_index) const {
+    for (int i = 0; i < (int)blobs.size(); i++) {
+        if (blobs[i].snippet_index == snippet_index) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // write source code to file
 static bool write_source(const std::string& source_code, const std::string path) {
     FILE* f = fopen(path.c_str(), "wb");

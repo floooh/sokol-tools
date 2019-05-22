@@ -388,6 +388,7 @@ struct bytecode_t {
     std::vector<bytecode_blob_t> blobs;
 
     static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
 
