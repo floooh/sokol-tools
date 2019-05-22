@@ -41,16 +41,35 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
 }
 
 static void fix_bind_slots(Compiler& compiler) {
-    int ub_slot = 0;
+    // first check if bind slot indices need to be generated
+    // (either no bindings exist, or all bindings are 0)
     ShaderResources res = compiler.get_shader_resources();
+    bool need_ub_bindings = true;
     for (const Resource& ub_res: res.uniform_buffers) {
-        if (!compiler.has_decoration(ub_res.id, spv::DecorationBinding)) {
+        if (compiler.has_decoration(ub_res.id, spv::DecorationBinding)) {
+            if (0 != compiler.get_decoration(ub_res.id, spv::DecorationBinding)) {
+                need_ub_bindings = false;
+            }
+        }
+    }
+    bool need_img_bindings = true;
+    for (const Resource& img_res: res.sampled_images) {
+        if (compiler.has_decoration(img_res.id, spv::DecorationBinding)) {
+            if (0 != compiler.get_decoration(img_res.id, spv::DecorationBinding)) {
+                need_img_bindings = false;
+            }
+        }
+    }
+
+    if (need_ub_bindings) {
+        int ub_slot = 0;
+        for (const Resource& ub_res: res.uniform_buffers) {
             compiler.set_decoration(ub_res.id, spv::DecorationBinding, ub_slot++);
         }
     }
-    int img_slot = 0;
-    for (const Resource& img_res: res.sampled_images) {
-        if (!compiler.has_decoration(img_res.id, spv::DecorationBinding)) {
+    if (need_img_bindings) {
+        int img_slot = 0;
+        for (const Resource& img_res: res.sampled_images) {
             compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
         }
     }
