@@ -140,6 +140,9 @@ args_t args_t::parse(int argc, const char** argv) {
                 case 'o':
                     args.output = ctx.current_opt_arg;
                     break;
+                case 't':
+                    args.tmpdir = ctx.current_opt_arg;
+                    break;
                 case 'b':
                     args.byte_code = true;
                     break;
