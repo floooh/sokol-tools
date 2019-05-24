@@ -95,7 +95,9 @@ static void validate(args_t& args) {
     if (args.tmpdir.empty()) {
         std::string tail;
         pystring::os::path::split(args.tmpdir, tail, args.output);
-        args.tmpdir += "/";
+        if (!args.tmpdir.empty()) {
+            args.tmpdir += "/";
+        }
     }
     else {
         if (!pystring::endswith(args.tmpdir, "/")) {
