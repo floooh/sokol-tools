@@ -21,6 +21,8 @@ int bytecode_t::find_blob_by_snippet_index(int snippet_index) const {
     return -1;
 }
 
+#if defined(__APPLE__)
+
 // write source code to file
 static bool write_source(const std::string& source_code, const std::string path) {
     FILE* f = fopen(path.c_str(), "wb");
@@ -55,6 +57,7 @@ static bool read_binary(const std::string& path, std::vector<uint8_t>& out_blob)
         return false;
     }
 }
+#endif
 
 // MacOS/Metal specific stuff...
 #if defined(__APPLE__)
