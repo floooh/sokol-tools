@@ -55,6 +55,11 @@ struct slang_t {
 
 /* an error message object with filename, line number and message */
 struct errmsg_t {
+    enum type_t {
+        ERROR,
+        WARNING,
+    };
+    type_t type = ERROR;
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
@@ -65,15 +70,31 @@ struct errmsg_t {
         MSVC
     };
 
-    errmsg_t() { };
-    errmsg_t(const std::string& f, int l, const std::string& m): file(f), msg(m), line_index(l), valid(true) { };
-    errmsg_t(const std::string& m): msg(m), valid(true) { };
+    static errmsg_t error(const std::string& file, int line, const std::string& msg) {
+        errmsg_t err;
+        err.type = ERROR;
+        err.file = file;
+        err.msg = msg;
+        err.line_index = line;
+        err.valid = true;
+        return err;
+    }
+    static errmsg_t warning(const std::string& file, int line, const std::string& msg) {
+        errmsg_t err;
+        err.type = WARNING;
+        err.file = file;
+        err.msg = msg;
+        err.line_index = line;
+        err.valid = true;
+        return err;
+    }
+
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
-            return fmt::format("{}({}): error: {}", file, line_index+1, msg);
+            return fmt::format("{}({}): {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
         }
         else {
-            return fmt::format("{}:{}:0: error: {}", file, line_index+1, msg);
+            return fmt::format("{}:{}:0: {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
         }
     }
     // print error to stdout
@@ -96,6 +117,7 @@ struct args_t {
     int exit_code = 10;
     std::string input;                  // input file path
     std::string output;                 // output file path
+    std::string tmpdir;                 // directory for temporary files
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     bool debug_dump = false;            // print debug-dump info
@@ -170,7 +192,8 @@ struct program_t {
 /* pre-parsed GLSL source file, with content split into snippets */
 struct input_t {
     errmsg_t error;
-    std::string path;                   // filesystem
+    std::string path;                   // path of input file
+    std::string filename;               // filename split from path
     std::string module;                 // optional module name
     std::vector<std::string> lines;     // input source file split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
@@ -354,10 +377,18 @@ struct spirvcross_t {
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */
-struct bytecode_t {
-    errmsg_t error;
+struct bytecode_blob_t {
+    bool valid = false;
+    int snippet_index = -1;
+    std::vector<uint8_t> data;
+};
 
-    static bytecode_t compile(const input_t& inp, const spirvcross_t& spirvcross, bool gen_bytecode);
+struct bytecode_t {
+    std::vector<errmsg_t> errors;
+    std::vector<bytecode_blob_t> blobs;
+
+    static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
 

@@ -42,10 +42,16 @@ int main(int argc, const char** argv) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
             if (!spirv[i].errors.empty()) {
-                for (const errmsg_t& err : spirv[i].errors) {
+                bool has_errors = false;
+                for (const errmsg_t& err: spirv[i].errors) {
+                    if (err.type == errmsg_t::ERROR) {
+                        has_errors = true;
+                    }
                     err.print(args.error_format);
                 }
-                return 10;
+                if (has_errors) {
+                    return 10;
+                }
             }
         }
     }
@@ -69,14 +75,27 @@ int main(int argc, const char** argv) {
 
     // compile shader-byte code if requested (HLSL / Metal)
     std::array<bytecode_t, slang_t::NUM> bytecode;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        bytecode[i] = bytecode_t::compile(inp, spirvcross[i], args.byte_code);
-        if (args.debug_dump) {
-            bytecode[i].dump_debug();
-        }
-        if (bytecode[i].error.valid) {
-            bytecode[i].error.print(args.error_format);
-            return 10;
+    if (args.byte_code) {
+        for (int i = 0; i < slang_t::NUM; i++) {
+            slang_t::type_t slang = (slang_t::type_t)i;
+            if (args.slang & slang_t::bit(slang)) {
+                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
+                if (args.debug_dump) {
+                    bytecode[i].dump_debug();
+                }
+                if (!bytecode[i].errors.empty()) {
+                    bool has_errors = false;
+                    for (const errmsg_t& err: bytecode[i].errors) {
+                        if (err.type == errmsg_t::ERROR) {
+                            has_errors = true;
+                        }
+                        err.print(args.error_format);
+                    }
+                    if (has_errors) {
+                        return 10;
+                    }
+                }
+            }
         }
     }
 

@@ -17,7 +17,7 @@ shader dialects:
 - HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 
-> NOTE: even though bytecode-generation for Metal and D3D11 is described in
+> NOTE: even though bytecode-generation for D3D11 is described in
 this document as if it would already work, this is not yet implemented
 
 This cross-compilation happens via existing Khronos open source projects:
@@ -231,6 +231,10 @@ relative to the current working directory, or an absolute path.
 - **-o --output=[C header]**: The path to the generated C header, either relative
 to the current working directory, or as absolute path. The target directory must
 exist.
+- **-t --tmpdir=[path]**: Optional path to a directory used for storing intermediate files
+when generating Metal bytecode. If no separate temporary directory is provided,
+intermediate files will be written to the same directory as the generated
+C header defined via *--output*. In both cases, the target directory must exist.
 - **-l --slang=[shader languages]**: One or multiple output shader languages. If
 multiple languages are provided, they must be separated by a **colon**. Valid 
 shader language names are:

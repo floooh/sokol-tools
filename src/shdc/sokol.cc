@@ -273,18 +273,85 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
     }
 }
 
-static void write_stage(const char* stage_name, const program_t& prog, const spirvcross_source_t& src, slang_t::type_t slang) {
-    L("  {{ /* {} */\n", stage_name);
-    std::vector<std::string> lines;
-    pystring::splitlines(src.source_code, lines);
-    for (std::string line: lines) {
-        // escape special characters
-        line = pystring::replace(line, "\"", "\\\"");
-        L("    \"{}\\n\"\n", line);
+static void write_shader_sources_and_blobs(const input_t& inp,
+                                           const spirvcross_t& spirvcross,
+                                           const bytecode_t& bytecode,
+                                           slang_t::type_t slang)
+{
+    for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
+        const snippet_t& snippet = inp.snippets[snippet_index];
+        if ((snippet.type != snippet_t::VS) && (snippet.type != snippet_t::FS)) {
+            continue;
+        }
+        int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
+        assert(src_index >= 0);
+        const spirvcross_source_t& src = spirvcross.sources[src_index];
+        int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
+        const bytecode_blob_t* blob = 0;
+        if (blob_index != -1) {
+            blob = &bytecode.blobs[blob_index];
+        }
+        std::vector<std::string> lines;
+        pystring::splitlines(src.source_code, lines);
+        /* first write the source code in a comment block */
+        L("/*\n");
+        for (const std::string& line: lines) {
+            L("    {}\n", line);
+        }
+        L("*/\n");
+        if (blob) {
+            std::string c_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
+            L("static const uint8_t {}[{}] = {{\n", c_name.c_str(), blob->data.size());
+            const size_t len = blob->data.size();
+            for (size_t i = 0; i < len; i++) {
+                if ((i & 15) == 0) {
+                    L("    ");
+                }
+                L("{:#04x},", blob->data[i]);
+                if ((i & 15) == 15) {
+                    L("\n");
+                }
+            }
+            L("\n}};\n");
+        }
+        else {
+            /* if no bytecode exists, write the source code, but also a a byte array with a trailing 0 */
+            std::string c_name = fmt::format("{}{}_source_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
+            const size_t len = src.source_code.length() + 1;
+            L("static const char {}[{}] = {{\n", c_name.c_str(), len);
+            for (size_t i = 0; i < len; i++) {
+                if ((i & 15) == 0) {
+                    L("    ");
+                }
+                L("{:#04x},", src.source_code[i]);
+                if ((i & 15) == 15) {
+                    L("\n");
+                }
+            }
+            L("\n}};\n");
+        }
     }
-    L("    ,\n");
-    L("    0, /* bytecode */\n");
-    L("    0, /* bytecode_size */\n");
+}
+
+static void write_stage(const char* stage_name,
+                        const program_t& prog,
+                        const spirvcross_source_t& src,
+                        const std::string& src_name,
+                        const bytecode_blob_t* blob,
+                        const std::string& blob_name,
+                        slang_t::type_t slang)
+{
+    L("  {{ /* {} */\n", stage_name);
+    if (blob) {
+        L("    0, /* source */\n");
+        L("    {}, /* bytecode */\n", blob_name.c_str());
+        L("    {}, /* bytecode_size */\n", blob->data.size());
+    }
+    else {
+        L("    {}, /* source */\n", src_name);
+        L("    0,  /* bytecode */\n");
+        L("    0,  /* bytecode_size */\n");
+    }
     L("    \"{}\", /* entry */\n", src.refl.entry_point);
     L("    {{ /* uniform blocks */\n");
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
@@ -328,7 +395,7 @@ static void write_stage(const char* stage_name, const program_t& prog, const spi
     L("  }},\n");
 }
 
-static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
@@ -338,9 +405,33 @@ static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcros
         assert((vs_src_index >= 0) && (fs_src_index >= 0));
         const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
         const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
+        int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
+        int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
+        const bytecode_blob_t* vs_blob = 0;
+        const bytecode_blob_t* fs_blob = 0;
+        if (vs_blob_index != -1) {
+            vs_blob = &bytecode.blobs[vs_blob_index];
+        }
+        if (fs_blob_index != -1) {
+            fs_blob = &bytecode.blobs[fs_blob_index];
+        }
+        std::string vs_src_name, fs_src_name;
+        std::string vs_blob_name, fs_blob_name;
+        if (vs_blob_index != -1) {
+            vs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
+        }
+        else {
+            vs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
+        }
+        if (fs_blob_index != -1) {
+            fs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
+        }
+        else {
+            fs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
+        }
 
         /* write shader desc */
-        L("static sg_shader_desc {}{}_shader_desc_{} = {{\n", mod_prefix(inp), prog.name, slang_t::to_str(slang));
+        L("static const sg_shader_desc {}{}_shader_desc_{} = {{\n", mod_prefix(inp), prog.name, slang_t::to_str(slang));
         L("  0, /* _start_canary */\n");
         L("  {{ /*attrs*/");
         for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
@@ -353,8 +444,8 @@ static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcros
             }
         }
         L(" }},\n");
-        write_stage("vs", prog, vs_src, slang);
-        write_stage("fs", prog, fs_src, slang);
+        write_stage("vs", prog, vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
+        write_stage("fs", prog, fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
         L("  \"{}_shader\", /* label */\n", prog.name);
         L("  0, /* _end_canary */\n");
         L("}};\n");
@@ -369,12 +460,12 @@ static errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross,
         int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
         int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
         if (vs_src_index < 0) {
-            return errmsg_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
+            return errmsg_t::error(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.vs_name, prog.name));
         }
         if (fs_src_index < 0) {
-            return errmsg_t(inp.path, inp.snippets[vs_snippet_index].lines[0],
+            return errmsg_t::error(inp.path, inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     slang_t::to_str(slang), prog.fs_name, prog.name));
         }
@@ -415,7 +506,8 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             if (!args.no_ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
             }
-            write_shader_descs(inp, spirvcross[i], slang);
+            write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
+            write_shader_descs(inp, spirvcross[i], bytecode[i], slang);
             if (!args.no_ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
             }
@@ -447,7 +539,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     // write result into output file
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
-        return errmsg_t(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return errmsg_t::error(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);

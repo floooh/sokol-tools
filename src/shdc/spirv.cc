@@ -100,11 +100,16 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
                 }
             }
             if (ok) {
-                out_errors.push_back(errmsg_t(inp.path, line_index, msg));
+                if (tokens[0] == "ERROR") {
+                    out_errors.push_back(errmsg_t::error(inp.path, line_index, msg));
+                }
+                else {
+                    out_errors.push_back(errmsg_t::warning(inp.path, line_index, msg));
+                }
             }
             else {
                 // some error during parsing, still create an error object so the error isn't lost in the void
-                out_errors.push_back(errmsg_t(inp.path, 0, line));
+                out_errors.push_back(errmsg_t::error(inp.path, 1, line));
             }
         }
     }
@@ -170,23 +175,26 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
 //    shader.setAutoMapBindings(true);
     shader.setAutoMapLocations(true);
-    if (!shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault)) {
-        infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
-        infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    bool parse_success = shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault);
+    infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    if (!parse_success) {
         return false;
     }
 
     // "link" into a program
     glslang::TProgram program;
     program.addShader(&shader);
-    if (!program.link(EShMsgDefault)) {
-        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
-        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    bool link_success = program.link(EShMsgDefault);
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    if (!link_success) {
         return false;
     }
-    if (!program.mapIO()) {
-        infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
-        infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    bool map_success = program.mapIO();
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    if (!map_success) {
         return false;
     }
 
@@ -195,6 +203,8 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
+    // generateDebugInfo emits SPIRV OpLine statements, but SPIRV-Cross ignores those...
+    //spv_options.generateDebugInfo = true;
     // disable the optimizer passes, we'll run our own after the translation
     spv_options.disableOptimizer = true;
     spv_options.optimizeSize = false;
