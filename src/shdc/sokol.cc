@@ -294,7 +294,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         std::vector<std::string> lines;
         pystring::splitlines(src.source_code, lines);
         /* first write the source code in a comment block */
-        L("/*\n)\n");
+        L("/*\n");
         for (const std::string& line: lines) {
             L("    {}\n", line);
         }
