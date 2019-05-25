@@ -398,7 +398,7 @@ This is useful for sharing code snippets between different shaders.
 
 ### @ctype [glsl_type] [c_type]
 
-The ```@ctype``` defines a type-mapping from GLSL to C in uniform blocks for
+The ```@ctype``` tag defines a type-mapping from GLSL to C or C++ in uniform blocks for
 the GLSL types ```float```, ```vec2```, ```vec3```, ```vec4``` and ```mat4```
 (these are the currently valid types for use in GLSL uniform blocks).
 
@@ -461,6 +461,16 @@ typedef struct shape_uniforms_t {
     hmm_vec4 eye_pos;
 } shape_uniforms_t;
 ```
+
+Note that the mapped C/C++ types must have the following byte sizes:
+
+- ```mat4```: 64 bytes
+- ```vec4```: 16 bytes
+- ```vec3```: 12 bytes
+- ```vec2```: 8 bytes
+- ```float```: 4 bytes
+
+Explicit padding bytes will be included as needed by the code generator.
 
 ### @module [name]
 
