@@ -356,7 +356,7 @@ static const sg_shader_desc* my_program_shader_desc(void);
 
 The ```@block``` tag starts a named code block which can be included in
 other ```@vs```, ```@fs``` or ```@block``` code blocks. This is useful
-for sharing code between functions.
+for sharing code between shaders.
 
 Example for having a common lighting function shared between two fragment
 shaders:
