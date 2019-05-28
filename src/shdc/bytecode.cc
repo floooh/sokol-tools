@@ -69,11 +69,8 @@ static void mtl_parse_errors(const std::string& output, const input_t& inp, int 
         format for errors/warnings is:
 
         FILE:LINE:COLUMN: [error|warning]: msg
-
-        NOTE: we cannot map the line numbers back to the original GLSL source
-        (this would require support for #line statements in SPIRV-Cross), so
-        we'll just emit the errors and warnings at the first line
     */
+    const snippet_t& snippet = inp.snippets[snippet_index];
     std::vector<std::string> lines;
     pystring::splitlines(output, lines);
     std::vector<std::string> tokens;
@@ -83,8 +80,16 @@ static void mtl_parse_errors(const std::string& output, const input_t& inp, int 
         pystring::split(line, tokens, colon);
         if ((tokens.size() > 3) && ((tokens[3] == " error") || (tokens[3] == " warning"))) {
             bool ok = false;
+            int line_index = 0;
             std::string msg;
             if (tokens.size() > 4) {
+                // extract line index and message
+                int snippet_line_index = atoi(tokens[1].c_str());
+                // correct for one-based and prolog #defines
+                if (snippet_line_index >= 1) {
+                    snippet_line_index -= 5;
+                }
+                // everything after the 4th colon is message
                 for (int i = 4; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
                         msg = tokens[i];
@@ -93,14 +98,18 @@ static void mtl_parse_errors(const std::string& output, const input_t& inp, int 
                         msg = fmt::format("{}:{}", msg, tokens[i]);
                     }
                 }
+                // snippet-line-index to input source line index
+                if ((snippet_line_index >= 0) && (snippet_line_index < (int)snippet.lines.size())) {
+                    line_index = snippet.lines[snippet_line_index];
+                }
                 ok = true;
             }
             if (ok) {
                 if (tokens[3] == " error") {
-                    out_errors.push_back(errmsg_t::error(inp.path, 0, msg));
+                    out_errors.push_back(errmsg_t::error(inp.path, line_index, msg));
                 }
                 else {
-                    out_errors.push_back(errmsg_t::warning(inp.path, 0, msg));
+                    out_errors.push_back(errmsg_t::warning(inp.path, line_index, msg));
                 }
             }
             else {

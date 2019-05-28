@@ -173,7 +173,9 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
     shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-//    shader.setAutoMapBindings(true);
+    // Do NOT call setAutoMapBinding(true) here, this will throw uniform blocks and
+    // image bindings into the same "pool", while sokol-gfx needs those separated.
+    // Bind slot decorations will be added before the SPIRV-Cross pass.
     shader.setAutoMapLocations(true);
     bool parse_success = shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault);
     infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
@@ -203,18 +205,17 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
-    // generateDebugInfo emits SPIRV OpLine statements, but SPIRV-Cross ignores those...
-    //spv_options.generateDebugInfo = true;
+    // generateDebugInfo emits SPIRV OpLine statements
+    spv_options.generateDebugInfo = true;
     // disable the optimizer passes, we'll run our own after the translation
     spv_options.disableOptimizer = true;
     spv_options.optimizeSize = false;
-    // FIXME: generate debug info options
-    // FIXME??? dissassemble and validate options
     spirv.blobs.push_back(spirv_blob_t(snippet_index));
     glslang::GlslangToSpv(*im, spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
-        // FIXME: need to parse string for errors and translate to errmsg_t objects
+        // FIXME: need to parse string for errors and translate to errmsg_t objects?
+        // haven't seen a case yet where this generates log messages
         fmt::print(spirv_log);
     }
     // run optimizer passes

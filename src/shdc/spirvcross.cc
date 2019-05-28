@@ -216,6 +216,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
 static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
+    commonOptions.emit_line_directives = true;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
@@ -238,6 +239,7 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask)
 static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
+    commonOptions.emit_line_directives = true;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
