@@ -194,6 +194,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
 static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, uint32_t opt_mask) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
+    options.emit_line_directives = false;
     options.version = glsl_version;
     options.es = is_gles;
     options.enable_420pack_extension = false;
