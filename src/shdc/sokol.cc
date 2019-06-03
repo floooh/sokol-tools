@@ -446,7 +446,7 @@ static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcros
         L(" }},\n");
         write_stage("vs", prog, vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
         write_stage("fs", prog, fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
-        L("  \"{}_shader\", /* label */\n", prog.name);
+        L("  \"{}{}_shader\", /* label */\n", mod_prefix(inp), prog.name);
         L("  0, /* _end_canary */\n");
         L("}};\n");
     }
