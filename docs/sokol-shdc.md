@@ -157,7 +157,7 @@ elseif (SOKOL_USE_D3D11)
 elseif (SOKOL_USE_METAL)
     add_definitions(-DSOKOL_METAL)
     if (FIPS_IOS)
-        set(slang "metal_ios")
+        set(slang "metal_ios:metal_sim")
     else()
         set(slang "metal_macos")
     endif()
@@ -240,7 +240,8 @@ shader language names are:
     - **glsl300es**: GLES3 / WebGL2
     - **hlsl5**: D3D11
     - **metal_macos**: Metal on macOS
-    - **metal_ios**: Metal on iOS
+    - **metal_ios**: Metal on iOS device
+    - **metal_sim**: Metal on iOS simulator
 
   For instance, to generate header with support for all supported GLSL dialects:
 
@@ -257,7 +258,9 @@ follows:
         - **metal_macos, metal_ios**: only possible when sokol-shdc is running on macOS
 
   ...if these restrictions are not met, sokol-shdc will fall back to generating
-  shader source code without returning an error.
+  shader source code without returning an error. Note that the **metal_sim**
+  target for the iOS simulator doesn't support generating bytecode, this
+  will always emit Metal source code.
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
 or Visual-Studio-compatible, the default is **gcc**
 - **-g --genver=[integer]**: set a version number to embed in the generated header,

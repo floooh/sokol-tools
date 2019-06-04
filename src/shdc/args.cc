@@ -14,7 +14,7 @@ static const getopt_option_t option_list[] = {
     { "help", 'h',  GETOPT_OPTION_TYPE_NO_ARG, 0, 'h', "print this help text", 0},
     { "input", 'i', GETOPT_OPTION_TYPE_REQUIRED, 0, 'i', "input source file", "GLSL file" },
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
-    { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s)", "glsl330:glsl100:glsl300es:hlsl5:metal_macos:metal_ios" },
+    { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s)", "glsl330:glsl100:glsl300es:hlsl5:metal_macos:metal_ios:metal_sim" },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
     { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},

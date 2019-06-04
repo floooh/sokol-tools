@@ -377,6 +377,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
                 src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask);
                 break;
             case slang_t::METAL_IOS:
+            case slang_t::METAL_SIM:
                 src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask);
                 break;
             default: break;

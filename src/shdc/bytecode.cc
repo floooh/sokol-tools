@@ -4,6 +4,10 @@
 
     Uses d3dcompiler.dll for HLSL, and for Metal, invokes the Metal
     compiler toolchain commandline tools.
+
+    On Metal, bytecode compilation only happens for the macOS and iOS
+    targets, but not for running in the simulator, in this case,
+    shaders are compiled at runtime from source code.
 */
 #include "shdc.h"
 #include "fmt/format.h"
@@ -152,11 +156,11 @@ static bool mtl_cc(const std::string& src_path, const std::string& out_dia, cons
     cmdline += out_dia;
     cmdline += " -o ";
     cmdline += out_air;
-    if (slang == slang_t::METAL_IOS) {
-        cmdline += " -miphoneos-version-min=9.0 -std=ios-metal1.0 ";
+    if (slang == slang_t::METAL_MACOS) {
+        cmdline += " -mmacosx-version-min=10.11 -std=osx-metal1.1 ";
     }
     else {
-        cmdline += " -mmacosx-version-min=10.11 -std=osx-metal1.1 ";
+        cmdline += " -miphoneos-version-min=9.0 -std=ios-metal1.0 ";
     }
     cmdline += src_path;
     return 0 == xcrun(cmdline, output, slang);
@@ -343,6 +347,7 @@ static bytecode_t d3d_compile(const args_t& args, const input_t& inp, const spir
 bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     bytecode_t bytecode;
     #if defined(__APPLE__)
+    // NOTE: for the iOS simulator case, don't compile bytecode but use source code
     if ((slang == slang_t::METAL_MACOS) || (slang == slang_t::METAL_IOS)) {
         bytecode = mtl_compile(args, inp, spirvcross, slang);
     }

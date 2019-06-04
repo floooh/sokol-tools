@@ -87,6 +87,7 @@ static const char* sokol_define(slang_t::type_t slang) {
         case slang_t::HLSL5:        return "SOKOL_HLSL5";
         case slang_t::METAL_MACOS:  return "SOKOL_METAL";
         case slang_t::METAL_IOS:    return "SOKOL_METAL";
+        case slang_t::METAL_SIM:    return "SOKOL_METAL";
         default: return "<INVALID>";
     }
 }
@@ -99,6 +100,7 @@ static const char* sokol_backend(slang_t::type_t slang) {
         case slang_t::HLSL5:        return "SG_BACKEND_D3D11";
         case slang_t::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
         case slang_t::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
+        case slang_t::METAL_SIM:    return "SG_BACKEND_METAL_SIMULATOR";
         default: return "<INVALID>";
     }
 }

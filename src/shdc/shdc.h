@@ -20,6 +20,7 @@ struct slang_t {
         HLSL5,
         METAL_MACOS,
         METAL_IOS,
+        METAL_SIM,
         NUM
     };
 
@@ -34,6 +35,7 @@ struct slang_t {
             case HLSL5:         return "hlsl5";
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
+            case METAL_SIM:     return "metal_sim";
             default:            return "<invalid>";
         }
     }

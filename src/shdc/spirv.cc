@@ -40,6 +40,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
             break;
         case slang_t::METAL_MACOS:
         case slang_t::METAL_IOS:
+        case slang_t::METAL_SIM:
             is_msl = true;
             break;
         default: break;

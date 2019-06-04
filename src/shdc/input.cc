@@ -319,6 +319,7 @@ static bool parse(input_t& inp) {
                     uint32_t option_bit = option_t::from_string(tokens[i]);
                     cur_snippet.options[slang_t::METAL_MACOS] |= option_bit;
                     cur_snippet.options[slang_t::METAL_IOS] |= option_bit;
+                    cur_snippet.options[slang_t::METAL_SIM] |= option_bit;
                 }
                 add_line = false;
             }
