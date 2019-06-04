@@ -14,7 +14,7 @@ static const getopt_option_t option_list[] = {
     { "help", 'h',  GETOPT_OPTION_TYPE_NO_ARG, 0, 'h', "print this help text", 0},
     { "input", 'i', GETOPT_OPTION_TYPE_REQUIRED, 0, 'i', "input source file", "GLSL file" },
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
-    { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s)", "glsl330:glsl100:glsl300es:hlsl5:metal_macos:metal_ios:metal_sim" },
+    { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s), see above for list", "glsl330:glsl100..." },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
     { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
@@ -49,6 +49,14 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - @program name vs_name fs_name: a named, linked shader program\n\n"
         "An input file must contain at least one @vs block, one @fs block\n"
         "and one @program declaration.\n\n"
+        "Target shader languages (used with -l --slang):\n"
+        "  - glsl330:       desktop OpenGL backend (SOKOL_GLCORE33)\n"
+        "  - glsl100:       OpenGLES2 and WebGL (SOKOL_GLES2)\n"
+        "  - glsl300es:     OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
+        "  - hlsl5:         Direct3D11 (SOKOL_D3D11)\n"
+        "  - metal_macos:   Metal on macOS (SOKOL_METAL)\n"
+        "  - metal_ios:     Metal on iOS devices (SOKOL_METAL)\n"
+        "  - metal_sim:     Metal on iOS simulator (SOKOL_METAL)\n\n"
         "Options:\n\n");
     char buf[2048];
     fmt::print(stderr, getopt_create_help_string(&ctx, buf, sizeof(buf)));
