@@ -194,9 +194,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("\n");
     }
     L("*/\n");
-    L("#if !defined(SOKOL_GFX_INCLUDED)\n");
-    L("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
-    L("#endif\n");
+    L("#include <stdint.h>\n");
+    L("#include <stdbool.h>\n");
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
@@ -509,6 +508,9 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             if (!decl_guard_written) {
                 decl_guard_written = true;
                 L("#if !defined(SOKOL_SHDC_DECL)\n");
+                L("#if !defined(SOKOL_GFX_INCLUDED)\n");
+                L("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
+                L("#endif\n");
             }
             if (!args.no_ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
