@@ -16,6 +16,7 @@ static const getopt_option_t option_list[] = {
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
     { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s), see above for list", "glsl330:glsl100..." },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
+    { "format", 'f', GETOPT_OPTION_TYPE_REQUIRED, 0, 'f', "output format (default: sokol)", "[sokol|bare]" },
     { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
     { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
@@ -57,6 +58,9 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - metal_macos:   Metal on macOS (SOKOL_METAL)\n"
         "  - metal_ios:     Metal on iOS devices (SOKOL_METAL)\n"
         "  - metal_sim:     Metal on iOS simulator (SOKOL_METAL)\n\n"
+        "Output formats (used with -f --format):\n"
+        "  - sokol:         C header with embedded shader code for use with sokol_gfx.h\n"
+        "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
         "Options:\n\n");
     char buf[2048];
     fmt::print(stderr, getopt_create_help_string(&ctx, buf, sizeof(buf)));
@@ -156,6 +160,20 @@ args_t args_t::parse(int argc, const char** argv) {
                 case 'b':
                     args.byte_code = true;
                     break;
+                case 'f':
+                    if (0 == strcmp("sokol", ctx.current_opt_arg)) {
+                        args.output_format = format_t::SOKOL;
+                    }
+                    else if (0 == strcmp("bare", ctx.current_opt_arg)) {
+                        args.output_format = format_t::BARE;
+                    }
+                    else {
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be 'sokol' or 'bare'\n", ctx.current_opt_arg);
+                        args.valid = false;
+                        args.exit_code = 10;
+                        return args;
+                    }
+                    break;
                 case 'd':
                     args.debug_dump = true;
                     break;
@@ -208,6 +226,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
     fmt::print(stderr, "  slang:  '{}'\n", slang_t::bits_to_str(slang));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
+    fmt::print(stderr, "  output_format: '{}'\n", format_t::to_str(output_format));
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  no_ifdef: {}\n", no_ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);

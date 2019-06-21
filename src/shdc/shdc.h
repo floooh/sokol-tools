@@ -55,6 +55,24 @@ struct slang_t {
     }
 };
 
+/* the output format */
+struct format_t	{
+    enum type_t {
+        SOKOL = 0,
+        BARE,
+        NUM
+    };
+
+    // convert msg_format to string
+    static const char* to_str(type_t f) {
+        switch (f) {
+            case SOKOL:         return "sokol";
+            case BARE:          return "bare";
+            default:            return "<invalid>";
+        }
+    }
+};
+
 /* an error message object with filename, line number and message */
 struct errmsg_t {
     enum type_t {
@@ -122,6 +140,7 @@ struct args_t {
     std::string tmpdir;                 // directory for temporary files
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
+    format_t::type_t output_format = format_t::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
     bool no_ifdef = false;              // don't emit platform #ifdefs (SOKOL_D3D11 etc...)
     int gen_version = 1;                // generator-version stamp
@@ -396,6 +415,11 @@ struct bytecode_t {
 
 /* C header-generator for sokol_gfx.h */
 struct sokol_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+/* bare format generator */
+struct bare_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
