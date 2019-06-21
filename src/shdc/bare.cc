@@ -8,6 +8,17 @@
 
 namespace shdc {
 
+static const char* snippet_file_extension(snippet_t::type_t t) {
+    switch (t) {
+        case snippet_t::FS:
+            return ".frag";
+        case snippet_t::VS:
+            return ".vert";
+        default:
+            return "";
+    }
+}
+    
 static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
         case slang_t::GLSL330:
@@ -47,8 +58,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
 
         // output file name
         std::string file_path(output);
-        file_path += ".";
-        file_path += snippet_t::type_to_str(snippet.type);
+        file_path += snippet_file_extension(snippet.type);
         file_path += slang_file_extension(slang, blob);
 
         // write text or binary to output file
