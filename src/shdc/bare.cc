@@ -93,7 +93,11 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
+            errmsg_t err = output_t::check_errors(inp, spirvcross[i], slang);
+            if (err.valid) {
+                return err;
+            }
+            err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
             if (err.valid) {
                 return err;
             }
