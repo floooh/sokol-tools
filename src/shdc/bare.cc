@@ -36,11 +36,11 @@ static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     }
 }
 
-static void write_shader_sources_and_blobs(const input_t& inp,
-                                           const spirvcross_t& spirvcross,
-                                           const bytecode_t& bytecode,
-                                           slang_t::type_t slang,
-                                           const std::string& output)
+static errmsg_t write_shader_sources_and_blobs(const args_t& args,
+                                               const input_t& inp,
+                                               const spirvcross_t& spirvcross,
+                                               const bytecode_t& bytecode,
+                                               slang_t::type_t slang)
 {
     for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
         const snippet_t& snippet = inp.snippets[snippet_index];
@@ -57,21 +57,33 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         }
 
         // output file name
-        std::string file_path(output);
+        std::string file_path(args.output);
         file_path += snippet_file_extension(snippet.type);
         file_path += slang_file_extension(slang, blob);
 
         // write text or binary to output file
         FILE* f = fopen(file_path.c_str(), "wb");
+        if (!f) {
+            return errmsg_t::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
+        }
+        const void* write_data;
+        size_t write_count;
         if (blob) {
-            fwrite(blob->data.data(), 1, blob->data.size(), f);
+            write_data = blob->data.data();
+            write_count = blob->data.size();
         }
         else {
-            fwrite(src.source_code.data(), 1, src.source_code.length(), f);
+            write_data = src.source_code.data();
+            write_count = src.source_code.length();
         }
-        fflush(f);
+        size_t written = fwrite(write_data, 1, write_count, f);
+        if (written != write_count) {
+            return errmsg_t::error(file_path, 0, fmt::format("failed to write output file '{}'", file_path));
+        }
         fclose(f);
     }
+
+    return errmsg_t();
 }
 
 errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
@@ -81,11 +93,10 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            /*errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
             if (err.valid) {
                 return err;
-            }*/
-            write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang, args.output);
+            }
         }
     }
 
