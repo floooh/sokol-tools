@@ -131,8 +131,10 @@ static void spirv_optimize(std::vector<uint32_t>& spirv) {
         });
 
     optimizer.RegisterPass(spvtools::CreateDeadBranchElimPass());
+/*
     optimizer.RegisterPass(spvtools::CreateMergeReturnPass());
     optimizer.RegisterPass(spvtools::CreateInlineExhaustivePass());
+*/
     optimizer.RegisterPass(spvtools::CreateEliminateDeadFunctionsPass());
     optimizer.RegisterPass(spvtools::CreateScalarReplacementPass());
     optimizer.RegisterPass(spvtools::CreateLocalAccessChainConvertPass());
