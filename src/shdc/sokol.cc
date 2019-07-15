@@ -84,7 +84,7 @@ static const char* sokol_define(slang_t::type_t slang) {
         case slang_t::GLSL330:      return "SOKOL_GLCORE33";
         case slang_t::GLSL100:      return "SOKOL_GLES2";
         case slang_t::GLSL300ES:    return "SOKOL_GLES3";
-        case slang_t::HLSL5:        return "SOKOL_HLSL5";
+        case slang_t::HLSL5:        return "SOKOL_D3D11";
         case slang_t::METAL_MACOS:  return "SOKOL_METAL";
         case slang_t::METAL_IOS:    return "SOKOL_METAL";
         case slang_t::METAL_SIM:    return "SOKOL_METAL";
