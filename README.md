@@ -1,5 +1,7 @@
 # sokol-tools
 
+[![Build Status](https://travis-ci.org/floooh/sokol-tools.svg?branch=master)](https://travis-ci.org/floooh/sokol-tools)
+
 Command line tools for the [sokol headers](https://github.com/floooh/sokol).
 
 ## Documentation
@@ -66,7 +68,7 @@ The compiled Linux executable will be in the same directory (docker/)
 
 Creating a statically linked Linux executable with glibc instead of
 musl will create an executable which will most likely crash before
-main() is entered (this also means that development under Linux 
+main() is entered (this also means that development under Linux
 with the current build settings isn't possible, at least the
 static linking flags must be removed from the cmake files for this).
 
