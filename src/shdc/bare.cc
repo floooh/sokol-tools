@@ -8,17 +8,6 @@
 
 namespace shdc {
 
-static const char* snippet_file_extension(snippet_t::type_t t) {
-    switch (t) {
-        case snippet_t::FS:
-            return ".frag";
-        case snippet_t::VS:
-            return ".vert";
-        default:
-            return "";
-    }
-}
-    
 static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
         case slang_t::GLSL330:
@@ -36,51 +25,71 @@ static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     }
 }
 
+static errmsg_t write_stage(const std::string& file_path,
+                            const spirvcross_source_t& src,
+                            const bytecode_blob_t* blob)
+{
+    // write text or binary to output file
+    FILE* f = fopen(file_path.c_str(), "wb");
+    if (!f) {
+        return errmsg_t::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
+    }
+    const void* write_data;
+    size_t write_count;
+    if (blob) {
+        write_data = blob->data.data();
+        write_count = blob->data.size();
+    }
+    else {
+        write_data = src.source_code.data();
+        write_count = src.source_code.length();
+    }
+    size_t written = fwrite(write_data, 1, write_count, f);
+    if (written != write_count) {
+        return errmsg_t::error(file_path, 0, fmt::format("failed to write output file '{}'", file_path));
+    }
+    fclose(f);
+    return errmsg_t();
+}
+
 static errmsg_t write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
                                                slang_t::type_t slang)
 {
-    for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
-        const snippet_t& snippet = inp.snippets[snippet_index];
-        if ((snippet.type != snippet_t::VS) && (snippet.type != snippet_t::FS)) {
-            continue;
+    for (const auto& item: inp.programs) {
+        const program_t& prog = item.second;
+        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
+        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
+        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        assert((vs_src_index >= 0) && (fs_src_index >= 0));
+        const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
+        const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
+        int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
+        int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
+        const bytecode_blob_t* vs_blob = 0;
+        const bytecode_blob_t* fs_blob = 0;
+        if (vs_blob_index != -1) {
+            vs_blob = &bytecode.blobs[vs_blob_index];
         }
-        int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
-        assert(src_index >= 0);
-        const spirvcross_source_t& src = spirvcross.sources[src_index];
-        int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
-        const bytecode_blob_t* blob = 0;
-        if (blob_index != -1) {
-            blob = &bytecode.blobs[blob_index];
+        if (fs_blob_index != -1) {
+            fs_blob = &bytecode.blobs[fs_blob_index];
         }
 
-        // output file name
-        std::string file_path(args.output);
-        file_path += snippet_file_extension(snippet.type);
-        file_path += slang_file_extension(slang, blob);
+        std::string file_path_vs = fmt::format("{}{}{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, vs_blob));
+        std::string file_path_fs = fmt::format("{}{}{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, fs_blob));
 
-        // write text or binary to output file
-        FILE* f = fopen(file_path.c_str(), "wb");
-        if (!f) {
-            return errmsg_t::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
+        errmsg_t err;
+        err = write_stage(file_path_vs, vs_src, vs_blob);
+        if (err.valid) {
+            return err;
         }
-        const void* write_data;
-        size_t write_count;
-        if (blob) {
-            write_data = blob->data.data();
-            write_count = blob->data.size();
+        err = write_stage(file_path_fs, fs_src, fs_blob);
+        if (err.valid) {
+            return err;
         }
-        else {
-            write_data = src.source_code.data();
-            write_count = src.source_code.length();
-        }
-        size_t written = fwrite(write_data, 1, write_count, f);
-        if (written != write_count) {
-            return errmsg_t::error(file_path, 0, fmt::format("failed to write output file '{}'", file_path));
-        }
-        fclose(f);
     }
 
     return errmsg_t();

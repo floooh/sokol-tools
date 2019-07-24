@@ -424,6 +424,15 @@ struct bare_t {
 };
 
 /* utility functions for generators */
+inline std::string mod_prefix(const input_t& inp) {
+    if (inp.module.empty()) {
+        return "";
+    }
+    else {
+        return fmt::format("{}_", inp.module);
+    }
+}
+
 struct output_t {
     static errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
 };
