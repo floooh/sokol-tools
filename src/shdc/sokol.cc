@@ -453,6 +453,15 @@ static void write_shader_descs(const input_t& inp, const spirvcross_t& spirvcros
     }
 }
 
+static void write_shader_filenames(const input_t& inp) {
+    auto fn_begin = inp.path.find_last_of("/\\");
+    std::string filename = inp.path.substr(fn_begin + 1);
+    for (const auto& item: inp.programs) {
+        const program_t& prog = item.second;
+        L("static const char* {}{}_shader_filename = \"{}\";\n", mod_prefix(inp), prog.name, filename);
+    }
+}
+
 errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
@@ -495,6 +504,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             }
             write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
             write_shader_descs(inp, spirvcross[i], bytecode[i], slang);
+            write_shader_filenames(inp);
             if (!args.no_ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
             }
