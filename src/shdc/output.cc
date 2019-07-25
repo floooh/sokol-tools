@@ -29,5 +29,5 @@ errmsg_t output_t::check_errors(const input_t& inp,
     // all ok
     return errmsg_t();
 }
-    
+
 }

@@ -42,15 +42,6 @@ static int roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
-static std::string mod_prefix(const input_t& inp) {
-    if (inp.module.empty()) {
-        return "";
-    }
-    else {
-        return fmt::format("{}_", inp.module);
-    }
-}
-
 static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     switch (type) {
         case image_t::IMAGE_2D: return "SG_IMAGETYPE_2D";
