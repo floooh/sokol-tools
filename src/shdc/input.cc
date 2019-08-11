@@ -414,7 +414,8 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
     return true;
 }
 
-static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, input_t& inp) {
+static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs,
+                                input_t& inp, int parent_line_index) {
     std::string path_used = path;
     std::string str = load_file_into_str(path_used);
     if (str.empty()) {
@@ -428,9 +429,23 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         }
         // failure?
         if (str.empty()) {
+            if (inp.base_path == path) {
+                inp.out_error = errmsg_t::error(path, 0, fmt::format("Failed to open input file '{}'", path));
+            }
+            else {
+                inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
+            }
             return false;
         }
     }
+    // check for include cycles
+    for (const std::string& filename : inp.filenames) {
+        if (filename == path_used) {
+            inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Detected @include file cycle: '{}'", path_used));
+            return false;
+        }
+    }
+    // add to filenames
     int filename_index = inp.filenames.size();
     inp.filenames.push_back(path_used);
 
@@ -456,10 +471,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 }
                 // insert included file
                 const std::string& include_filename = tokens[1];
-                if (!load_and_preprocess(include_filename, include_dirs, inp)) {
-                    if (!inp.out_error.valid) {
-                        inp.out_error = errmsg_t::error(path, line_index, fmt::format("Failed to open @include file '{}'", include_filename));
-                    }
+                if (!load_and_preprocess(include_filename, include_dirs, inp, line_index)) {
                     return false;
                 }
             }
@@ -485,11 +497,8 @@ input_t input_t::load_and_parse(const std::string& path) {
 
     input_t inp;
     inp.base_path = path;
-    if (load_and_preprocess(path, include_dirs, inp)) {
+    if (load_and_preprocess(path, include_dirs, inp, 0)) {
         parse(inp);
-    }
-    else if (!inp.out_error.valid) {
-        inp.out_error = errmsg_t::error(path, 1, fmt::format("Failed to open input file '{}'", path));
     }
 
     return inp;
