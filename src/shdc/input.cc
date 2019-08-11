@@ -559,7 +559,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
         fmt::print(stderr, "      name: {}\n", prog.name);
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
-        fmt::print(stderr, "      line.index: {}\n", prog.line_index);
+        fmt::print(stderr, "      line_index: {}\n", prog.line_index);
     }
     fmt::print("\n");
 }
