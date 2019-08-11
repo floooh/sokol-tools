@@ -521,7 +521,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     // write result into output file
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
-        return errmsg_t::error(inp.path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return errmsg_t::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);

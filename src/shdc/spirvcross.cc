@@ -26,7 +26,7 @@ int spirvcross_t::find_source_by_snippet_index(int snippet_index) const {
 static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     /* go though all uniform block matrixes and decorate them with
         column-major, this is needed in the HLSL backend to fix the
-        multiplication order    
+        multiplication order
     */
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
@@ -289,7 +289,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.path, 1, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
                     return false;
                 }
             }
@@ -314,7 +314,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                     img.unique_index = other_img_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.path, 1, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return false;
                 }
             }
@@ -346,7 +346,7 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
             const attr_t& vs_out = vs_src.refl.outputs[i];
             const attr_t& fs_inp = fs_src.refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
-                return errmsg_t::error(inp.path, prog.line_index,
+                return inp.error(prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
                     prog.vs_name, prog.fs_name, i, vs_out.name, fs_inp.name));
             }
@@ -387,9 +387,9 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             spv_cross.sources.push_back(std::move(src));
         }
         else {
-            const int line_num = inp.snippets[blob.snippet_index].lines[0];
+            const int line_index = inp.snippets[blob.snippet_index].lines[0];
             std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
-            spv_cross.error = errmsg_t::error(inp.path, line_num, err_msg);
+            spv_cross.error = inp.error(line_index, err_msg);
             return spv_cross;
         }
         if (!gather_unique_uniform_blocks(inp, spv_cross)) {

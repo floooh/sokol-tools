@@ -26,8 +26,8 @@ int main(int argc, const char** argv) {
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
-    if (inp.error.valid) {
-        inp.error.print(args.error_format);
+    if (inp.out_error.valid) {
+        inp.out_error.print(args.error_format);
         return 10;
     }
 

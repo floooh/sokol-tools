@@ -49,7 +49,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     src += fmt::format("#define SOKOL_HLSL ({})\n", is_hlsl ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", is_msl ? 1 : 0);
     for (int line_index : snippet.lines) {
-        src += fmt::format("{}\n", inp.lines[line_index]);
+        src += fmt::format("{}\n", inp.lines[line_index].line);
     }
     return src;
 }
@@ -102,15 +102,15 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
             }
             if (ok) {
                 if (tokens[0] == "ERROR") {
-                    out_errors.push_back(errmsg_t::error(inp.path, line_index, msg));
+                    out_errors.push_back(inp.error(line_index, msg));
                 }
                 else {
-                    out_errors.push_back(errmsg_t::warning(inp.path, line_index, msg));
+                    out_errors.push_back(inp.warning(line_index, msg));
                 }
             }
             else {
                 // some error during parsing, still create an error object so the error isn't lost in the void
-                out_errors.push_back(errmsg_t::error(inp.path, 1, line));
+                out_errors.push_back(inp.error(0, line));
             }
         }
     }

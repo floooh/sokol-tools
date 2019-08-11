@@ -107,19 +107,20 @@ static const std::string prog_tag = "@program";
 static const std::string glsl_options_tag = "@glsl_options";
 static const std::string hlsl_options_tag = "@hlsl_options";
 static const std::string msl_options_tag = "@msl_options";
+static const std::string include_tag = "@include";
 
 /* validate source tags for errors, on error returns false and sets error object in inp */
 static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@module tag must have exactly one arg (@lib name)");
+        inp.out_error = inp.error(line_index, "@module tag must have exactly one arg (@lib name)");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@module tag cannot be inside a tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@module tag cannot be inside a tag block (missing @end?).");
         return false;
     }
     if (!inp.module.empty()) {
-        inp.error = errmsg_t::error(inp.path, line_index, "only one @module tag per file allowed.");
+        inp.out_error = inp.error(line_index, "only one @module tag per file allowed.");
         return false;
     }
     return true;
@@ -127,15 +128,15 @@ static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_
 
 static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 3) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
+        inp.out_error = inp.error(line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
         return false;
     }
     if (!((tokens[1]=="float")||(tokens[1]=="vec2")||(tokens[1]=="vec3")||(tokens[1]=="vec4")||(tokens[1] == "mat4"))) {
-        inp.error = errmsg_t::error(inp.path, line_index, "first arg of type tag must be 'float', 'vec2..3' or 'mat4'");
+        inp.out_error = inp.error(line_index, "first arg of type tag must be 'float', 'vec2..3' or 'mat4'");
         return false;
     }
     return true;
@@ -143,15 +144,15 @@ static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_sn
 
 static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@block tag must have exactly one arg (@block name).");
+        inp.out_error = inp.error(line_index, "@block tag must have exactly one arg (@block name).");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@block tag cannot be inside other tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@block tag cannot be inside other tag block (missing @end?).");
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@block {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@block {}).", tokens[1]));
         return false;
     }
     return true;
@@ -159,15 +160,15 @@ static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_s
 
 static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@vs tag must have exactly one arg (@vs name).");
+        inp.out_error = inp.error(line_index, "@vs tag must have exactly one arg (@vs name).");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@vs tag cannot be inside other tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@vs tag cannot be inside other tag block (missing @end?).");
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@vs {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@vs {}).", tokens[1]));
         return false;
     }
     return true;
@@ -175,15 +176,15 @@ static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snip
 
 static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@fs tag must have exactly one arg (@fs name).");
+        inp.out_error = inp.error(line_index, "@fs tag must have exactly one arg (@fs name).");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@fs tag cannot be inside other tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@fs tag cannot be inside other tag block (missing @end?).");
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@block, @vs and @fs tag names must be unique (@fs {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@fs {}).", tokens[1]));
         return false;
     }
     return true;
@@ -191,15 +192,15 @@ static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snip
 
 static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
+        inp.out_error = inp.error(line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
         return false;
     }
     if (!in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@include_block must be inside a @block, @vs or @fs block.");
+        inp.out_error = inp.error(line_index, "@include_block must be inside a @block, @vs or @fs block.");
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) != 1) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@block '{}' not found for including.", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block '{}' not found for including.", tokens[1]));
         return false;
     }
     return true;
@@ -207,11 +208,11 @@ static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool 
 
 static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 1) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@end tag must be the only word in a line.");
+        inp.out_error = inp.error(line_index, "@end tag must be the only word in a line.");
         return false;
     }
     if (!in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@end tag must come after a @block, @vs or @fs tag.");
+        inp.out_error = inp.error(line_index, "@end tag must come after a @block, @vs or @fs tag.");
         return false;
     }
     return true;
@@ -219,23 +220,23 @@ static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_sni
 
 static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 4) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
+        inp.out_error = inp.error(line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
         return false;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "@program tag cannot be inside a block tag.");
+        inp.out_error = inp.error(line_index, "@program tag cannot be inside a block tag.");
         return false;
     }
     if (inp.programs.count(tokens[1]) > 0) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@program '{}' already defined.", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@program '{}' already defined.", tokens[1]));
         return false;
     }
     if (inp.vs_map.count(tokens[2]) != 1) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@vs '{}' not found for @program '{}'.", tokens[2], tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@vs '{}' not found for @program '{}'.", tokens[2], tokens[1]));
         return false;
     }
     if (inp.fs_map.count(tokens[3]) != 1) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("@fs '{}' not found for @program '{}'.", tokens[3], tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@fs '{}' not found for @program '{}'.", tokens[3], tokens[1]));
         return false;
     }
     return true;
@@ -243,23 +244,23 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
 
 static bool validate_options_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 2) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
+        inp.out_error = inp.error(line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
         return false;
     }
     if (cur_snippet.type != snippet_t::VS) {
-        inp.error = errmsg_t::error(inp.path, line_index, fmt::format("{} must be inside a @vs block", tokens[0]));
+        inp.out_error = inp.error(line_index, fmt::format("{} must be inside a @vs block", tokens[0]));
         return false;
     }
     for (int i = 1; i < (int)tokens.size(); i++) {
         if (option_t::from_string(tokens[i]) == option_t::INVALID) {
-            inp.error = errmsg_t::error(inp.path, line_index, fmt::format("unknown option '{}' (must be 'fixup_clipspace', 'flip_vert_y')", tokens[i]));
+            inp.out_error = inp.error(line_index, fmt::format("unknown option '{}' (must be 'fixup_clipspace', 'flip_vert_y')", tokens[i]));
             return false;
         }
     }
     return true;
 }
 
-/* This parses the splitted input line array for custom tags (@vs, @fs, @block,
+/* This parses the split input line array for custom tags (@vs, @fs, @block,
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
 */
@@ -269,7 +270,8 @@ static bool parse(input_t& inp) {
     snippet_t cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
-    for (const std::string& line : inp.lines) {
+    for (const line_t& line_info : inp.lines) {
+        const std::string& line = line_info.line;
         add_line = in_snippet;
         pystring::split(line, tokens);
         if (tokens.size() > 0) {
@@ -284,7 +286,7 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 if (inp.type_map.count(tokens[1]) > 0) {
-                    inp.error = errmsg_t::error(inp.path, line_index, fmt::format("type '{}' already defined!", tokens[1]));
+                    inp.out_error = inp.error(line_index, fmt::format("type '{}' already defined!", tokens[1]));
                     return false;
                 }
                 inp.type_map[tokens[1]] = tokens[2];
@@ -388,7 +390,7 @@ static bool parse(input_t& inp) {
                 add_line = false;
             }
             else if (tokens[0][0] == '@') {
-                inp.error = errmsg_t::error(inp.path, line_index, fmt::format("unknown meta tag: {}", tokens[0]));
+                inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
             }
         }
@@ -398,36 +400,96 @@ static bool parse(input_t& inp) {
         line_index++;
     }
     if (in_snippet) {
-        inp.error = errmsg_t::error(inp.path, line_index, "final @end missing.");
+        inp.out_error = inp.error(line_index - 1, "final @end missing.");
         return false;
     }
     return true;
 }
 
-/* load file and parse into an input_t object, check valid and error
-    fields in returned object
-*/
-input_t input_t::load_and_parse(const std::string& path) {
-    input_t inp;
-    inp.path = path;
-    std::string dir;
-    pystring::os::path::split(dir, inp.filename, path);
-
-    std::string str = load_file_into_str(path);
-    if (str.empty()) {
-        inp.error = errmsg_t::error(path, 1, fmt::format("Failed to open input file '{}'", path));
-        return inp;
+static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, input_t& inp) {
+    if (tokens.size() != 2) {
+        inp.out_error = errmsg_t::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
+        return false;
     }
-    
+    return true;
+}
+
+static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, input_t& inp) {
+    std::string path_used = path;
+    std::string str = load_file_into_str(path_used);
+    if (str.empty()) {
+        // check include directories
+        for (const std::string& include_dir : include_dirs) {
+            path_used = pystring::os::path::join(include_dir, path);
+            str = load_file_into_str(path_used);
+            if (!str.empty()) {
+                break;
+            }
+        }
+        // failure?
+        if (str.empty()) {
+            return false;
+        }
+    }
+    int filename_index = inp.filenames.size();
+    inp.filenames.push_back(path_used);
+
     // remove comments before splitting into lines
     if (!remove_comments(str)) {
-        inp.error = errmsg_t::error(path, 1, fmt::format("(FIXME) Error during removing comments in '{}'", path));
+        inp.out_error = errmsg_t::error(path_used, 0, fmt::format("(FIXME) Error during removing comments in '{}'", path_used));
     }
 
-    // split source file into lines and parse tags */
-    pystring::splitlines(str, inp.lines);
-    if (!parse(inp)) {
-        return inp;
+    // split source file into lines
+    int line_index = 0;
+    std::vector<std::string> lines;
+    pystring::splitlines(str, lines);
+
+    // preprocess
+    std::vector<std::string> tokens;
+    for (const std::string& line : lines) {
+        // look for @include tags
+        pystring::split(line, tokens);
+        if (tokens.size() > 0) {
+            if (tokens[0] == include_tag) {
+                if (!validate_include_tag(tokens, line_index, path_used, inp)) {
+                    return false;
+                }
+                // insert included file
+                const std::string& include_filename = tokens[1];
+                if (!load_and_preprocess(include_filename, include_dirs, inp)) {
+                    if (!inp.out_error.valid) {
+                        inp.out_error = errmsg_t::error(path, line_index, fmt::format("Failed to open @include file '{}'", include_filename));
+                    }
+                    return false;
+                }
+            }
+            else {
+                // otherwise process file as normal
+                inp.lines.push_back({line, filename_index, line_index});
+            }
+        }
+        // empty lines are not added
+
+        line_index++;
+    }
+}
+
+/* load file and parse into an input_t object,
+   check valid and error fields in returned object
+*/
+input_t input_t::load_and_parse(const std::string& path) {
+    std::string dir;
+    std::string filename;
+    pystring::os::path::split(dir, filename, path);
+    std::vector<std::string> include_dirs = { dir };
+
+    input_t inp;
+    inp.base_path = path;
+    if (load_and_preprocess(path, include_dirs, inp)) {
+        parse(inp);
+    }
+    else if (!inp.out_error.valid) {
+        inp.out_error = errmsg_t::error(path, 1, fmt::format("Failed to open input file '{}'", path));
     }
 
     return inp;
@@ -436,20 +498,23 @@ input_t input_t::load_and_parse(const std::string& path) {
 /* print a debug-dump of content to stderr */
 void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "input_t:\n");
-    if (error.valid) {
-        fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
+    if (out_error.valid) {
+        fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
     }
     else {
         fmt::print(stderr, "  error: not set\n");
     }
-    fmt::print(stderr, "  path: {}\n", path);
-    fmt::print(stderr, "  filename: {}\n", filename);
+    fmt::print(stderr, "  base_path: {}\n", base_path);
     fmt::print(stderr, "  module: {}\n", module);
     {
-        int line_nr = 1;
         fmt::print(stderr, "  lines:\n");
-        for (const std::string& line : lines) {
-            fmt::print(stderr, "    {}: {}\n", line_nr++, line);
+        int filename = -1;
+        for (const line_t& line : lines) {
+            if (filename != line.filename) {
+                fmt::print(stderr, "    {}:\n", filenames[line.filename]);
+                filename = line.filename;
+            }
+            fmt::print(stderr, "    {}: {}\n", line.index + 1, line.line);
         }
     }
     fmt::print(stderr, "  types:\n");
@@ -466,7 +531,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
             fmt::print(stderr, "      lines:\n");
             int line_nr = 1;
             for (int line_index : snippet.lines) {
-                fmt::print(stderr, "        {:3}({:3}): {}\n", line_nr++, line_index+1, lines[line_index]);
+                fmt::print(stderr, "        {:3}({:3}): {}\n", line_nr++, line_index+1, lines[line_index].line);
             }
         }
     }
@@ -494,7 +559,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
         fmt::print(stderr, "      name: {}\n", prog.name);
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
-        fmt::print(stderr, "      line_index: {}\n", prog.line_index);
+        fmt::print(stderr, "      line.index: {}\n", prog.line_index);
     }
     fmt::print("\n");
 }
