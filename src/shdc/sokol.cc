@@ -214,7 +214,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), ub.name, ub.slot);
         L("#pragma pack(push,1)\n");
         int cur_offset = 0;
-        L("typedef struct {}{}_t {{\n", mod_prefix(inp), ub.name);
+        L("SOKOL_SHDC_ALIGN(16) typedef struct {}{}_t {{\n", mod_prefix(inp), ub.name);
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
             if (next_offset > cur_offset) {
@@ -470,6 +470,14 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             }
             if (!common_decls_written) {
                 common_decls_written = true;
+                /* SOKOL_SHDC_ALIGN macro */
+                L("#if !defined(SOKOL_SHDC_ALIGN)\n");
+                L("#if defined(_MSC_VER)\n");
+                L("#define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
+                L("#else\n");
+                L("#define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
+                L("#endif\n");
+                L("#endif\n");
                 write_vertex_attrs(inp, spirvcross[i]);
                 write_images_bind_slots(inp, spirvcross[i]);
                 write_uniform_blocks(inp, spirvcross[i], slang);
