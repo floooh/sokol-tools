@@ -484,6 +484,8 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
 
         line_index++;
     }
+
+    return true;
 }
 
 /* load file and parse into an input_t object,

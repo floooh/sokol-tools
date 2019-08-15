@@ -240,7 +240,7 @@ struct input_t {
     void dump_debug(errmsg_t::msg_format_t err_fmt) const;
 
     errmsg_t error(int index, const std::string& msg) const {
-        if (index < lines.size()) {
+        if (index < (int)lines.size()) {
             const line_t& line = lines[index];
             return errmsg_t::error(filenames[line.filename], line.index, msg);
         }
@@ -249,7 +249,7 @@ struct input_t {
         }
     };
     errmsg_t warning(int index, const std::string& msg) const {
-        if (index < lines.size()) {
+        if (index < (int)lines.size()) {
             const line_t& line = lines[index];
             return errmsg_t::warning(filenames[line.filename], line.index, msg);
         }
