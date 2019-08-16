@@ -210,13 +210,23 @@ struct program_t {
     program_t(const std::string& n, const std::string& vs, const std::string& fs, int l): name(n), vs_name(vs), fs_name(fs), line_index(l) { };
 };
 
+/* mapping each line to included filename and line index */
+struct line_t {
+    std::string line;       // line content
+    int filename = 0;       // index into input_t filenames
+    int index = 0;          // line index == line nr - 1
+
+    line_t() { };
+    line_t(const std::string& ln, int fn, int ix): line(ln), filename(fn), index(ix) { };
+};
+
 /* pre-parsed GLSL source file, with content split into snippets */
 struct input_t {
-    errmsg_t error;
-    std::string path;                   // path of input file
-    std::string filename;               // filename split from path
+    errmsg_t out_error;
+    std::string base_path;              // path to base file
     std::string module;                 // optional module name
-    std::vector<std::string> lines;     // input source file split into lines
+    std::vector<std::string> filenames; // all source files, base is first entry
+    std::vector<line_t> lines;          // input source files split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> type_map;    // @type uniform type definitions
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
@@ -228,6 +238,25 @@ struct input_t {
     input_t() { };
     static input_t load_and_parse(const std::string& path);
     void dump_debug(errmsg_t::msg_format_t err_fmt) const;
+
+    errmsg_t error(int index, const std::string& msg) const {
+        if (index < (int)lines.size()) {
+            const line_t& line = lines[index];
+            return errmsg_t::error(filenames[line.filename], line.index, msg);
+        }
+        else {
+            return errmsg_t::error(base_path, 0, msg);
+        }
+    };
+    errmsg_t warning(int index, const std::string& msg) const {
+        if (index < (int)lines.size()) {
+            const line_t& line = lines[index];
+            return errmsg_t::warning(filenames[line.filename], line.index, msg);
+        }
+        else {
+            return errmsg_t::warning(base_path, 0, msg);
+        }
+    };
 };
 
 /* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
