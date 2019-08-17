@@ -405,9 +405,22 @@ This is useful for sharing code snippets between different shaders.
 
 ### @include [path]
 
-Includes a file from the files system. ```@include``` takes one argument:
+Include a file from the files system. ```@include``` takes one argument:
 the path of the file to be included. The path must be relative to the directory
-where the top-level source file is located and must not contain whitespace.
+where the top-level source file is located and must not contain whitespace or
+quotes. The ```@include``` tag can appear inside or outside a code block:
+
+```glsl
+@ctype mat4 hmm_mat4
+
+@vs vs
+@include bla/vs.glsl
+@end
+
+@include fs.glsl
+
+@program cube vs fs
+```
 
 ### @ctype [glsl_type] [c_type]
 
