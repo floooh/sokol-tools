@@ -1,10 +1,5 @@
 /*
     sokol-shdc main source file.
-
-    TODO:
-
-    - "@include file" simple include mechanism, no header search paths,
-      instead paths are relative to current module file.
 */
 #include "shdc.h"
 

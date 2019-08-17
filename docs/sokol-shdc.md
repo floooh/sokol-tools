@@ -76,7 +76,7 @@ shader program looks like this:
 // create a shader object from generated sg_shader_desc:
 sg_shader shd = sg_make_shader(triangle_shader_desc());
 
-// create a pipeline object with this shader, and 
+// create a pipeline object with this shader, and
 // code-generated vertex attribute location constants
 // (ATTR_vs_position and ATTR_vs_color0)
 pip = sg_make_pipeline(&(sg_pipeline_desc){
@@ -108,7 +108,7 @@ For fips projects, first add a new dependency to the ```fips.yml``` file of your
 ...
 imports:
     sokol-tools-bin:
-        git: https://github.com/floooh/sokol-tools-bin    
+        git: https://github.com/floooh/sokol-tools-bin
     ...
 ```
 
@@ -136,7 +136,7 @@ The ```${slang}``` variable (short for shader-language, but you can call it
 any way you want) must resolve to a string with the shader dialects you want
 to generate.
 
-I recommend to initialize this ${slang} variable together with the 
+I recommend to initialize this ${slang} variable together with the
 target-platform defines for sokol_gfx.h For instance, the [sokol-app
 samples](https://github.com/floooh/sokol-samples/tree/master/sapp) have the following
 block in their CMakeLists.txt file:
@@ -183,7 +183,7 @@ generated files look different on each platform, or even build config.
 
 ## Standalone Usage
 
-```sokol-shdc``` can be invoked from the command line to convert 
+```sokol-shdc``` can be invoked from the command line to convert
 one annotated-GLSL source file into one C header file.
 
 Precompiled 64-bit executables for Windows, Linux and macOS are here:
@@ -224,7 +224,7 @@ void main() {
 
 - **-h --help**: Print usage information and exit
 - **-i --input=[GLSL file]**: The path to the input GLSL file, this must be either
-relative to the current working directory, or an absolute path. 
+relative to the current working directory, or an absolute path.
 - **-o --output=[C header]**: The path to the generated C header, either relative
 to the current working directory, or as absolute path. The target directory must
 exist.
@@ -233,7 +233,7 @@ when generating Metal bytecode. If no separate temporary directory is provided,
 intermediate files will be written to the same directory as the generated
 C header defined via *--output*. In both cases, the target directory must exist.
 - **-l --slang=[shader languages]**: One or multiple output shader languages. If
-multiple languages are provided, they must be separated by a **colon**. Valid 
+multiple languages are provided, they must be separated by a **colon**. Valid
 shader language names are:
     - **glsl330**: desktop GL
     - **glsl100**: GLES2 / WebGL
@@ -271,7 +271,7 @@ follows:
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
 or Visual-Studio-compatible, the default is **gcc**
 - **-g --genver=[integer]**: set a version number to embed in the generated header,
-this is useful to detect whether all shader files need to be recompiled because 
+this is useful to detect whether all shader files need to be recompiled because
 the tooling has been updated (sokol-shdc will not check this though, this must be
 done in the build-system-integration)
 - **-n --noifdef**: by default, the C header generator will surround all 3D-backend-
@@ -400,8 +400,14 @@ The ```@end``` tag closes a ```@vs```, ```@fs``` or ```@block``` code block.
 
 ### @include_block [name]
 
-```@include_block``` includes a ```@block``` into another code block. 
+```@include_block``` includes a ```@block``` into another code block.
 This is useful for sharing code snippets between different shaders.
+
+### @include [path]
+
+Includes a file from the files system. ```@include``` takes one argument:
+the path of the file to be included. The path must be relative to the directory
+where the top-level source file is located and must not contain whitespace.
 
 ### @ctype [glsl_type] [c_type]
 
@@ -439,7 +445,7 @@ But what if your C/C++ code uses a math library like HandmadeMath.h or
 GLM?
 
 That's where the ```@ctype``` tag comes in. For instance, with HandmadeMath.h
-you would add the following two @ctypes at the top of the GLSL file to 
+you would add the following two @ctypes at the top of the GLSL file to
 map the GLSL types to their matching hmm_* types:
 
 ```glsl
@@ -572,7 +578,7 @@ GLSL, HLSL and MSL, but sometimes it's still necessary to write different
 code for different target languages.
 
 These checks are evaluated by the initial compiler pass which compiles
-GLSL v450 to SPIR-V, and only make sense inside ```@vs```, ```@fs``` 
+GLSL v450 to SPIR-V, and only make sense inside ```@vs```, ```@fs```
 and ```@block``` code-blocks.
 
 ### Creating shaders and pipeline objects
@@ -581,7 +587,7 @@ The generated C header will contain one function for each shader program
 which returns a pointer to a completely initialized static sg_shader_desc
 structure, so creating a shader object becomes a one-liner.
 
-For instance, with the following ```@program``` in the 
+For instance, with the following ```@program``` in the
 GLSL file:
 
 ```glsl
@@ -757,7 +763,7 @@ There are a few caveats with uniform blocks:
 
     This limitation is currently also present in sokol_gfx.h
     itself (SG_UNIFORMTYPE_*). More float-based types like
-    mat2 and mat3 will most likely be added in the future, 
+    mat2 and mat3 will most likely be added in the future,
     but there's currently no portable way to support integer
     types across all backends.
 
