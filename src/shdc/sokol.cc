@@ -478,6 +478,14 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 L("#define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
                 L("#endif\n");
                 L("#endif\n");
+                /* function prototypes */
+                L("#if !defined(SOKOL_GFX_INCLUDED)\n");
+                L("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
+                L("#endif\n");
+                for (const auto& item: inp.programs) {
+                    const program_t& prog = item.second;
+                    L("const sg_shader_desc* {}{}_shader_desc(void);\n", mod_prefix(inp), prog.name);
+                }
                 write_vertex_attrs(inp, spirvcross[i]);
                 write_images_bind_slots(inp, spirvcross[i]);
                 write_uniform_blocks(inp, spirvcross[i], slang);
@@ -485,9 +493,6 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             if (!decl_guard_written) {
                 decl_guard_written = true;
                 L("#if !defined(SOKOL_SHDC_DECL)\n");
-                L("#if !defined(SOKOL_GFX_INCLUDED)\n");
-                L("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
-                L("#endif\n");
             }
             if (!args.no_ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
@@ -503,7 +508,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg_shader_desc pointers
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("static inline const sg_shader_desc* {}{}_shader_desc(void) {{\n", mod_prefix(inp), prog.name);
+        L("const sg_shader_desc* {}{}_shader_desc(void) {{\n", mod_prefix(inp), prog.name);
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t) i;
             if (args.slang & slang_t::bit(slang)) {
