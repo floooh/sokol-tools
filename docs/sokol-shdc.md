@@ -261,7 +261,18 @@ follows:
   shader source code without returning an error. Note that the **metal_sim**
   target for the iOS simulator doesn't support generating bytecode, this
   will always emit Metal source code.
-- **-f --format=[sokol,bare]**: set an optional output backend. By default, the **sokol** backend is used, which generates a C header.
+- **-f --format=[sokol,sokol_impl,sokol_decl,bare]**: set output backend (default: **sokol**)
+    - **sokol**: Generate a C header where data is declared as ```static``` and
+      functions are declared as ```static inline```. If this header is included
+      multiple times, you should be aware that the executable may contain duplicate data.
+    - **sokol_impl**: This generates an STB-style header. In exactly one place where
+      the header is included, the define ```SOKOL_SHDC_IMPL``` must be defined
+      to compile the implementation, all other places, only the declarations
+      will be included.
+    - **sokol_decl**: This is a special backward-compatible mode and shouldn't
+      be used. In this mode, data is declared ```static``` and functions are
+      declared ```static inline```, and the implementation is included when
+      the ```SOKOL_SHDC_DECL``` is *not* defined
     - In **bare** format, compiled shader code is written as plain text or binary files. For each combination of shader program and target language, a file name based on *--output* is constructed as follows:
         - **glsl**: *.frag.glsl and *.vert.glsl
         - **hlsl**: *.frag.hlsl and *.vert.hlsl, or *.fxc for bytecode

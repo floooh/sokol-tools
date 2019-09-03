@@ -16,7 +16,7 @@ static const getopt_option_t option_list[] = {
     { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
     { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s), see above for list", "glsl330:glsl100..." },
     { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
-    { "format", 'f', GETOPT_OPTION_TYPE_REQUIRED, 0, 'f', "output format (default: sokol)", "[sokol|bare]" },
+    { "format", 'f', GETOPT_OPTION_TYPE_REQUIRED, 0, 'f', "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|bare]" },
     { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
     { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
@@ -59,7 +59,9 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - metal_ios:     Metal on iOS devices (SOKOL_METAL)\n"
         "  - metal_sim:     Metal on iOS simulator (SOKOL_METAL)\n\n"
         "Output formats (used with -f --format):\n"
-        "  - sokol:         C header with embedded shader code for use with sokol_gfx.h\n"
+        "  - sokol:         C header which includes both decl and inlined impl\n"
+        "  - sokol_decl:    C header with SOKOL_SHDC_DECL wrapped decl and inlined impl\n"
+        "  - sokol_impl:    C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"
         "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
         "Options:\n\n");
     char buf[2048];
@@ -161,14 +163,9 @@ args_t args_t::parse(int argc, const char** argv) {
                     args.byte_code = true;
                     break;
                 case 'f':
-                    if (0 == strcmp("sokol", ctx.current_opt_arg)) {
-                        args.output_format = format_t::SOKOL;
-                    }
-                    else if (0 == strcmp("bare", ctx.current_opt_arg)) {
-                        args.output_format = format_t::BARE;
-                    }
-                    else {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be 'sokol' or 'bare'\n", ctx.current_opt_arg);
+                    args.output_format = format_t::from_str(ctx.current_opt_arg);
+                    if (args.output_format == format_t::INVALID) {
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be 'sokol', 'sokol_impl', 'sokol_pair' or 'bare'\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;

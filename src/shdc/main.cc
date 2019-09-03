@@ -94,16 +94,16 @@ int main(int argc, const char** argv) {
         }
     }
 
-    if (args.output_format == format_t::SOKOL) {
-        // generate the output C header
-        errmsg_t err = sokol_t::gen(args, inp, spirvcross, bytecode);
+    if (args.output_format == format_t::BARE) {
+        errmsg_t err = bare_t::gen(args, inp, spirvcross, bytecode);
         if (err.valid) {
             err.print(args.error_format);
             return 10;
         }
     }
-    else if (args.output_format == format_t::BARE) {
-        errmsg_t err = bare_t::gen(args, inp, spirvcross, bytecode);
+    else {
+        // generate the output C header
+        errmsg_t err = sokol_t::gen(args, inp, spirvcross, bytecode);
         if (err.valid) {
             err.print(args.error_format);
             return 10;

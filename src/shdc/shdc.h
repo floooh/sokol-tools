@@ -59,16 +59,37 @@ struct slang_t {
 struct format_t	{
     enum type_t {
         SOKOL = 0,
+        SOKOL_DECL,
+        SOKOL_IMPL,
         BARE,
-        NUM
+        NUM,
+        INVALID,
     };
 
-    // convert msg_format to string
     static const char* to_str(type_t f) {
         switch (f) {
             case SOKOL:         return "sokol";
+            case SOKOL_DECL:    return "sokol_decl";
+            case SOKOL_IMPL:    return "sokol_impl";
             case BARE:          return "bare";
             default:            return "<invalid>";
+        }
+    }
+    static type_t from_str(const std::string& str) {
+        if (str == "sokol") {
+            return SOKOL;
+        }
+        else if (str == "sokol_decl") {
+            return SOKOL_DECL;
+        }
+        else if (str == "sokol_impl") {
+            return SOKOL_IMPL;
+        }
+        else if (str == "bare") {
+            return BARE;
+        }
+        else {
+            return INVALID;
         }
     }
 };
