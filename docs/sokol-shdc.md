@@ -58,6 +58,11 @@ void main() {
 
 @program triangle vs fs
 ```
+Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may be used to prefix the tags. For example, the final line above could have also been written as:
+
+```glsl
+#pragma sokol @program triangle vs fs
+```
 
 The generated C header contains:
 
