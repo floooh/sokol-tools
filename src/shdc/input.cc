@@ -108,10 +108,11 @@ static const std::string glsl_options_tag = "@glsl_options";
 static const std::string hlsl_options_tag = "@hlsl_options";
 static const std::string msl_options_tag = "@msl_options";
 static const std::string include_tag = "@include";
-// Returns true if it saw no errors, even if it did nothing.
-// If it sees #pragma sokol, it modifies both `toks` and `line`
-// in-place so that they no longer contain them.
+
 static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, input_t& inp) {
+    // Returns true if it saw no errors, even if it did nothing.
+    // If it sees #pragma sokol, it modifies both `toks` and `line`
+    // in-place so that they no longer contain them.
     if (toks.size() < 2) {
         return true;
     }
@@ -515,8 +516,11 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 inp.lines.push_back({line, filename_index, line_index});
             }
         }
-        // empty lines are not added
-
+        else {
+            // this is an empty line, but add it anyway so the error line
+            // indices are always correct
+            inp.lines.push_back({ line, filename_index, line_index});
+        }
         line_index++;
     }
 
