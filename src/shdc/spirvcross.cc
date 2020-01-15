@@ -246,6 +246,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     compiler.set_common_options(commonOptions);
     CompilerMSL::Options mslOptions;
     mslOptions.platform = plat;
+    mslOptions.enable_decoration_binding = true;
     compiler.set_msl_options(mslOptions);
     fix_bind_slots(compiler);
     std::string src = compiler.compile();
