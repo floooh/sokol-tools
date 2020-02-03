@@ -191,12 +191,13 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
     return refl;
 }
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, uint32_t opt_mask) {
+static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     options.version = glsl_version;
     options.es = is_gles;
+    options.vulkan_semantics = is_vulkan;
     options.enable_420pack_extension = false;
     options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
@@ -363,13 +364,13 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl(blob, 330, false, opt_mask);
+                src = to_glsl(blob, 330, false, false, opt_mask);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl(blob, 100, true, opt_mask);
+                src = to_glsl(blob, 100, true, false, opt_mask);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, 300, true, opt_mask);
+                src = to_glsl(blob, 300, true, false, opt_mask);
                 break;
             case slang_t::HLSL5:
                 src = to_hlsl5(blob, opt_mask);
@@ -381,11 +382,11 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::METAL_SIM:
                 src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask);
                 break;
-            case slang_t::SPIRV:
+            case slang_t::WGPU:
                 // hackety hack, just compile to GLSL even for SPIRV output
                 // so that we can use the same SPIRV-Cross's reflection API
                 // calls as for the other output types
-                src = to_glsl(blob, 450, false, opt_mask);
+                src = to_glsl(blob, 450, false, true, opt_mask);
                 break;
             default: break;
         }

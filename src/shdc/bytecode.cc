@@ -375,7 +375,7 @@ bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spi
         bytecode = d3d_compile(inp, spirvcross);
     }
     #endif
-    if (slang == slang_t::SPIRV) {
+    if (slang == slang_t::WGPU) {
         bytecode = copy_spirv(spirv);
     }
     return bytecode;

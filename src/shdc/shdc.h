@@ -21,7 +21,7 @@ struct slang_t {
         METAL_MACOS,
         METAL_IOS,
         METAL_SIM,
-        SPIRV,
+        WGPU,
         NUM
     };
 
@@ -37,7 +37,7 @@ struct slang_t {
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
             case METAL_SIM:     return "metal_sim";
-            case SPIRV:         return "spirv";
+            case WGPU:          return "wgpu";
             default:            return "<invalid>";
         }
     }

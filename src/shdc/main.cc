@@ -72,7 +72,7 @@ int main(int argc, const char** argv) {
     // special case for SPIRV output: use the SPIRV bytecode coming
     // out of the GLSL->SPIRV compiler as bytecode
     std::array<bytecode_t, slang_t::NUM> bytecode;
-    if (args.byte_code || (args.slang & slang_t::bit(slang_t::SPIRV))) {
+    if (args.byte_code || (args.slang & slang_t::bit(slang_t::WGPU))) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {
