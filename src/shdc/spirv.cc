@@ -29,6 +29,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     bool is_glsl = false;
     bool is_hlsl = false;
     bool is_msl = false;
+    bool is_spirv = false;
     switch (slang) {
         case slang_t::GLSL330:
         case slang_t::GLSL100:
@@ -43,11 +44,15 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
         case slang_t::METAL_SIM:
             is_msl = true;
             break;
+        case slang_t::SPIRV:
+            is_spirv = true;
+            break;
         default: break;
     }
     src += fmt::format("#define SOKOL_GLSL ({})\n", is_glsl ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", is_hlsl ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", is_msl ? 1 : 0);
+    src += fmt::format("#define SOKOL_SPIRV ({})\n", is_spirv ? 1 : 0);
     for (int line_index : snippet.lines) {
         src += fmt::format("{}\n", inp.lines[line_index].line);
     }

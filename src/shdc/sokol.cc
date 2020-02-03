@@ -79,6 +79,7 @@ static const char* sokol_define(slang_t::type_t slang) {
         case slang_t::METAL_MACOS:  return "SOKOL_METAL";
         case slang_t::METAL_IOS:    return "SOKOL_METAL";
         case slang_t::METAL_SIM:    return "SOKOL_METAL";
+        case slang_t::SPIRV:        return "SOKOL_WGPU";
         default: return "<INVALID>";
     }
 }
@@ -92,6 +93,7 @@ static const char* sokol_backend(slang_t::type_t slang) {
         case slang_t::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
         case slang_t::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
         case slang_t::METAL_SIM:    return "SG_BACKEND_METAL_SIMULATOR";
+        case slang_t::SPIRV:        return "SG_BACKEND_WGPU";
         default: return "<INVALID>";
     }
 }

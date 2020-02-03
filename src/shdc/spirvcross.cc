@@ -381,6 +381,12 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::METAL_SIM:
                 src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask);
                 break;
+            case slang_t::SPIRV:
+                // hackety hack, just compile to GLSL even for SPIRV output
+                // so that we can use the same SPIRV-Cross's reflection API
+                // calls as for the other output types
+                src = to_glsl(blob, 450, false, opt_mask);
+                break;
             default: break;
         }
         if (src.valid) {

@@ -21,6 +21,7 @@ struct slang_t {
         METAL_MACOS,
         METAL_IOS,
         METAL_SIM,
+        SPIRV,
         NUM
     };
 
@@ -36,6 +37,7 @@ struct slang_t {
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
             case METAL_SIM:     return "metal_sim";
+            case SPIRV:         return "spirv";
             default:            return "<invalid>";
         }
     }
@@ -458,7 +460,7 @@ struct bytecode_t {
     std::vector<errmsg_t> errors;
     std::vector<bytecode_blob_t> blobs;
 
-    static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    static bytecode_t compile(const args_t& args, const input_t& inp, const spirv_t& spirv, const spirvcross_t& spirvcross, slang_t::type_t slang);
     int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };

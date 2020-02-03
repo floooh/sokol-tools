@@ -69,12 +69,14 @@ int main(int argc, const char** argv) {
     spirv_t::finalize_spirv_tools();
 
     // compile shader-byte code if requested (HLSL / Metal)
+    // special case for SPIRV output: use the SPIRV bytecode coming
+    // out of the GLSL->SPIRV compiler as bytecode
     std::array<bytecode_t, slang_t::NUM> bytecode;
-    if (args.byte_code) {
+    if (args.byte_code || (args.slang & slang_t::bit(slang_t::SPIRV))) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {
-                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
+                bytecode[i] = bytecode_t::compile(args, inp, spirv[i], spirvcross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();
                 }
