@@ -6,6 +6,7 @@
 using namespace shdc;
 
 int main(int argc, const char** argv) {
+    spirv_t::initialize_spirv_tools();
 
     // parse command line args
     args_t args = args_t::parse(argc, argv);
@@ -26,13 +27,14 @@ int main(int argc, const char** argv) {
         return 10;
     }
 
-    // compile source snippets to SPIRV blobs
-    spirv_t::initialize_spirv_tools();
+    // compile source snippets to SPIRV blobs, this also assigns
+    // descriptor sets and bind slots decorations to uniform buffers
+    // and images
     std::array<spirv_t,slang_t::NUM> spirv;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirv[i] = spirv_t::compile_glsl(inp, slang);
+            spirv[i] = spirv_t::compile_input_glsl(inp, slang);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
@@ -66,17 +68,18 @@ int main(int argc, const char** argv) {
             }
         }
     }
-    spirv_t::finalize_spirv_tools();
 
     // compile shader-byte code if requested (HLSL / Metal)
-    // special case for SPIRV output: use the SPIRV bytecode coming
-    // out of the GLSL->SPIRV compiler as bytecode
+    //  for SPIRV output (e.g. WebGPU), translate the GLSL shader output
+    //  from SPIRV-Cross by running through glslang a second time
+    //  (so it's GLSL => SPIRV => GLSL => SPIRV). The reason for this
+    //  double-compile is assignment of binding decorations in SPIRV-Cross
     std::array<bytecode_t, slang_t::NUM> bytecode;
     if (args.byte_code || (args.slang & slang_t::bit(slang_t::WGPU))) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {
-                bytecode[i] = bytecode_t::compile(args, inp, spirv[i], spirvcross[i], slang);
+                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();
                 }
@@ -113,6 +116,7 @@ int main(int argc, const char** argv) {
     }
 
     // success
+    spirv_t::finalize_spirv_tools();
     return 0;
 }
 

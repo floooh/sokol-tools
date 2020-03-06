@@ -291,13 +291,15 @@ struct spirv_blob_t {
 };
 
 /* glsl-to-spirv compiler wrapper */
+struct spirvcross_t;
 struct spirv_t {
     std::vector<errmsg_t> errors;
     std::vector<spirv_blob_t> blobs;
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_glsl(const input_t& inp, slang_t::type_t slang);
+    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang);
+    static spirv_t compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 
@@ -460,7 +462,7 @@ struct bytecode_t {
     std::vector<errmsg_t> errors;
     std::vector<bytecode_blob_t> blobs;
 
-    static bytecode_t compile(const args_t& args, const input_t& inp, const spirv_t& spirv, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
