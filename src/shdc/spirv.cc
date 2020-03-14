@@ -281,18 +281,18 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang) {
 spirv_t spirv_t::compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross) {
     assert(spirvcross);
     spirv_t out_spirv;
-    const bool no_auto_map = false;
+    const bool auto_map = false;
     for (const spirvcross_source_t& src : spirvcross->sources) {
         const snippet_t& snippet = inp.snippets[src.snippet_index];
         assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
         if (snippet.type == snippet_t::VS) {
-            if (!compile(EShLangVertex, slang, src.source_code, inp, src.snippet_index, no_auto_map, out_spirv)) {
+            if (!compile(EShLangVertex, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
                 break;
             }
         }
         else if (snippet.type == snippet_t::FS) {
-            if (!compile(EShLangFragment, slang, src.source_code, inp, src.snippet_index, no_auto_map, out_spirv)) {
+            if (!compile(EShLangFragment, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
                 break;
             }

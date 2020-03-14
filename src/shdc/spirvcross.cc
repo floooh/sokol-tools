@@ -10,6 +10,15 @@
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
 
+/*
+    for "Vulkan convention", fragment shader uniform block bindings live in the same
+    descriptor set as vertex shader uniform blocks, but are offset by 4:
+
+    set=0, binding=0..3:    vertex shader uniform blocks
+    set=0, binding=4..7:    fragment shader uniform blocks
+*/
+static const uint32_t vk_fs_ub_binding_offset = 4;
+
 using namespace spirv_cross;
 
 namespace shdc {
@@ -62,7 +71,7 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
     ShaderResources res = compiler.get_shader_resources();
     uint32_t ub_slot = 0;
     if (is_vulkan) {
-        ub_slot = (type == snippet_t::type_t::VS) ? 0 : 4;
+        ub_slot = (type == snippet_t::type_t::VS) ? 0 : vk_fs_ub_binding_offset;
     }
     for (const Resource& ub_res: res.uniform_buffers) {
         compiler.set_decoration(ub_res.id, spv::DecorationDescriptorSet, 0);
@@ -127,7 +136,7 @@ static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
     return image_t::INVALID;
 }
 
-static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
+static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
     spirvcross_refl_t refl;
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
@@ -166,6 +175,10 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        // shift fragment shader uniform blocks binding back to
+        if (is_vulkan && (refl_ub.slot >= (int)vk_fs_ub_binding_offset)) {
+            refl_ub.slot -= 4;
+        }
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.name = ub_res.name;
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
@@ -214,7 +227,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, is_vulkan);
     }
     return res;
 }
@@ -237,7 +250,7 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask,
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, false);
     }
     return res;
 }
@@ -259,7 +272,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, false);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
