@@ -381,29 +381,44 @@ struct uniform_block_t {
 struct image_t {
     static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
     enum type_t {
-        INVALID,
-        IMAGE_2D,
-        IMAGE_CUBE,
-        IMAGE_3D,
-        IMAGE_ARRAY
+        IMAGE_TYPE_INVALID,
+        IMAGE_TYPE_2D,
+        IMAGE_TYPE_CUBE,
+        IMAGE_TYPE_3D,
+        IMAGE_TYPE_ARRAY
+    };
+    enum basetype_t {
+        IMAGE_BASETYPE_INVALID,
+        IMAGE_BASETYPE_FLOAT,
+        IMAGE_BASETYPE_SINT,
+        IMAGE_BASETYPE_UINT
     };
     int slot = -1;
     std::string name;
-    type_t type = INVALID;
+    type_t type = IMAGE_TYPE_INVALID;
+    basetype_t base_type = IMAGE_BASETYPE_INVALID;
     int unique_index = -1;      // index into spirvcross_t.unique_images
 
     static const char* type_to_str(type_t t) {
         switch (t) {
-            case IMAGE_2D:      return "IMAGE_2D";
-            case IMAGE_CUBE:    return "IMAGE_CUBE";
-            case IMAGE_3D:      return "IMAGE_3D";
-            case IMAGE_ARRAY:   return "IMAGE_ARRAY";
-            default:            return "INVALID";
+            case IMAGE_TYPE_2D:     return "IMAGE_TYPE_2D";
+            case IMAGE_TYPE_CUBE:   return "IMAGE_TYPE_CUBE";
+            case IMAGE_TYPE_3D:     return "IMAGE_TYPE_3D";
+            case IMAGE_TYPE_ARRAY:  return "IMAGE_TYPE_ARRAY";
+            default:                return "IMAGE_TYPE_INVALID";
+        }
+    }
+    static const char* basetype_to_str(basetype_t t) {
+        switch (t) {
+            case IMAGE_BASETYPE_FLOAT:  return "IMAGE_BASETYPE_FLOAT";
+            case IMAGE_BASETYPE_SINT:   return "IMAGE_BASETYPE_SINT";
+            case IMAGE_BASETYPE_UINT:   return "IMAGE_BASETYPE_UINT";
+            default:                    return "IMAGE_BASETYPE_INVALID";
         }
     }
 
     bool equals(const image_t& other) {
-        return (slot == other.slot) && (name == other.name) && (type == other.type);
+        return (slot == other.slot) && (name == other.name) && (type == other.type) && (base_type == other.base_type);
     }
 };
 

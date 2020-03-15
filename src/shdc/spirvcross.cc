@@ -121,19 +121,34 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
 static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_t::IMAGE_ARRAY;
+            return image_t::IMAGE_TYPE_ARRAY;
         }
     }
     else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_t::IMAGE_2D;
-            case spv::DimCube:  return image_t::IMAGE_CUBE;
-            case spv::Dim3D:    return image_t::IMAGE_3D;
+            case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
+            case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
+            case spv::Dim3D:    return image_t::IMAGE_TYPE_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_t::INVALID;
+    return image_t::IMAGE_TYPE_INVALID;
+}
+
+static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
+    switch (type.basetype) {
+        case SPIRType::Int:
+        case SPIRType::Short:
+        case SPIRType::SByte:
+            return image_t::IMAGE_BASETYPE_SINT;
+        case SPIRType::UInt:
+        case SPIRType::UShort:
+        case SPIRType::UByte:
+            return image_t::IMAGE_BASETYPE_UINT;
+        default:
+            return image_t::IMAGE_BASETYPE_FLOAT;
+    }
 }
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
@@ -201,6 +216,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
+        refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
         refl.images.push_back(refl_img);
     }
     return refl;
@@ -478,8 +494,8 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
             }
         }
         for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type));
+            fmt::print(stderr, "      image: {}, slot: {}, type: {}, basetype: {}\n",
+                img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
         }
         fmt::print(stderr, "\n");
     }
