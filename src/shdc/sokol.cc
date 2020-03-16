@@ -52,11 +52,11 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     }
 }
 
-static const char* img_basetype_to_sokol_sampletype_str(image_t::basetype_t basetype) {
+static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
     switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return "SG_SAMPLETYPE_FLOAT";
-        case image_t::IMAGE_BASETYPE_SINT:  return "SG_SAMPLETYPE_SINT";
-        case image_t::IMAGE_BASETYPE_UINT:  return "SG_SAMPLETYPE_UINT";
+        case image_t::IMAGE_BASETYPE_FLOAT: return "SG_SAMPLERTYPE_FLOAT";
+        case image_t::IMAGE_BASETYPE_SINT:  return "SG_SAMPLERTYPE_SINT";
+        case image_t::IMAGE_BASETYPE_UINT:  return "SG_SAMPLERTYPE_UINT";
         default: return "INVALID";
     }
 }
@@ -140,7 +140,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         for (const image_t& img: vs_src.refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_sampletype_str(img.base_type));
+            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
@@ -152,7 +152,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         for (const image_t& img: fs_src.refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_sampletype_str(img.base_type));
+            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
         L("\n");
@@ -390,10 +390,10 @@ static void write_stage(const char* stage_name,
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
         const image_t* img = find_image(src.refl, img_index);
         if (img) {
-            L("{{\"{}\",{}, {}}},", img->name, img_type_to_sokol_type_str(img->type), img_basetype_to_sokol_sampletype_str(img->base_type));
+            L("{{\"{}\",{}, {}}},", img->name, img_type_to_sokol_type_str(img->type), img_basetype_to_sokol_samplertype_str(img->base_type));
         }
         else {
-            L("{{0,_SG_IMAGETYPE_DEFAULT,_SG_SAMPLETYPE_DEFAULT}},");
+            L("{{0,_SG_IMAGETYPE_DEFAULT,_SG_SAMPLERTYPE_DEFAULT}},");
         }
     }
     L(" }},\n");
