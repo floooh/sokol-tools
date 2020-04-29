@@ -16,6 +16,7 @@ shader dialects:
 - GLSL v330 (for desktop GL)
 - HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
+- WebGPU (initially SPIRV, later WGSL)
 
 This cross-compilation happens via existing Khronos open source projects:
 
@@ -247,6 +248,7 @@ shader language names are:
     - **metal_macos**: Metal on macOS
     - **metal_ios**: Metal on iOS device
     - **metal_sim**: Metal on iOS simulator
+    - **wgpu**: WebGPU
 
   For instance, to generate header with support for all supported GLSL dialects:
 
@@ -298,6 +300,7 @@ backend defines:
     - SOKOL_GLES3
     - SOKOL_D3D11
     - SOKOL_METAL
+    - SOKOL_WGPU
 
   Sometimes this is useful, sometimes it isn't. You can disable those
   backend-checks with the **--noifdef** option. One situation where it makes
@@ -599,6 +602,10 @@ compile code for the different target shader languages:
 
 #if SOKOL_MSL
     // target shader language is MetalSL
+#endif
+
+#if SOKOL_WGPU
+    // target shader language is SPIRV/WGSL
 #endif
 ```
 
