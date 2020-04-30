@@ -29,6 +29,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     bool is_glsl = false;
     bool is_hlsl = false;
     bool is_msl = false;
+    bool is_wgpu = false;
     switch (slang) {
         case slang_t::GLSL330:
         case slang_t::GLSL100:
@@ -43,11 +44,15 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
         case slang_t::METAL_SIM:
             is_msl = true;
             break;
+        case slang_t::WGPU:
+            is_wgpu = true;
+            break;
         default: break;
     }
     src += fmt::format("#define SOKOL_GLSL ({})\n", is_glsl ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", is_hlsl ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", is_msl ? 1 : 0);
+    src += fmt::format("#define SOKOL_WGPU ({})\n", is_wgpu ? 1 : 0);
     for (int line_index : snippet.lines) {
         src += fmt::format("{}\n", inp.lines[line_index].line);
     }
@@ -122,8 +127,14 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     bounded for-loops are converted to what looks like an unbounded loop
     ("for (;;) { }") to WebGL
 */
-static void spirv_optimize(std::vector<uint32_t>& spirv) {
-    spv_target_env target_env = SPV_ENV_UNIVERSAL_1_2;
+static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
+    spv_target_env target_env;
+    if (slang == slang_t::WGPU) {
+        target_env = SPV_ENV_WEBGPU_0;
+    }
+    else {
+        target_env = SPV_ENV_UNIVERSAL_1_2;
+    }
     spvtools::Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(
         [](spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
@@ -166,7 +177,7 @@ static void spirv_optimize(std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, const input_t& inp, int snippet_index) {
+static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
 
     // compile GLSL vertex- or fragment-shader
@@ -174,15 +185,23 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     // FIXME: add custom defines here: compiler.addProcess(...)
     shader.setStrings(sources, 1);
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
-    shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
+    if (slang == slang_t::WGPU) {
+        shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
+    }
+    else {
+        shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
+    }
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-    // Do NOT call setAutoMapBinding(true) here, this will throw uniform blocks and
-    // image bindings into the same "pool", while sokol-gfx needs those separated.
-    // Bind slot decorations will be added before the SPIRV-Cross pass.
-    shader.setAutoMapLocations(true);
+    // NOTE: where using AutoMapBinding here, but this will just throw all bindings
+    // into descriptor set null, which is not what we actually want.
+    // We'll fix up the bindings later before calling SPIRVCross.
+    if (auto_map) {
+        shader.setAutoMapLocations(true);
+        shader.setAutoMapBindings(true);
+    }
     bool parse_success = shader.parse(&DefaultTBuiltInResource, 100, false, EShMsgDefault);
-    infolog_to_errors(shader.getInfoLog(), inp, snippet_index, spirv.errors);
-    infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(shader.getInfoLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
     if (!parse_success) {
         return false;
     }
@@ -191,14 +210,14 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     glslang::TProgram program;
     program.addShader(&shader);
     bool link_success = program.link(EShMsgDefault);
-    infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
-    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
     if (!link_success) {
         return false;
     }
     bool map_success = program.mapIO();
-    infolog_to_errors(program.getInfoLog(), inp, snippet_index, spirv.errors);
-    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, spirv.errors);
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
     if (!map_success) {
         return false;
     }
@@ -213,8 +232,8 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
     // disable the optimizer passes, we'll run our own after the translation
     spv_options.disableOptimizer = true;
     spv_options.optimizeSize = false;
-    spirv.blobs.push_back(spirv_blob_t(snippet_index));
-    glslang::GlslangToSpv(*im, spirv.blobs.back().bytecode, &spv_logger, &spv_options);
+    out_spirv.blobs.push_back(spirv_blob_t(snippet_index));
+    glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
         // FIXME: need to parse string for errors and translate to errmsg_t objects?
@@ -222,31 +241,32 @@ static bool compile(EShLanguage stage, spirv_t& spirv, const std::string& src, c
         fmt::print(spirv_log);
     }
     // run optimizer passes
-    spirv_optimize(spirv.blobs.back().bytecode);
+    spirv_optimize(slang, out_spirv.blobs.back().bytecode);
     return true;
 }
 
 /* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang) {
-    spirv_t spirv;
+spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang) {
+    spirv_t out_spirv;
 
     // compile shader-snippets
     int snippet_index = 0;
+    const bool auto_map = true;
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang);
-            if (!compile(EShLangVertex, spirv, src, inp, snippet_index)) {
+            if (!compile(EShLangVertex, slang, src, inp, snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
-                return spirv;
+                return out_spirv;
             }
         }
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang);
-            if (!compile(EShLangFragment, spirv, src, inp, snippet_index)) {
+            if (!compile(EShLangFragment, slang, src, inp, snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
-                return spirv;
+                return out_spirv;
             }
         }
         snippet_index++;
@@ -254,7 +274,31 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang) {
     // when arriving here, no compile errors occured
     // spirv.bytecodes array contains the SPIRV-bytecode
     // for each shader snippet
-    return spirv;
+    return out_spirv;
+}
+
+/* compile the GLSL output of spirvcross back to SPIRV */
+spirv_t spirv_t::compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross) {
+    assert(spirvcross);
+    spirv_t out_spirv;
+    const bool auto_map = false;
+    for (const spirvcross_source_t& src : spirvcross->sources) {
+        const snippet_t& snippet = inp.snippets[src.snippet_index];
+        assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
+        if (snippet.type == snippet_t::VS) {
+            if (!compile(EShLangVertex, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
+                // spirv.errors contains error list
+                break;
+            }
+        }
+        else if (snippet.type == snippet_t::FS) {
+            if (!compile(EShLangFragment, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
+                // spirv.errors contains error list
+                break;
+            }
+        }
+    }
+    return out_spirv;
 }
 
 void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const {

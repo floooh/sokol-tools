@@ -10,6 +10,15 @@
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
 
+/*
+    for "Vulkan convention", fragment shader uniform block bindings live in the same
+    descriptor set as vertex shader uniform blocks, but are offset by 4:
+
+    set=0, binding=0..3:    vertex shader uniform blocks
+    set=0, binding=4..7:    fragment shader uniform blocks
+*/
+static const uint32_t vk_fs_ub_binding_offset = 4;
+
 using namespace spirv_cross;
 
 namespace shdc {
@@ -40,38 +49,40 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
-static void fix_bind_slots(Compiler& compiler) {
-    // first check if bind slot indices need to be generated
-    // (either no bindings exist, or all bindings are 0)
+static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_vulkan) {
+    /*
+        This overrides all bind slots like this:
+
+        Target is not WebGPU:
+            - both vertex shader and fragment shader:
+                - uniform blocks go into set=0 and start at binding=0
+                - images go into set=1 and start at binding=0
+        Target is WebGPU:
+            - uniform blocks go into set=0
+                - vertex shader uniform blocks start at binding=0
+                - fragment shader uniform blocks start at binding=1
+            - vertex shader images go into set=1, start at binding=0
+            - fragment shader images go into set=2, start at binding=0
+
+        NOTE that any existing binding definitions are always overwritten,
+        this differs from previous behaviour which checked if explicit
+        bindings existed.
+    */
     ShaderResources res = compiler.get_shader_resources();
-    bool need_ub_bindings = true;
-    for (const Resource& ub_res: res.uniform_buffers) {
-        if (compiler.has_decoration(ub_res.id, spv::DecorationBinding)) {
-            if (0 != compiler.get_decoration(ub_res.id, spv::DecorationBinding)) {
-                need_ub_bindings = false;
-            }
-        }
+    uint32_t ub_slot = 0;
+    if (is_vulkan) {
+        ub_slot = (type == snippet_t::type_t::VS) ? 0 : vk_fs_ub_binding_offset;
     }
-    bool need_img_bindings = true;
-    for (const Resource& img_res: res.sampled_images) {
-        if (compiler.has_decoration(img_res.id, spv::DecorationBinding)) {
-            if (0 != compiler.get_decoration(img_res.id, spv::DecorationBinding)) {
-                need_img_bindings = false;
-            }
-        }
+    for (const Resource& ub_res: res.uniform_buffers) {
+        compiler.set_decoration(ub_res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(ub_res.id, spv::DecorationBinding, ub_slot++);
     }
 
-    if (need_ub_bindings) {
-        int ub_slot = 0;
-        for (const Resource& ub_res: res.uniform_buffers) {
-            compiler.set_decoration(ub_res.id, spv::DecorationBinding, ub_slot++);
-        }
-    }
-    if (need_img_bindings) {
-        int img_slot = 0;
-        for (const Resource& img_res: res.sampled_images) {
-            compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
-        }
+    uint32_t img_slot = 0;
+    uint32_t img_set = (type == snippet_t::type_t::VS) ? 1 : 2;
+    for (const Resource& img_res: res.sampled_images) {
+        compiler.set_decoration(img_res.id, spv::DecorationDescriptorSet, img_set);
+        compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
     }
 }
 
@@ -110,22 +121,37 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
 static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_t::IMAGE_ARRAY;
+            return image_t::IMAGE_TYPE_ARRAY;
         }
     }
     else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_t::IMAGE_2D;
-            case spv::DimCube:  return image_t::IMAGE_CUBE;
-            case spv::Dim3D:    return image_t::IMAGE_3D;
+            case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
+            case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
+            case spv::Dim3D:    return image_t::IMAGE_TYPE_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_t::INVALID;
+    return image_t::IMAGE_TYPE_INVALID;
 }
 
-static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
+static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
+    switch (type.basetype) {
+        case SPIRType::Int:
+        case SPIRType::Short:
+        case SPIRType::SByte:
+            return image_t::IMAGE_BASETYPE_SINT;
+        case SPIRType::UInt:
+        case SPIRType::UShort:
+        case SPIRType::UByte:
+            return image_t::IMAGE_BASETYPE_UINT;
+        default:
+            return image_t::IMAGE_BASETYPE_FLOAT;
+    }
+}
+
+static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
     spirvcross_refl_t refl;
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
@@ -164,6 +190,10 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        // shift fragment shader uniform blocks binding back to
+        if (is_vulkan && (refl_ub.slot >= (int)vk_fs_ub_binding_offset)) {
+            refl_ub.slot -= 4;
+        }
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.name = ub_res.name;
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
@@ -186,35 +216,39 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler) {
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
+        refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
         refl.images.push_back(refl_img);
     }
     return refl;
 }
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, uint32_t opt_mask) {
+static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     options.version = glsl_version;
     options.es = is_gles;
+    options.vulkan_semantics = is_vulkan;
     options.enable_420pack_extension = false;
     options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(options);
-    fix_bind_slots(compiler);
+    fix_bind_slots(compiler, type, is_vulkan);
     fix_ub_matrix_force_colmajor(compiler);
-    flatten_uniform_blocks(compiler);
+    if (!is_vulkan) {
+        flatten_uniform_blocks(compiler);
+    }
     std::string src = compiler.compile();
     spirvcross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, is_vulkan);
     }
     return res;
 }
 
-static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask) {
+static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -225,19 +259,19 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask)
     hlslOptions.shader_model = 50;
     hlslOptions.point_size_compat = true;
     compiler.set_hlsl_options(hlslOptions);
-    fix_bind_slots(compiler);
+    fix_bind_slots(compiler, type, false);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, false);
     }
     return res;
 }
 
-static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask) {
+static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -248,13 +282,13 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     mslOptions.platform = plat;
     mslOptions.enable_decoration_binding = true;
     compiler.set_msl_options(mslOptions);
-    fix_bind_slots(compiler);
+    fix_bind_slots(compiler, type, false);
     std::string src = compiler.compile();
     spirvcross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler);
+        res.refl = parse_reflection(compiler, false);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
@@ -361,25 +395,33 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
+        snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
+        assert((type == snippet_t::VS) || (type == snippet_t::FS));
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl(blob, 330, false, opt_mask);
+                src = to_glsl(blob, 330, false, false, opt_mask, type);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl(blob, 100, true, opt_mask);
+                src = to_glsl(blob, 100, true, false, opt_mask, type);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, 300, true, opt_mask);
+                src = to_glsl(blob, 300, true, false, opt_mask, type);
                 break;
             case slang_t::HLSL5:
-                src = to_hlsl5(blob, opt_mask);
+                src = to_hlsl5(blob, opt_mask, type);
                 break;
             case slang_t::METAL_MACOS:
-                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask);
+                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);
                 break;
             case slang_t::METAL_IOS:
             case slang_t::METAL_SIM:
-                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask);
+                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
+                break;
+            case slang_t::WGPU:
+                // hackety hack, just compile to GLSL even for SPIRV output
+                // so that we can use the same SPIRV-Cross's reflection API
+                // calls as for the other output types
+                src = to_glsl(blob, 450, false, true, opt_mask, type);
                 break;
             default: break;
         }
@@ -452,8 +494,8 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
             }
         }
         for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type));
+            fmt::print(stderr, "      image: {}, slot: {}, type: {}, basetype: {}\n",
+                img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
         }
         fmt::print(stderr, "\n");
     }

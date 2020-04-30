@@ -26,8 +26,8 @@ void main() {
 #pragma sokol @end
 
 #pragma sokol @fs fs
-layout(binding=0) uniform sampler2D tex1;
-layout(binding=1) uniform sampler2D tex0;
+uniform sampler2D tex1;
+uniform sampler2D tex0;
 
 in vec4 color;
 in vec2 uv;
