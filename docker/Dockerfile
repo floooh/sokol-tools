@@ -1,5 +1,5 @@
 FROM alpine:edge
-RUN apk add build-base git vim python cmake
+RUN apk add build-base git vim python3 cmake
 RUN mkdir /workspace && cd /workspace && \
     git clone --recursive https://github.com/floooh/sokol-tools && \
     cd sokol-tools && \
