@@ -463,7 +463,8 @@ struct spirvcross_t {
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
-    void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
+    void write_reflection_info(FILE* stream, const spirvcross_source_t& source, const std::string& indent) const;
+    void dump_debug(FILE* stream, errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 
 /* HLSL/Metal to bytecode compiler wrapper */

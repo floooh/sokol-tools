@@ -60,7 +60,7 @@ int main(int argc, const char** argv) {
         if (args.slang & slang_t::bit(slang)) {
             spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
-                spirvcross[i].dump_debug(args.error_format, slang);
+                spirvcross[i].dump_debug(stderr, args.error_format, slang);
             }
             if (spirvcross[i].error.valid) {
                 spirvcross[i].error.print(args.error_format);

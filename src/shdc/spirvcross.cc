@@ -453,53 +453,58 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
-    fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
+void spirvcross_t::write_reflection_info(FILE* stream, const spirvcross_source_t& source, const std::string& indent) const {
+    fmt::print(stream, "{}stage: {}\n", indent, stage_t::to_str(source.refl.stage));
+    fmt::print(stream, "{}entry: {}\n", indent, source.refl.entry_point);
+    fmt::print(stream, "{}inputs:\n", indent);
+    for (const attr_t& attr: source.refl.inputs) {
+        if (attr.slot >= 0) {
+            fmt::print(stream, "{}  {}: slot={}, sem_name={}, sem_index={}\n", indent, attr.name, attr.slot, attr.sem_name, attr.sem_index);
+        }
+    }
+    fmt::print(stream, "{}outputs:\n", indent);
+    for (const attr_t& attr: source.refl.outputs) {
+        if (attr.slot >= 0) {
+            fmt::print(stream, "{}  {}: slot={}, sem_name={}, sem_index={}\n", indent, attr.name, attr.slot, attr.sem_name, attr.sem_index);
+        }
+    }
+    for (const uniform_block_t& ub: source.refl.uniform_blocks) {
+        fmt::print(stream, "{}uniform block: {}, slot: {}, size: {}\n", indent, ub.name, ub.slot, ub.size);
+        for (const uniform_t& uniform: ub.uniforms) {
+            fmt::print(stream, "{}  member: {}, type: {}, array_count: {}, offset: {}\n",
+                indent,
+                uniform.name,
+                uniform_t::type_to_str(uniform.type),
+                uniform.array_count,
+                uniform.offset);
+        }
+    }
+    for (const image_t& img: source.refl.images) {
+        fmt::print(stream, "{}image: {}, slot: {}, type: {}, basetype: {}\n",
+            indent, img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
+    }
+    fmt::print(stream, "\n");
+}
+
+void spirvcross_t::dump_debug(FILE* stream, errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
+    fmt::print(stream, "spirvcross_t ({}):\n", slang_t::to_str(slang));
     if (error.valid) {
-        fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
+        fmt::print(stream, "  error: {}\n", error.as_string(err_fmt));
     }
     else {
-        fmt::print(stderr, "  error: not set\n");
+        fmt::print(stream, "  error: not set\n");
     }
-    std::vector<std::string> lines;
     for (const spirvcross_source_t& source: sources) {
-        fmt::print(stderr, "    source for snippet {}:\n", source.snippet_index);
+        fmt::print(stream, "    source for snippet {}:\n", source.snippet_index);
+        std::vector<std::string> lines;
         pystring::splitlines(source.source_code, lines);
         for (const std::string& line: lines) {
-            fmt::print(stderr, "      {}\n", line);
+            fmt::print(stream, "      {}\n", line);
         }
-        fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
-        fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
-        fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
-        fmt::print(stderr, "      inputs:\n");
-        for (const attr_t& attr: source.refl.inputs) {
-            if (attr.slot >= 0) {
-                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
-            }
-        }
-        fmt::print(stderr, "      outputs:\n");
-        for (const attr_t& attr: source.refl.outputs) {
-            if (attr.slot >= 0) {
-                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
-            }
-        }
-        for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
-            for (const uniform_t& uniform: ub.uniforms) {
-                fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
-                    uniform.name,
-                    uniform_t::type_to_str(uniform.type),
-                    uniform.array_count,
-                    uniform.offset);
-            }
-        }
-        for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}, basetype: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
-        }
-        fmt::print(stderr, "\n");
+        fmt::print(stream, "    reflection for snippet {}:\n", source.snippet_index);
+        write_reflection_info(stream, source, "      ");
     }
-    fmt::print(stderr, "\n");
+    fmt::print(stream, "\n");
 }
 
 } // namespace shdc

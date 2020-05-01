@@ -52,6 +52,21 @@ static errmsg_t write_stage(const std::string& file_path,
     return errmsg_t();
 }
 
+static errmsg_t write_meta(const std::string& file_path,
+                           const spirvcross_t& spirvcross,
+                           const spirvcross_source_t& src)
+{
+    FILE* f = fopen(file_path.c_str(), "wb");
+    if (!f) {
+        return errmsg_t::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
+    }
+
+    spirvcross.write_reflection_info(f, src, "");
+
+    fclose(f);
+    return errmsg_t();
+}
+
 static errmsg_t write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
@@ -78,6 +93,7 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
             fs_blob = &bytecode.blobs[fs_blob_index];
         }
 
+        // write shader sources
         std::string file_path_vs = fmt::format("{}{}{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, vs_blob));
         std::string file_path_fs = fmt::format("{}{}{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, fs_blob));
 
@@ -87,6 +103,16 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
             return err;
         }
         err = write_stage(file_path_fs, fs_src, fs_blob);
+        if (err.valid) {
+            return err;
+        }
+
+        // write meta files
+        err = write_meta(fmt::format("{}.meta", file_path_vs), spirvcross, vs_src);
+        if (err.valid) {
+            return err;
+        }
+        err = write_meta(fmt::format("{}.meta", file_path_fs), spirvcross, fs_src);
         if (err.valid) {
             return err;
         }
