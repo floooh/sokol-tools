@@ -57,6 +57,38 @@ struct slang_t {
         }
         return res;
     }
+    static bool is_glsl(type_t c) {
+        switch (c) {
+            case GLSL330:
+            case GLSL100:
+            case GLSL300ES:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_hlsl(type_t c) {
+        switch (c) {
+            case HLSL4:
+            case HLSL5:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_msl(type_t c) {
+        switch (c) {
+            case METAL_MACOS:
+            case METAL_IOS:
+            case METAL_SIM:
+                return true;
+            default:
+                return false;
+        }
+    }
+    static bool is_wgpu(type_t c) {
+        return WGPU == c;
+    }
 };
 
 /* the output format */

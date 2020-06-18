@@ -26,34 +26,10 @@ void spirv_t::finalize_spirv_tools() {
 /* merge shader snippet source into a single string */
 static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang) {
     std::string src = "#version 450\n";
-    bool is_glsl = false;
-    bool is_hlsl = false;
-    bool is_msl = false;
-    bool is_wgpu = false;
-    switch (slang) {
-        case slang_t::GLSL330:
-        case slang_t::GLSL100:
-        case slang_t::GLSL300ES:
-            is_glsl = true;
-            break;
-        case slang_t::HLSL4:
-        case slang_t::HLSL5:
-            is_hlsl = true;
-            break;
-        case slang_t::METAL_MACOS:
-        case slang_t::METAL_IOS:
-        case slang_t::METAL_SIM:
-            is_msl = true;
-            break;
-        case slang_t::WGPU:
-            is_wgpu = true;
-            break;
-        default: break;
-    }
-    src += fmt::format("#define SOKOL_GLSL ({})\n", is_glsl ? 1 : 0);
-    src += fmt::format("#define SOKOL_HLSL ({})\n", is_hlsl ? 1 : 0);
-    src += fmt::format("#define SOKOL_MSL ({})\n", is_msl ? 1 : 0);
-    src += fmt::format("#define SOKOL_WGPU ({})\n", is_wgpu ? 1 : 0);
+    src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgpu(slang) ? 1 : 0);
     for (int line_index : snippet.lines) {
         src += fmt::format("{}\n", inp.lines[line_index].line);
     }
