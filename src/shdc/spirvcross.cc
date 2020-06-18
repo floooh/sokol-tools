@@ -248,7 +248,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     return res;
 }
 
-static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -256,7 +256,7 @@ static spirvcross_source_t to_hlsl5(const spirv_blob_t& blob, uint32_t opt_mask,
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
     CompilerHLSL::Options hlslOptions;
-    hlslOptions.shader_model = 50;
+    hlslOptions.shader_model = shader_model;
     hlslOptions.point_size_compat = true;
     compiler.set_hlsl_options(hlslOptions);
     fix_bind_slots(compiler, type, false);
@@ -407,8 +407,11 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::GLSL300ES:
                 src = to_glsl(blob, 300, true, false, opt_mask, type);
                 break;
+            case slang_t::HLSL4:
+                src = to_hlsl(blob, 40, opt_mask, type);
+                break;
             case slang_t::HLSL5:
-                src = to_hlsl5(blob, opt_mask, type);
+                src = to_hlsl(blob, 50, opt_mask, type);
                 break;
             case slang_t::METAL_MACOS:
                 src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);

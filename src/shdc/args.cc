@@ -54,7 +54,8 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - glsl330:       desktop OpenGL backend (SOKOL_GLCORE33)\n"
         "  - glsl100:       OpenGLES2 and WebGL (SOKOL_GLES2)\n"
         "  - glsl300es:     OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
-        "  - hlsl5:         Direct3D11 (SOKOL_D3D11)\n"
+        "  - hlsl4:         Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
+        "  - hlsl5:         Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
         "  - metal_macos:   Metal on macOS (SOKOL_METAL)\n"
         "  - metal_ios:     Metal on iOS devices (SOKOL_METAL)\n"
         "  - metal_sim:     Metal on iOS simulator (SOKOL_METAL)\n"
@@ -69,7 +70,7 @@ static void print_help_string(getopt_context_t& ctx) {
     fmt::print(stderr, getopt_create_help_string(&ctx, buf, sizeof(buf)));
 }
 
-/* parse string of format 'hlsl|glsl100|...' args.slang bitmask */
+/* parse string of format 'hlsl4|glsl100|...' args.slang bitmask */
 static bool parse_slang(args_t& args, const char* str) {
     args.slang = 0;
     std::vector<std::string> splits;
@@ -89,6 +90,12 @@ static bool parse_slang(args_t& args, const char* str) {
             args.exit_code = 10;
             return false;
         }
+    }
+    if ((args.slang & slang_t::bit(slang_t::HLSL4)) && (args.slang & slang_t::bit(slang_t::HLSL5))) {
+        fmt::print(stderr, "sokol-shdc: hlsl4 and hlsl5 output cannot be active at the same time!\n");
+        args.valid = false;
+        args.exit_code = 10;
+        return false;
     }
     return true;
 }

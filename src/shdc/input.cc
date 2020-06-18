@@ -342,6 +342,7 @@ static bool parse(input_t& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = option_t::from_string(tokens[i]);
+                    cur_snippet.options[slang_t::HLSL4] |= option_bit;
                     cur_snippet.options[slang_t::HLSL5] |= option_bit;
                 }
                 add_line = false;

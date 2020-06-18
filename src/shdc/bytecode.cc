@@ -300,7 +300,7 @@ static void d3d_parse_errors(const std::string& output, const input_t& inp, int 
     }
 }
 
-static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross) {
+static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     bytecode_t bytecode;
     if (!load_d3dcompiler_dll()) {
         bytecode.errors.push_back(errmsg_t::warning(inp.base_path, 0, fmt::format("failed to load d3dcompiler_47.dll!")));
@@ -310,7 +310,23 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
         const snippet_t& snippet = inp.snippets[src.snippet_index];
         ID3DBlob* output = NULL;
         ID3DBlob* errors = NULL;
-        const char* compile_target = (snippet.type == snippet_t::VS) ? "vs_5_0" : "ps_5_0";
+        const char* compile_target = nullptr;
+        if (slang == slang_t::HLSL4) {
+            if (snippet.type == snippet_t::VS) {
+                compile_target = "vs_4_0";
+            }
+            else {
+                compile_target = "ps_4_0";
+            }
+        }
+        else {
+            if (snippet.type == snippet_t::VS) {
+                compile_target = "vs_5_0";
+            }
+            else {
+                compile_target = "ps_5_0";
+            }
+        }
         d3dcompile_func(
             src.source_code.c_str(),        // pSrcData
             src.source_code.length(),       // SrcDataSize
@@ -373,8 +389,8 @@ bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spi
     }
     #endif
     #if defined(_WIN32)
-    if (slang == slang_t::HLSL5) {
-        bytecode = d3d_compile(inp, spirvcross);
+    if ((slang == slang_t::HLSL4) || (slang == slang_t::HLSL5)) {
+        bytecode = d3d_compile(inp, spirvcross, slang);
     }
     #endif
     if (slang == slang_t::WGPU) {

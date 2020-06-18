@@ -17,6 +17,7 @@ struct slang_t {
         GLSL330 = 0,
         GLSL100,
         GLSL300ES,
+        HLSL4,
         HLSL5,
         METAL_MACOS,
         METAL_IOS,
@@ -33,6 +34,7 @@ struct slang_t {
             case GLSL330:       return "glsl330";
             case GLSL100:       return "glsl100";
             case GLSL300ES:     return "glsl300es";
+            case HLSL4:         return "hlsl4";
             case HLSL5:         return "hlsl5";
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";

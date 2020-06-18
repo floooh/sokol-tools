@@ -14,6 +14,7 @@ static const char* slang_file_extension(slang_t::type_t c, bool binary) {
         case slang_t::GLSL100:
         case slang_t::GLSL300ES:
             return ".glsl";
+        case slang_t::HLSL4:
         case slang_t::HLSL5:
             return binary ? ".fxc" : ".hlsl";
         case slang_t::METAL_MACOS:

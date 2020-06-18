@@ -36,6 +36,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
         case slang_t::GLSL300ES:
             is_glsl = true;
             break;
+        case slang_t::HLSL4:
         case slang_t::HLSL5:
             is_hlsl = true;
             break;

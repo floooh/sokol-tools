@@ -14,7 +14,7 @@ shader dialects:
 - GLSL v100 (for GLES2 and WebGL)
 - GLSL v300es (for GLES3 and WebGL2)
 - GLSL v330 (for desktop GL)
-- HLSL5 (for D3D11), optionally as bytecode
+- HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 - WebGPU (initially SPIRV, later WGSL)
 
@@ -244,6 +244,7 @@ shader language names are:
     - **glsl330**: desktop GL
     - **glsl100**: GLES2 / WebGL
     - **glsl300es**: GLES3 / WebGL2
+    - **hlsl4**: D3D11
     - **hlsl5**: D3D11
     - **metal_macos**: Metal on macOS
     - **metal_ios**: Metal on iOS device
@@ -259,9 +260,9 @@ shader language names are:
 - **-b --bytecode**: If possible, compile shaders to bytecode instead of
 embedding source code. The restrictions to generate shader bytecode are as
 follows:
-    - target language must be **hlsl5**, **metal_macos** or **metal_ios**
+    - target language must be **hlsl4**, **hlsl5**, **metal_macos** or **metal_ios**
     - sokol-shdc must run on the respective platforms:
-        - **hlsl5**: only possible when sokol-shdc is running on Windows
+        - **hlsl4, hlsl5**: only possible when sokol-shdc is running on Windows
         - **metal_macos, metal_ios**: only possible when sokol-shdc is running on macOS
 
   ...if these restrictions are not met, sokol-shdc will fall back to generating
