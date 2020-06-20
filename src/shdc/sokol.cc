@@ -322,7 +322,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
             L("\n}};\n");
         }
         else {
-            /* if no bytecode exists, write the source code, but also a a byte array with a trailing 0 */
+            /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
             std::string c_name = fmt::format("{}{}_source_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
             const size_t len = src.source_code.length() + 1;
             L("static const char {}[{}] = {{\n", c_name.c_str(), len);
@@ -354,6 +354,16 @@ static void write_stage(const char* indent,
     }
     else {
         L("{}desc.{}.source = {};\n", indent, stage_name, src_name);
+        const char* d3d11_tgt = nullptr;
+        if (slang == slang_t::HLSL4) {
+            d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
+        }
+        else if (slang == slang_t::HLSL5) {
+            d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_5_0" : "ps_5_0";
+        }
+        if (d3d11_tgt) {
+            L("{}desc.{}.d3d11_target = \"{}\";\n", indent, stage_name, d3d11_tgt);
+        }
     }
     L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src.refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
