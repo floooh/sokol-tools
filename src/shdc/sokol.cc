@@ -372,7 +372,7 @@ static void write_stage(const char* indent,
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
         const image_t* img = find_image(src.refl, img_index);
         if (img) {
-            L("{}desc.{}.images[{}].name = {};\n", indent, stage_name, img_index, img->name);
+            L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, img_index, img->name);
             L("{}desc.{}.images[{}].type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
             L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
         }
@@ -429,7 +429,7 @@ static void write_shader_desc_init(const char* indent, const input_t& inp, const
         }
         write_stage(indent, "vs", prog, vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
         write_stage(indent, "fs", prog, fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
-        L("{}desc.label = \"{}{}_shader\"\n", indent, mod_prefix(inp), prog.name);
+        L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
     }
 }
 
