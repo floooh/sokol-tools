@@ -378,58 +378,55 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
-    for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
-        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
-        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
-        int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
-        int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
-        const bytecode_blob_t* vs_blob = 0;
-        const bytecode_blob_t* fs_blob = 0;
-        if (vs_blob_index != -1) {
-            vs_blob = &bytecode.blobs[vs_blob_index];
-        }
-        if (fs_blob_index != -1) {
-            fs_blob = &bytecode.blobs[fs_blob_index];
-        }
-        std::string vs_src_name, fs_src_name;
-        std::string vs_blob_name, fs_blob_name;
-        if (vs_blob_index != -1) {
-            vs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
-        }
-        else {
-            vs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
-        }
-        if (fs_blob_index != -1) {
-            fs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
-        }
-        else {
-            fs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
-        }
+static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
+    int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
+    int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
+    int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+    int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+    assert((vs_src_index >= 0) && (fs_src_index >= 0));
+    const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
+    const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
+    int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
+    int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
+    const bytecode_blob_t* vs_blob = 0;
+    const bytecode_blob_t* fs_blob = 0;
+    if (vs_blob_index != -1) {
+        vs_blob = &bytecode.blobs[vs_blob_index];
+    }
+    if (fs_blob_index != -1) {
+        fs_blob = &bytecode.blobs[fs_blob_index];
+    }
+    std::string vs_src_name, fs_src_name;
+    std::string vs_blob_name, fs_blob_name;
+    if (vs_blob_index != -1) {
+        vs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
+    }
+    else {
+        vs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
+    }
+    if (fs_blob_index != -1) {
+        fs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
+    }
+    else {
+        fs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
+    }
 
-        /* write shader desc */
-        for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
-            const attr_t& attr = vs_src.refl.inputs[attr_index];
-            if (attr.slot >= 0) {
-                if (slang_t::is_glsl(slang)) {
-                    L("{}desc.attrs[{}].name = \"{}\";\n", indent, attr_index, attr.name);
-                }
-                else if (slang_t::is_hlsl(slang)) {
-                    L("{}desc.attrs[{}].sem_name = \"{}\";\n", indent, attr_index, attr.sem_name);
-                    L("{}desc.attrs[{}].sem_index = {};\n", indent, attr_index, attr.sem_index);
-                }
+    /* write shader desc */
+    for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
+        const attr_t& attr = vs_src.refl.inputs[attr_index];
+        if (attr.slot >= 0) {
+            if (slang_t::is_glsl(slang)) {
+                L("{}desc.attrs[{}].name = \"{}\";\n", indent, attr_index, attr.name);
+            }
+            else if (slang_t::is_hlsl(slang)) {
+                L("{}desc.attrs[{}].sem_name = \"{}\";\n", indent, attr_index, attr.sem_name);
+                L("{}desc.attrs[{}].sem_index = {};\n", indent, attr_index, attr.sem_index);
             }
         }
-        write_stage(indent, "vs", vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
-        write_stage(indent, "fs", fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
-        L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
     }
+    write_stage(indent, "vs", vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
+    write_stage(indent, "fs", fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
+    L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
 }
 
 errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
@@ -523,7 +520,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 L("    static bool valid;\n");
                 L("    if (!valid) {{\n");
                 L("      valid = true;\n");
-                write_shader_desc_init("      ", inp, spirvcross[i], bytecode[i], slang);
+                write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
                 L("    }};\n");
                 L("    return &desc;\n", mod_prefix(inp), prog.name, slang_t::to_str(slang));
                 L("  }}\n");
