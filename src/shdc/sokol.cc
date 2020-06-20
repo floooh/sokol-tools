@@ -342,7 +342,6 @@ static void write_shader_sources_and_blobs(const input_t& inp,
 
 static void write_stage(const char* indent,
                         const char* stage_name,
-                        const program_t& prog,
                         const spirvcross_source_t& src,
                         const std::string& src_name,
                         const bytecode_blob_t* blob,
@@ -427,8 +426,8 @@ static void write_shader_desc_init(const char* indent, const input_t& inp, const
                 }
             }
         }
-        write_stage(indent, "vs", prog, vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
-        write_stage(indent, "fs", prog, fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
+        write_stage(indent, "vs", vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
+        write_stage(indent, "fs", fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
         L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
     }
 }
