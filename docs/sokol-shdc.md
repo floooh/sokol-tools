@@ -2,6 +2,14 @@
 
 Shader-code-generator for sokol_gfx.h
 
+## Updates
+
+- **03-Oct-2020**: The command line option ```--noifdef``` is now obsolete (but
+  still accepted) and has been replaced with ```--ifdef```. The default
+  behaviour is now to *not* wrap the generated platform specific code with
+  ifdefs. If you rely on that behaviour, call sokol-shdc with the new
+  ```--ifdef``` flag.
+
 ## Feature Overview
 
 sokol-shdc is a shader-cross-compiler and -code-generator command line tool

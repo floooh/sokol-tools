@@ -10,18 +10,34 @@
 
 namespace shdc {
 
+typedef enum {
+    OPTION_HELP = 1,
+    OPTION_INPUT,
+    OPTION_OUTPUT,
+    OPTION_SLANG,
+    OPTION_BYTECODE,
+    OPTION_FORMAT,
+    OPTION_ERRFMT,
+    OPTION_DUMP,
+    OPTION_GENVER,
+    OPTION_TMPDIR,
+    OPTION_IFDEF,
+    OPTION_NOIFDEF,
+} arg_option_t;
+
 static const getopt_option_t option_list[] = {
-    { "help", 'h',  GETOPT_OPTION_TYPE_NO_ARG, 0, 'h', "print this help text", 0},
-    { "input", 'i', GETOPT_OPTION_TYPE_REQUIRED, 0, 'i', "input source file", "GLSL file" },
-    { "output", 'o', GETOPT_OPTION_TYPE_REQUIRED, 0, 'o', "output source file", "C header" },
-    { "slang", 'l', GETOPT_OPTION_TYPE_REQUIRED, 0, 'l', "output shader language(s), see above for list", "glsl330:glsl100..." },
-    { "bytecode", 'b', GETOPT_OPTION_TYPE_NO_ARG, 0, 'b', "output bytecode (HLSL and Metal)"},
-    { "format", 'f', GETOPT_OPTION_TYPE_REQUIRED, 0, 'f', "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|bare]" },
-    { "errfmt", 'e', GETOPT_OPTION_TYPE_REQUIRED, 0, 'e', "error message format (default: gcc)", "[gcc|msvc]"},
-    { "dump", 'd', GETOPT_OPTION_TYPE_NO_ARG, 0, 'd', "dump debugging information to stderr"},
-    { "genver", 'g', GETOPT_OPTION_TYPE_REQUIRED, 0, 'g', "version-stamp for code-generation", "[int]"},
-    { "noifdef", 'n', GETOPT_OPTION_TYPE_NO_ARG, 0, 'n', "don't emit #ifdef SOKOL_XXX"},
-    { "tmpdir", 't', GETOPT_OPTION_TYPE_REQUIRED, 0, 't', "directory for temporary files (use output dir if not specified)", "[dir]"},
+    { "help",       'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,     "print this help text", 0},
+    { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,    "input source file", "GLSL file" },
+    { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,   "output source file", "C header" },
+    { "slang",      'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,    "output shader language(s), see above for list", "glsl330:glsl100..." },
+    { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE, "output bytecode (HLSL and Metal)"},
+    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,   "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|bare]" },
+    { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,   "error message format (default: gcc)", "[gcc|msvc]"},
+    { "dump",       'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,     "dump debugging information to stderr"},
+    { "genver",     'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,   "version-stamp for code-generation", "[int]"},
+    { "tmpdir",     't', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_TMPDIR,   "directory for temporary files (use output dir if not specified)", "[dir]"},
+    { "ifdef",      0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,    "wrap backend-specific generated code in #ifdef/#endif"},
+    { "noifdef",    'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,  "obsolete, superseded by --ifdef"},
     GETOPT_OPTIONS_END
 };
 
@@ -158,19 +174,19 @@ args_t args_t::parse(int argc, const char** argv) {
                     fmt::print(stderr, "sokol-shdc: invalid use of flag {}\n", ctx.current_opt_arg);
                     args.valid = false;
                     return args;
-                case 'i':
+                case OPTION_INPUT:
                     args.input = ctx.current_opt_arg;
                     break;
-                case 'o':
+                case OPTION_OUTPUT:
                     args.output = ctx.current_opt_arg;
                     break;
-                case 't':
+                case OPTION_TMPDIR:
                     args.tmpdir = ctx.current_opt_arg;
                     break;
-                case 'b':
+                case OPTION_BYTECODE:
                     args.byte_code = true;
                     break;
-                case 'f':
+                case OPTION_FORMAT:
                     args.output_format = format_t::from_str(ctx.current_opt_arg);
                     if (args.output_format == format_t::INVALID) {
                         fmt::print(stderr, "sokol-shdc: unknown output format {}, must be 'sokol', 'sokol_impl', 'sokol_pair' or 'bare'\n", ctx.current_opt_arg);
@@ -179,16 +195,16 @@ args_t args_t::parse(int argc, const char** argv) {
                         return args;
                     }
                     break;
-                case 'd':
+                case OPTION_DUMP:
                     args.debug_dump = true;
                     break;
-                case 'l':
+                case OPTION_SLANG:
                     if (!parse_slang(args, ctx.current_opt_arg)) {
                         /* error details have been filled by parse_slang() */
                         return args;
                     }
                     break;
-                case 'e':
+                case OPTION_ERRFMT:
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
                         args.error_format = errmsg_t::GCC;
                     }
@@ -202,13 +218,17 @@ args_t args_t::parse(int argc, const char** argv) {
                         return args;
                     }
                     break;
-                case 'g':
+                case OPTION_GENVER:
                     args.gen_version = atoi(ctx.current_opt_arg);
                     break;
-                case 'n':
-                    args.no_ifdef = true;
+                case OPTION_IFDEF:
+                    args.ifdef = true;
                     break;
-                case 'h':
+                case OPTION_NOIFDEF:
+                    // obsolete, but keep for backwards compatibility
+                    args.ifdef = false;
+                    break;
+                case OPTION_HELP:
                     print_help_string(ctx);
                     args.valid = false;
                     args.exit_code = 0;
@@ -233,7 +253,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  output_format: '{}'\n", format_t::to_str(output_format));
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
-    fmt::print(stderr, "  no_ifdef: {}\n", no_ifdef);
+    fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
     fmt::print(stderr, "  error_format: {}\n", errmsg_t::msg_format_to_str(error_format));
     fmt::print(stderr, "\n");

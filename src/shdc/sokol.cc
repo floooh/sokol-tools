@@ -496,11 +496,11 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                     L("#if defined(SOKOL_SHDC_IMPL)\n");
                 }
             }
-            if (!args.no_ifdef) {
+            if (args.ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
             }
             write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
-            if (!args.no_ifdef) {
+            if (args.ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
             }
         }
@@ -522,7 +522,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t) i;
             if (args.slang & slang_t::bit(slang)) {
-                if (!args.no_ifdef) {
+                if (args.ifdef) {
                     L("  #if defined({})\n", sokol_define(slang));
                 }
                 L("  if (sg_query_backend() == {}) {{\n", sokol_backend(slang));
@@ -534,7 +534,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 L("    }};\n");
                 L("    return &desc;\n", mod_prefix(inp), prog.name, slang_t::to_str(slang));
                 L("  }}\n");
-                if (!args.no_ifdef) {
+                if (args.ifdef) {
                     L("  #endif /* {} */\n", sokol_define(slang));
                 }
             }
