@@ -539,7 +539,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 }
             }
         }
-        L("  return 0; /* can't happen */\n");
+        L("  return 0;\n");
         L("}}\n");
     }
 
