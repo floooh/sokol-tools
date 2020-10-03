@@ -301,20 +301,14 @@ or Visual-Studio-compatible, the default is **gcc**
 this is useful to detect whether all shader files need to be recompiled because
 the tooling has been updated (sokol-shdc will not check this though, this must be
 done in the build-system-integration)
-- **-n --noifdef**: by default, the C header generator will surround all 3D-backend-
-specific code with an **#ifdef/#endif** pair which checks for the sokol-gfx
-backend defines:
+- **--ifdef**: this tells the code generator to wrap 3D-backend-specific
+code into **#ifdef/#endif** pairs using the sokol-gfx backend-selection defines:
     - SOKOL_GLCORE33
     - SOKOL_GLES2
     - SOKOL_GLES3
     - SOKOL_D3D11
     - SOKOL_METAL
     - SOKOL_WGPU
-
-  Sometimes this is useful, sometimes it isn't. You can disable those
-  backend-checks with the **--noifdef** option. One situation where it makes
-  sense to disable the ifdefs is for application that use GLES3/WebGL2, but
-  must be able to fall back to GLES2/WebGL.
 - **-d --dump**: Enable verbose debug output, this basically dumps all internal
 information to stdout. Useful for debugging and understanding how sokol-shdc
 works, but not much else :)
