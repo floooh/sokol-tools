@@ -168,10 +168,10 @@ struct errmsg_t {
 
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
-            return fmt::format("{}({}): {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
+            return fmt::format("{}({}): {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
         }
         else {
-            return fmt::format("{}:{}:0: {}: {}", file, line_index+1, (type==ERROR)?"error":"warning", msg);
+            return fmt::format("{}:{}:0: {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
         }
     }
     // print error to stdout
