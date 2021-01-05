@@ -349,8 +349,8 @@ static void write_stage(const char* indent,
                         slang_t::type_t slang)
 {
     if (blob) {
-        L("{}desc.{}.byte_code = {};\n", indent, stage_name, blob_name);
-        L("{}desc.{}.byte_code_size = {};\n", indent, stage_name, blob->data.size());
+        L("{}desc.{}.bytecode.ptr = {};\n", indent, stage_name, blob_name);
+        L("{}desc.{}.bytecode.size = {};\n", indent, stage_name, blob->data.size());
     }
     else {
         L("{}desc.{}.source = {};\n", indent, stage_name, src_name);
