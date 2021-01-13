@@ -79,8 +79,8 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
             fs_blob = &bytecode.blobs[fs_blob_index];
         }
 
-        std::string file_path_vs = fmt::format("{}{}{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, vs_blob));
-        std::string file_path_fs = fmt::format("{}{}{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_file_extension(slang, fs_blob));
+        std::string file_path_vs = fmt::format("{}{}{}_{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, vs_blob));
+        std::string file_path_fs = fmt::format("{}{}{}_{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, fs_blob));
 
         errmsg_t err;
         err = write_stage(file_path_vs, vs_src, vs_blob);
