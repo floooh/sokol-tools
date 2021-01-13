@@ -125,7 +125,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
         const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
         L("        Shader program '{}':\n", prog.name);
-        L("            Get shader desc: {}{}_shader_desc()\n", mod_prefix(inp), prog.name);
+        L("            Get shader desc: {}{}_shader_desc(sg_query_backend())\n", mod_prefix(inp), prog.name);
         L("            Vertex shader: {}\n", prog.vs_name);
         L("                Attribute slots:\n");
         const snippet_t& vs_snippet = inp.snippets[vs_src.snippet_index];
@@ -163,7 +163,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("    Shader descriptor structs:\n\n");
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("        sg_shader {} = sg_make_shader({}{}_shader_desc());\n", prog.name, mod_prefix(inp), prog.name);
+        L("        sg_shader {} = sg_make_shader({}{}_shader_desc(sg_query_backend()));\n", prog.name, mod_prefix(inp), prog.name);
     }
     L("\n");
     for (const spirvcross_source_t& src: spirvcross.sources) {
@@ -480,7 +480,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 if (args.output_format == format_t::SOKOL_IMPL) {
                     for (const auto& item: inp.programs) {
                         const program_t& prog = item.second;
-                        L("const sg_shader_desc* {}{}_shader_desc(void);\n", mod_prefix(inp), prog.name);
+                        L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
                     }
                 }
                 write_vertex_attrs(inp, spirvcross[i]);
@@ -518,14 +518,14 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     }
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("{}const sg_shader_desc* {}{}_shader_desc(void) {{\n", func_prefix, mod_prefix(inp), prog.name);
+        L("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix, mod_prefix(inp), prog.name);
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t) i;
             if (args.slang & slang_t::bit(slang)) {
                 if (args.ifdef) {
                     L("  #if defined({})\n", sokol_define(slang));
                 }
-                L("  if (sg_query_backend() == {}) {{\n", sokol_backend(slang));
+                L("  if (backend == {}) {{\n", sokol_backend(slang));
                 L("    static sg_shader_desc desc;\n");
                 L("    static bool valid;\n");
                 L("    if (!valid) {{\n");
