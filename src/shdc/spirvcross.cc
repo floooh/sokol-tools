@@ -153,6 +153,7 @@ static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
     spirvcross_refl_t refl;
+
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
     switch (compiler.get_execution_model()) {

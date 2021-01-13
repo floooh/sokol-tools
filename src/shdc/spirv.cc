@@ -165,12 +165,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     //shader.setStrings(sources, 1);
     shader.setStringsWithLengthsAndNames(sources, sourcesLen, sourcesNames, 1);
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
-    if (slang == slang_t::WGPU) {
-        shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
-    }
-    else {
-        shader.setEnvClient(glslang::EShClientOpenGL, glslang::EShTargetOpenGL_450);
-    }
+    shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     // NOTE: where using AutoMapBinding here, but this will just throw all bindings
     // into descriptor set null, which is not what we actually want.
