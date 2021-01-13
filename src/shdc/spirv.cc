@@ -156,11 +156,14 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 /* compile a vertex or fragment shader to SPIRV */
 static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
+    const int sourcesLen[1] = { (int) src.length() };
+    const char* sourcesNames[1] = { inp.base_path.c_str() };
 
     // compile GLSL vertex- or fragment-shader
     glslang::TShader shader(stage);
     // FIXME: add custom defines here: compiler.addProcess(...)
-    shader.setStrings(sources, 1);
+    //shader.setStrings(sources, 1);
+    shader.setStringsWithLengthsAndNames(sources, sourcesLen, sourcesNames, 1);
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
     if (slang == slang_t::WGPU) {
         shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
