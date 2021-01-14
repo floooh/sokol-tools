@@ -31,7 +31,7 @@ static const getopt_option_t option_list[] = {
     { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,   "output source file", "C header" },
     { "slang",      'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,    "output shader language(s), see above for list", "glsl330:glsl100..." },
     { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE, "output bytecode (HLSL and Metal)"},
-    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,   "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|bare]" },
+    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,   "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|bare]" },
     { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,   "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",       'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,     "dump debugging information to stderr"},
     { "genver",     'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,   "version-stamp for code-generation", "[int]"},
@@ -80,6 +80,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol:         C header which includes both decl and inlined impl\n"
         "  - sokol_decl:    C header with SOKOL_SHDC_DECL wrapped decl and inlined impl\n"
         "  - sokol_impl:    C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"
+        "  - sokol_zig:     Zig module file\n"
         "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
         "Options:\n\n");
     char buf[2048];

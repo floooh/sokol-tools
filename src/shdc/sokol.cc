@@ -1,5 +1,5 @@
 /*
-    Generate the output header for sokol_gfx.h
+    Generate output header in C for sokol_gfx.h
 */
 #include "shdc.h"
 #include "fmt/format.h"
@@ -8,6 +8,8 @@
 
 namespace shdc {
 
+using namespace output;
+
 static std::string file_content;
 
 #if defined(_MSC_VER)
@@ -15,32 +17,6 @@ static std::string file_content;
 #else
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
-
-static const char* uniform_type_str(uniform_t::type_t type) {
-    switch (type) {
-        case uniform_t::FLOAT: return "float";
-        case uniform_t::FLOAT2: return "vec2";
-        case uniform_t::FLOAT3: return "vec3";
-        case uniform_t::FLOAT4: return "vec4";
-        case uniform_t::MAT4: return "mat4";
-        default: return "FIXME";
-    }
-}
-
-static int uniform_type_size(uniform_t::type_t type) {
-    switch (type) {
-        case uniform_t::FLOAT:  return 4;
-        case uniform_t::FLOAT2: return 8;
-        case uniform_t::FLOAT3: return 12;
-        case uniform_t::FLOAT4: return 16;
-        case uniform_t::MAT4:   return 64;
-        default: return 0;
-    }
-}
-
-static int roundup(int val, int round_to) {
-    return (val + (round_to - 1)) & ~(round_to - 1);
-}
 
 static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     switch (type) {
@@ -59,24 +35,6 @@ static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t bas
         case image_t::IMAGE_BASETYPE_UINT:  return "SG_SAMPLERTYPE_UINT";
         default: return "INVALID";
     }
-}
-
-static const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot) {
-    for (const uniform_block_t& ub: refl.uniform_blocks) {
-        if (ub.slot == slot) {
-            return &ub;
-        }
-    }
-    return nullptr;
-}
-
-static const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
-    for (const image_t& img: refl.images) {
-        if (img.slot == slot) {
-            return &img;
-        }
-    }
-    return nullptr;
 }
 
 static const char* sokol_define(slang_t::type_t slang) {
@@ -218,7 +176,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
     }
 }
 
-static void write_images_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const image_t& img: spirvcross.unique_images) {
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), img.name, img.slot);
     }
@@ -371,7 +329,6 @@ static void write_stage(const char* indent,
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
-
                 L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
                 L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", indent, stage_name, ub_index);
                 L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
@@ -455,7 +412,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = output_t::check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, spirvcross[i], slang);
             if (err.valid) {
                 return err;
             }
@@ -484,7 +441,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                     }
                 }
                 write_vertex_attrs(inp, spirvcross[i]);
-                write_images_bind_slots(inp, spirvcross[i]);
+                write_image_bind_slots(inp, spirvcross[i]);
                 write_uniform_blocks(inp, spirvcross[i], slang);
             }
             if (!guard_written) {
@@ -532,7 +489,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 L("      valid = true;\n");
                 write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
                 L("    }};\n");
-                L("    return &desc;\n", mod_prefix(inp), prog.name, slang_t::to_str(slang));
+                L("    return &desc;\n");
                 L("  }}\n");
                 if (args.ifdef) {
                     L("  #endif /* {} */\n", sokol_define(slang));

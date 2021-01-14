@@ -97,6 +97,7 @@ struct format_t	{
         SOKOL = 0,
         SOKOL_DECL,
         SOKOL_IMPL,
+        SOKOL_ZIG,
         BARE,
         NUM,
         INVALID,
@@ -107,6 +108,7 @@ struct format_t	{
             case SOKOL:         return "sokol";
             case SOKOL_DECL:    return "sokol_decl";
             case SOKOL_IMPL:    return "sokol_impl";
+            case SOKOL_ZIG:     return "sokol_zig";
             case BARE:          return "bare";
             default:            return "<invalid>";
         }
@@ -120,6 +122,9 @@ struct format_t	{
         }
         else if (str == "sokol_impl") {
             return SOKOL_IMPL;
+        }
+        else if (str == "sokol_zig") {
+            return SOKOL_ZIG;
         }
         else if (str == "bare") {
             return BARE;
@@ -521,23 +526,25 @@ struct sokol_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
+/* Zig module-generator for sokol.gfx.zig */
+struct sokolzig_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
 /* bare format generator */
 struct bare_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* utility functions for generators */
-inline std::string mod_prefix(const input_t& inp) {
-    if (inp.module.empty()) {
-        return "";
-    }
-    else {
-        return fmt::format("{}_", inp.module);
-    }
-}
-
-struct output_t {
-    static errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+namespace output {
+    errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    const char* uniform_type_str(uniform_t::type_t type);
+    int uniform_type_size(uniform_t::type_t type);
+    int roundup(int val, int round_to);
+    std::string mod_prefix(const input_t& inp);
+    const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
+    const image_t* find_image(const spirvcross_refl_t& refl, int slot);
 };
 
 } // namespace shdc

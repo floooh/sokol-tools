@@ -8,6 +8,8 @@
 
 namespace shdc {
 
+using namespace output;
+
 static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
         case slang_t::GLSL330:
@@ -103,7 +105,7 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = output_t::check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, spirvcross[i], slang);
             if (err.valid) {
                 return err;
             }
