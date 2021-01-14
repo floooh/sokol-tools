@@ -58,7 +58,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
             const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
             for (const attr_t& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
-                    L("const ATTR_{}{}_{} = {};\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
+                    L("pub const ATTR_{}{}_{} = {};\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
                 }
             }
         }
@@ -67,13 +67,13 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 
 static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const image_t& img: spirvcross.unique_images) {
-        L("const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
+        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
 }
 
-static std::string pascal_case_name(const std::string& prefix, const std::string& name) {
+static std::string struct_case_name(const std::string& prefix, const std::string& name) {
     std::vector<std::string> splits;
-    std::vector<std::string> parts = { prefix };
+    std::vector<std::string> parts = { pystring::capitalize(prefix) };
     pystring::split(name, splits, "_");
     for (const auto& part: splits) {
         parts.push_back(pystring::capitalize(part));
@@ -81,12 +81,24 @@ static std::string pascal_case_name(const std::string& prefix, const std::string
     return pystring::join("", parts);
 }
 
+static std::string func_case_name(const std::string& prefix, const std::string& name) {
+    std::vector<std::string> splits;
+    std::vector<std::string> parts = { pystring::capitalize(prefix) };
+    pystring::split(name, splits, "_");
+    for (const auto& part: splits) {
+        parts.push_back(pystring::capitalize(part));
+    }
+    std::string all = pystring::join("", parts);
+    all[0] = tolower(all[0]);
+    return all;
+}
+
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
-        L("const SLOT_{}{} = {};\n", mod_prefix(inp), ub.name, ub.slot);
+        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
-        L("const {} = packed struct {{\n", pascal_case_name(mod_prefix(inp), ub.name));
+        L("pub const {} = packed struct {{\n", struct_case_name(mod_prefix(inp), ub.name));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
@@ -172,7 +184,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         L("//\n");
         if (blob) {
             std::string c_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
-            L("const {}: [{}]u8 = {{\n", c_name.c_str(), blob->data.size());
+            L("const {} = [{}]u8 {{\n", c_name.c_str(), blob->data.size());
             const size_t len = blob->data.size();
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
@@ -189,7 +201,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
             /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
             std::string c_name = fmt::format("{}{}_source_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
             const size_t len = src.source_code.length() + 1;
-            L("const {}: [{}]u8 = {{\n", c_name.c_str(), len);
+            L("const {} = [{}]u8 {{\n", c_name.c_str(), len);
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
                     L("    ");
@@ -337,7 +349,7 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg.ShaderDesc structs
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", pascal_case_name(mod_prefix(inp), prog.name));
+        L("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", func_case_name(mod_prefix(inp), prog.name));
         L("    var desc: sg.ShaderDesc = .{{}};\n");
         L("    switch (backend) {{\n");
         for (int i = 0; i < slang_t::NUM; i++) {
