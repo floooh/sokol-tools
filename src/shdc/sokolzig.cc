@@ -156,7 +156,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
-        L("pub const {} = packed struct {{\n", struct_case_name(mod_prefix(inp), ub.name));
+        L("pub const {} = extern struct {{\n", struct_case_name(mod_prefix(inp), ub.name));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
@@ -192,7 +192,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                         case uniform_t::FLOAT3:  L("    {}: [{}][3]f32", uniform.name, uniform.array_count); break;
                         case uniform_t::FLOAT4:  L("    {}: [{}][4]f32", uniform.name, uniform.array_count); break;
                         case uniform_t::MAT4:    L("    {}: [{}][16]f32", uniform.name, uniform.array_count); break;
-                        default:                 L("    INVALID_UNIFORM_TYPE,"); break;
+                        default:                 L("    INVALID_UNIFORM_TYPE"); break;
                     }
                 }
             }
@@ -208,7 +208,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         /* pad to multiple of 16-bytes struct size */
         const int round16 = roundup(cur_offset, 16);
         if (cur_offset != round16) {
-            L("    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
+            L("    _pad_{}: [{}]u8 = undefined,\n", cur_offset, round16-cur_offset);
         }
         L("}};\n");
     }
