@@ -196,6 +196,7 @@ struct errmsg_t {
 /* result of command-line-args parsing */
 struct args_t {
     bool valid = false;
+    std::string cmdline;
     int exit_code = 10;
     std::string input;                  // input file path
     std::string output;                 // output file path

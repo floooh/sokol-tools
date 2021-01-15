@@ -155,6 +155,14 @@ static void validate(args_t& args) {
 
 args_t args_t::parse(int argc, const char** argv) {
     args_t args;
+
+    // store the original command line args
+    args.cmdline = "sokol-shdc";
+    for (int i = 1; i < argc; i++) {
+        args.cmdline.append(" ");
+        args.cmdline.append(argv[i]);
+    }
+
     getopt_context_t ctx;
     if (getopt_create_context(&ctx, argc, argv, option_list) < 0) {
         fmt::print(stderr, "error in getopt_create_context()\n");
