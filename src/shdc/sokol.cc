@@ -155,7 +155,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("            .{} = ...;\n", uniform.name);
         };
         L("        }};\n");
-        L("        sg_apply_uniforms(SG_SHADERSTAGE_[VS|FS], SLOT_{}{}, SG_RANGE_REF({}));\n", mod_prefix(inp), ub.name, ub.name);
+        L("        sg_apply_uniforms(SG_SHADERSTAGE_[VS|FS], SLOT_{}{}, &SG_RANGE({}));\n", mod_prefix(inp), ub.name, ub.name);
         L("\n");
     }
     L("*/\n");
