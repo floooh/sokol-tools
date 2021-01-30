@@ -340,7 +340,7 @@ static void write_stage(const char* indent,
         const image_t* img = find_image(src.refl, img_index);
         if (img) {
             L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, img_index, img->name);
-            L("{}desc.{}.images[{}].type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
+            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
             L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
         }
     }
