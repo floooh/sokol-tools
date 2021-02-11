@@ -97,7 +97,7 @@ shader program looks like this:
 
 ```c
 // create a shader object from generated sg_shader_desc:
-sg_shader shd = sg_make_shader(triangle_shader_desc());
+sg_shader shd = sg_make_shader(triangle_shader_desc(sg_query_backend()));
 
 // create a pipeline object with this shader, and
 // code-generated vertex attribute location constants
@@ -736,7 +736,7 @@ typedef struct vs_params_t {
 vs_params_t vs_params = {
     .mvp = ...
 };
-sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &vs_params, sizeof(vs_params));
+sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
 ```
 
 The GLSL uniform block can have an explicit bind slot:
@@ -754,7 +754,7 @@ been explicitely defined as 0:
 vs_params_t vs_params = {
     .mvp = ...
 };
-sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &vs_params, sizeof(vs_params));
+sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &SG_RANGE(vs_params));
 ```
 
 ### Binding images
