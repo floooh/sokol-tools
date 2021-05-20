@@ -6,4 +6,5 @@
 .idea/
 #<fips
 sokol-shdc
+zig-*/
 
