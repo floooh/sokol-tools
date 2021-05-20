@@ -1,5 +1,4 @@
 const bld = @import("std").build;
-const zig = @import("std").zig;
 
 pub fn build(b: *bld.Builder) void {
     const dir = "src/shdc/";
