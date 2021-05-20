@@ -15,7 +15,6 @@ pub fn build(b: *bld.Builder) void {
         "spirvcross.cc"
     };
     const flags = [_][]const u8 {
-        "-std=c++11",
         "-Iext/fmt/include",
         "-Iext/SPIRV-Cross",
         "-Iext/pystring",
