@@ -25,8 +25,9 @@ pub fn build(b: *bld.Builder) void {
         "-Iext/glslang/SPIRV",
         "-Iext/SPIRV-Tools/include"
     };
-    
+
     const exe = b.addExecutable("sokol-shdc", null);
+    exe.setTarget(b.standardTargetOptions(.{}));
     exe.setBuildMode(b.standardReleaseOptions());
     exe.linkSystemLibrary("c");
     exe.linkSystemLibrary("c++");
