@@ -14,17 +14,18 @@ pub fn build(b: *bld.Builder) void {
         "spirv.cc",
         "spirvcross.cc"
     };
-    const flags = [_][]const u8 {
-        "-Iext/fmt/include",
-        "-Iext/SPIRV-Cross",
-        "-Iext/pystring",
-        "-Iext/getopt/include",
-        "-Iext/glslang",
-        "-Iext/glslang/glslang/Public",
-        "-Iext/glslang/glslang/Include",
-        "-Iext/glslang/SPIRV",
-        "-Iext/SPIRV-Tools/include"
+    const incl_dirs = [_][] const u8 {
+        "ext/fmt/include",
+        "ext/SPIRV-Cross",
+        "ext/pystring",
+        "ext/getopt/include",
+        "ext/glslang",
+        "ext/glslang/glslang/Public",
+        "ext/glslang/glslang/Include",
+        "ext/glslang/SPIRV",
+        "ext/SPIRV-Tools/include"
     };
+    const flags = [_][]const u8 { };
 
     const exe = b.addExecutable("sokol-shdc", null);
     exe.setTarget(b.standardTargetOptions(.{}));
@@ -37,6 +38,9 @@ pub fn build(b: *bld.Builder) void {
     exe.linkLibrary(lib_spirvcross(b));
     exe.linkLibrary(lib_spirvtools(b));
     exe.linkLibrary(lib_glslang(b));
+    inline for (incl_dirs) |incl_dir| {
+        exe.addIncludeDir(incl_dir);
+    }
     inline for (sources) |src| {
         exe.addCSourceFile(dir ++ src, &flags);
     }
@@ -47,9 +51,9 @@ fn lib_getopt(b: *bld.Builder) *bld.LibExeObjStep {
     const lib = b.addStaticLibrary("getopt", null);
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
-    lib.addCSourceFile("ext/getopt/src/getopt.c", &.{
-        "-Iext/getopt/include"
-    });
+    lib.addIncludeDir("ext/getopt/include");
+    const flags = [_][]const u8 { };
+    lib.addCSourceFile("ext/getopt/src/getopt.c", &flags);
     return lib;
 }
 
@@ -58,7 +62,8 @@ fn lib_pystring(b: *bld.Builder) *bld.LibExeObjStep {
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
-    lib.addCSourceFile("ext/pystring/pystring.cpp", &.{});
+    const flags = [_][]const u8 { };
+    lib.addCSourceFile("ext/pystring/pystring.cpp", &flags);
     return lib;
 }
 
@@ -68,13 +73,12 @@ fn lib_fmt(b: *bld.Builder) *bld.LibExeObjStep {
         "format.cc",
         "posix.cc"
     };
-    const flags = [_][]const u8 {
-        "-Iext/fmt/include"
-    };
     const lib = b.addStaticLibrary("fmt", null);
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
+    lib.addIncludeDir("ext/fmt/include");
+    const flags = [_][]const u8 { };
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
@@ -96,13 +100,13 @@ fn lib_spirvcross(b: *bld.Builder) *bld.LibExeObjStep {
     };
     const flags = [_][]const u8 {
         "-DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS",
-        "-Iext/SPIRV-Cross"
     };
-    
+
     const lib = b.addStaticLibrary("spirvcross", null);
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
+    lib.addIncludeDir("ext/SPIRV-Cross");
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
@@ -111,7 +115,7 @@ fn lib_spirvcross(b: *bld.Builder) *bld.LibExeObjStep {
 
 fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
     const lib = b.addStaticLibrary("glslang", null);
-    
+
     const dir = "ext/glslang/";
     const sources = [_][]const u8 {
         "OGLCompilersDLL/InitializeDll.cpp",
@@ -156,6 +160,14 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
         "SPIRV/SPVRemapper.cpp",
         "SPIRV/SpvTools.cpp",
     };
+    const incl_dirs = [_][]const u8 {
+        "ext/glslang",
+        "ext/glslang/glslang",
+        "ext/glslang/glslang/Public",
+        "ext/glslang/glslang/Include",
+        "ext/glslang/SPIRV",
+        "ext/SPIRV-Tools/include"
+    };
     const win_sources = [_][]const u8 {
         "glslang/OSDependent/Windows/ossource.cpp"
     };
@@ -166,17 +178,14 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
     const flags = [_][]const u8 {
         os_define,
         "-DENABLE_OPT=1",
-        "-Iext/glslang",
-        "-Iext/glslang/glslang",
-        "-Iext/glslang/glslang/Public",
-        "-Iext/glslang/glslang/Include",
-        "-Iext/glslang/SPIRV",
-        "-Iext/SPIRV-Tools/include"
     };
 
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
+    inline for (incl_dirs) |incl_dir| {
+        lib.addIncludeDir(incl_dir);
+    }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
@@ -368,17 +377,21 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/workaround1209.cpp",
         "opt/wrap_opkill.cpp",
     };
-    const flags = [_][]const u8 {
-        "-Iext/generated",
-        "-Iext/SPIRV-Tools",
-        "-Iext/SPIRV-Tools/include",
-        "-Iext/SPIRV-Headers/include",
+    const incl_dirs = [_][]const u8 {
+        "ext/generated",
+        "ext/SPIRV-Tools",
+        "ext/SPIRV-Tools/include",
+        "ext/SPIRV-Headers/include",
     };
-    
+    const flags = [_][]const u8 { };
+
     const lib = b.addStaticLibrary("spirvtools", null);
     lib.setBuildMode(b.standardReleaseOptions());
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
+    inline for (incl_dirs) |incl_dir| {
+        lib.addIncludeDir(incl_dir);
+    }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
