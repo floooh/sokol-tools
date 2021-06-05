@@ -4,7 +4,7 @@
 #include "shdc.h"
 
 namespace shdc {
-namespace output {
+namespace util {
 
 errmsg_t check_errors(const input_t& inp,
                       const spirvcross_t& spirvcross,
@@ -84,5 +84,29 @@ const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
     return nullptr;
 }
 
-} // namespace output
+const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
+    assert(!shader_name.empty());
+    int snippet_index = inp.snippet_map.at(shader_name);
+    int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
+    if (src_index >= 0) {
+        return &spirvcross.sources[src_index];
+    }
+    else {
+        return nullptr;
+    }
+}
+
+const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode) {
+    assert(!shader_name.empty());
+    int snippet_index = inp.snippet_map.at(shader_name);
+    int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
+    if (blob_index >= 0) {
+        return &bytecode.blobs[blob_index];
+    }
+    else {
+        return nullptr;
+    }
+}
+
+} // namespace util
 } // namespace shdc

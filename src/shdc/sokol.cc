@@ -8,7 +8,7 @@
 
 namespace shdc {
 
-using namespace output;
+using namespace util;
 
 static std::string file_content;
 
@@ -76,41 +76,37 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
 
-        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
-        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
+        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        assert(vs_src && fs_src);
         L("        Shader program '{}':\n", prog.name);
         L("            Get shader desc: {}{}_shader_desc(sg_query_backend());\n", mod_prefix(inp), prog.name);
         L("            Vertex shader: {}\n", prog.vs_name);
         L("                Attribute slots:\n");
-        const snippet_t& vs_snippet = inp.snippets[vs_src.snippet_index];
-        for (const attr_t& attr: vs_src.refl.inputs) {
+        const snippet_t& vs_snippet = inp.snippets[vs_src->snippet_index];
+        for (const attr_t& attr: vs_src->refl.inputs) {
             if (attr.slot >= 0) {
                 L("                    ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
         }
-        for (const uniform_block_t& ub: vs_src.refl.uniform_blocks) {
+        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
             L("                Uniform block '{}':\n", ub.name);
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
         }
-        for (const image_t& img: vs_src.refl.images) {
+        for (const image_t& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
-        for (const uniform_block_t& ub: fs_src.refl.uniform_blocks) {
+        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
             L("                Uniform block '{}':\n", ub.name);
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
         }
-        for (const image_t& img: fs_src.refl.images) {
+        for (const image_t& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
@@ -161,6 +157,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("*/\n");
     L("#include <stdint.h>\n");
     L("#include <stdbool.h>\n");
+    L("#include <string.h>\n");
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
@@ -237,6 +234,30 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         L("}} {}{}_t;\n", mod_prefix(inp), ub.name);
         L("#pragma pack(pop)\n");
     }
+}
+
+static void write_common_decls(slang_t::type_t slang, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+    if (args.output_format == format_t::SOKOL_IMPL) {
+        L("#if !defined(SOKOL_GFX_INCLUDED)\n");
+        L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
+        L("#endif\n");
+    }
+    L("#if !defined(SOKOL_SHDC_ALIGN)\n");
+    L("  #if defined(_MSC_VER)\n");
+    L("    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
+    L("  #else\n");
+    L("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
+    L("  #endif\n");
+    L("#endif\n");
+    if (args.output_format == format_t::SOKOL_IMPL) {
+        for (const auto& item: inp.programs) {
+            const program_t& prog = item.second;
+            L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
+        }
+    }
+    write_vertex_attrs(inp, spirvcross);
+    write_image_bind_slots(inp, spirvcross);
+    write_uniform_blocks(inp, spirvcross, slang);
 }
 
 static void write_shader_sources_and_blobs(const input_t& inp,
@@ -397,6 +418,135 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
     L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
 }
 
+static void write_shader_desc_func(const program_t& prog, const args_t& args, const input_t& inp,
+                                   const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
+                                   const std::array<bytecode_t,slang_t::NUM>& bytecode)
+{
+    std::string func_prefix;
+    if (args.output_format != format_t::SOKOL_IMPL) {
+        func_prefix = "static inline ";
+    }
+
+    L("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix, mod_prefix(inp), prog.name);
+    for (int i = 0; i < slang_t::NUM; i++) {
+        slang_t::type_t slang = (slang_t::type_t) i;
+        if (args.slang & slang_t::bit(slang)) {
+            if (args.ifdef) {
+                L("  #if defined({})\n", sokol_define(slang));
+            }
+            L("  if (backend == {}) {{\n", sokol_backend(slang));
+            L("    static sg_shader_desc desc;\n");
+            L("    static bool valid;\n");
+            L("    if (!valid) {{\n");
+            L("      valid = true;\n");
+            write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
+            L("    }};\n");
+            L("    return &desc;\n");
+            L("  }}\n");
+            if (args.ifdef) {
+                L("  #endif /* {} */\n", sokol_define(slang));
+            }
+        }
+    }
+    L("  return 0;\n");
+    L("}}\n");
+}
+
+static void write_attr_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+    std::string func_prefix;
+    if (args.output_format != format_t::SOKOL_IMPL) {
+        func_prefix = "static inline ";
+    }
+    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    assert(vs_src);
+
+    L("{}int {}{}_attr_index(const char* attr_name) {{\n", func_prefix, mod_prefix(inp), prog.name);
+    L("  (void)attr_name;\n");
+    for (const attr_t& attr: vs_src->refl.inputs) {
+        if (attr.slot >= 0) {
+            L("  if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
+            L("    return {};\n", attr.slot);
+            L("  }}\n");
+        }
+    }
+    L("  return -1;\n");
+    L("}}\n");
+}
+
+static void write_image_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+    std::string func_prefix;
+    if (args.output_format != format_t::SOKOL_IMPL) {
+        func_prefix = "static inline ";
+    }
+    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+    assert(vs_src && fs_src);
+
+    L("{}int {}{}_image_index(sg_shader_stage stage, const char* img_name) {{\n", func_prefix, mod_prefix(inp), prog.name);
+    L("  (void)stage; (void)img_name;\n");
+    if (!vs_src->refl.images.empty()) {
+        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
+        for (const image_t& img: vs_src->refl.images) {
+            if (img.slot >= 0) {
+                L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+                L("      return {};\n", img.slot);
+                L("    }}\n");
+            }
+        }
+        L("  }}\n");
+    }
+    if (!fs_src->refl.images.empty()) {
+        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
+        for (const image_t& img: fs_src->refl.images) {
+            if (img.slot >= 0) {
+                L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+                L("      return {};\n", img.slot);
+                L("    }}\n");
+            }
+        }
+        L("  }}\n");
+    }
+    L("  return -1;\n");
+    L("}}\n");
+}
+
+static void write_uniformblock_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+    std::string func_prefix;
+    if (args.output_format != format_t::SOKOL_IMPL) {
+        func_prefix = "static inline ";
+    }
+    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+    assert(vs_src && fs_src);
+
+    L("{}int {}{}_uniformblock_index(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix(inp), prog.name);
+    L("  (void)stage; (void)ub_name;\n");
+    if (!vs_src->refl.uniform_blocks.empty()) {
+        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
+        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
+            if (ub.slot >= 0) {
+                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+                L("      return {};\n", ub.slot);
+                L("    }}\n");
+            }
+        }
+        L("  }}\n");
+    }
+    if (!fs_src->refl.uniform_blocks.empty()) {
+        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
+        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
+            if (ub.slot >= 0) {
+                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+                L("      return {};\n", ub.slot);
+                L("    }}\n");
+            }
+        }
+        L("  }}\n");
+    }
+    L("  return -1;\n");
+    L("}}\n");
+}
+
 errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
@@ -418,32 +568,12 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
                 return err;
             }
             if (!comment_header_written) {
-                write_header(args, inp, spirvcross[i]);
                 comment_header_written = true;
+                write_header(args, inp, spirvcross[i]);
             }
             if (!common_decls_written) {
                 common_decls_written = true;
-                if (args.output_format == format_t::SOKOL_IMPL) {
-                    L("#if !defined(SOKOL_GFX_INCLUDED)\n");
-                    L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
-                    L("#endif\n");
-                }
-                L("#if !defined(SOKOL_SHDC_ALIGN)\n");
-                L("  #if defined(_MSC_VER)\n");
-                L("    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
-                L("  #else\n");
-                L("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
-                L("  #endif\n");
-                L("#endif\n");
-                if (args.output_format == format_t::SOKOL_IMPL) {
-                    for (const auto& item: inp.programs) {
-                        const program_t& prog = item.second;
-                        L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
-                    }
-                }
-                write_vertex_attrs(inp, spirvcross[i]);
-                write_image_bind_slots(inp, spirvcross[i]);
-                write_uniform_blocks(inp, spirvcross[i], slang);
+                write_common_decls(slang, args, inp, spirvcross[i]);
             }
             if (!guard_written) {
                 guard_written = true;
@@ -470,35 +600,15 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
         L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
         L("#endif\n");
     }
-    std::string func_prefix;
-    if (args.output_format != format_t::SOKOL_IMPL) {
-        func_prefix = "static inline ";
-    }
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix, mod_prefix(inp), prog.name);
-        for (int i = 0; i < slang_t::NUM; i++) {
-            slang_t::type_t slang = (slang_t::type_t) i;
-            if (args.slang & slang_t::bit(slang)) {
-                if (args.ifdef) {
-                    L("  #if defined({})\n", sokol_define(slang));
-                }
-                L("  if (backend == {}) {{\n", sokol_backend(slang));
-                L("    static sg_shader_desc desc;\n");
-                L("    static bool valid;\n");
-                L("    if (!valid) {{\n");
-                L("      valid = true;\n");
-                write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
-                L("    }};\n");
-                L("    return &desc;\n");
-                L("  }}\n");
-                if (args.ifdef) {
-                    L("  #endif /* {} */\n", sokol_define(slang));
-                }
-            }
-        }
-        L("  return 0;\n");
-        L("}}\n");
+        write_shader_desc_func(prog, args, inp, spirvcross, bytecode);
+
+        int slang_index = (int)slang_t::first_valid(args.slang);
+        assert((slang_index >= 0) && (slang_index < slang_t::NUM));
+        write_attr_index_func(prog, args, inp, spirvcross[slang_index]);
+        write_image_index_func(prog, args, inp, spirvcross[slang_index]);
+        write_uniformblock_index_func(prog, args, inp, spirvcross[slang_index]);
     }
 
     if (guard_written) {

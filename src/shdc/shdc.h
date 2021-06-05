@@ -89,6 +89,15 @@ struct slang_t {
     static bool is_wgpu(type_t c) {
         return WGPU == c;
     }
+    static slang_t::type_t first_valid(uint32_t mask) {
+        int i = 0;
+        for (i = 0; i < NUM; i++) {
+            if (0 != (mask & (1<<i))) {
+                break;
+            }
+        }
+        return (slang_t::type_t)i;
+    }
 };
 
 /* the output format */
@@ -541,7 +550,7 @@ struct bare_t {
 };
 
 /* utility functions for generators */
-namespace output {
+namespace util {
     errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
     int uniform_type_size(uniform_t::type_t type);
@@ -549,6 +558,8 @@ namespace output {
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
     const image_t* find_image(const spirvcross_refl_t& refl, int slot);
+    const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
+    const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
 };
 
 } // namespace shdc

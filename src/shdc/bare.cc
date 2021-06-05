@@ -8,7 +8,7 @@
 
 namespace shdc {
 
-using namespace output;
+using namespace util;
 
 static const char* slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
@@ -29,7 +29,7 @@ static const char* slang_file_extension(slang_t::type_t c, bool binary) {
 }
 
 static errmsg_t write_stage(const std::string& file_path,
-                            const spirvcross_source_t& src,
+                            const spirvcross_source_t* src,
                             const bytecode_blob_t* blob)
 {
     // write text or binary to output file
@@ -44,8 +44,9 @@ static errmsg_t write_stage(const std::string& file_path,
         write_count = blob->data.size();
     }
     else {
-        write_data = src.source_code.data();
-        write_count = src.source_code.length();
+        assert(src);
+        write_data = src->source_code.data();
+        write_count = src->source_code.length();
     }
     size_t written = fwrite(write_data, 1, write_count, f);
     if (written != write_count) {
@@ -63,24 +64,10 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
 {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
-        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
-        int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
-        int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
-        const bytecode_blob_t* vs_blob = 0;
-        const bytecode_blob_t* fs_blob = 0;
-        if (vs_blob_index != -1) {
-            vs_blob = &bytecode.blobs[vs_blob_index];
-        }
-        if (fs_blob_index != -1) {
-            fs_blob = &bytecode.blobs[fs_blob_index];
-        }
-
+        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
+        const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
         std::string file_path_vs = fmt::format("{}_{}{}_{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, vs_blob));
         std::string file_path_fs = fmt::format("{}_{}{}_{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, fs_blob));
 
