@@ -50,7 +50,7 @@ else()
     target_compile_definitions(glslang PRIVATE GLSLANG_OSINCLUDE_UNIX)
 endif()
 if (FIPS_GCC OR FIPS_CLANG)
-    target_compile_options(glslang PRIVATE -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-const-variable)
+    target_compile_options(glslang PRIVATE -Wno-deprecated-copy -Wno-implicit-fallthrough -Wno-unused-parameter -Wno-unused-const-variable)
 endif()
 
 fips_begin_lib(SPIRV-Cross)
