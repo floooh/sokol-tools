@@ -1,0 +1,36 @@
+name: build_and_test
+
+on: [push, pull_request]
+
+jobs:
+    windows:
+        runs-on: windows-latest
+        steps:
+        - uses: actions/checkout@v1
+          with:
+            submodules: true
+        - name: win64-vstudio-debug
+          run:  python fips build win64-vstudio-debug
+        - name: win64-vstudio-release
+          run:  python fips build win64-vstudio-release
+    mac:
+        runs-on: macos-latest
+        steps:
+        - uses: actions/checkout@v1
+          with:
+            submodules: true
+        - name: osx-make-debug
+          run:  python fips build osx-make-debug
+        - name: osx-make-release
+          run:  python fips build osx-make-release
+    linux:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+          with:
+            submodules: true
+        - name: linux-make-debug
+          run:  python fips build linux-make-debug
+        - name: linux-make-release
+          run:  python fips build linux-make-release
+
