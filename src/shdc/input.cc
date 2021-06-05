@@ -531,7 +531,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
 /* load file and parse into an input_t object,
    check valid and error fields in returned object
 */
-input_t input_t::load_and_parse(const std::string& path) {
+input_t input_t::load_and_parse(const std::string& path, const std::string& module_override) {
     std::string dir;
     std::string filename;
     pystring::os::path::split(dir, filename, path);
@@ -542,7 +542,9 @@ input_t input_t::load_and_parse(const std::string& path) {
     if (load_and_preprocess(path, include_dirs, inp, 0)) {
         parse(inp);
     }
-
+    if (!module_override.empty()) {
+        inp.module = module_override;
+    }
     return inp;
 }
 

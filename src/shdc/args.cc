@@ -16,6 +16,8 @@ typedef enum {
     OPTION_OUTPUT,
     OPTION_SLANG,
     OPTION_BYTECODE,
+    OPTION_DEFINES,
+    OPTION_MODULE,
     OPTION_FORMAT,
     OPTION_ERRFMT,
     OPTION_DUMP,
@@ -30,6 +32,8 @@ static const getopt_option_t option_list[] = {
     { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,    "input source file", "GLSL file" },
     { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,   "output source file", "C header" },
     { "slang",      'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,    "output shader language(s), see above for list", "glsl330:glsl100..." },
+    { "defines",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEFINES,  "optional preprocessor defines", "define1:define2..." },
+    { "module",     'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,   "optional @module name override" },
     { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE, "output bytecode (HLSL and Metal)"},
     { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,   "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|bare]" },
     { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,   "error message format (default: gcc)", "[gcc|msvc]"},
@@ -195,6 +199,12 @@ args_t args_t::parse(int argc, const char** argv) {
                 case OPTION_BYTECODE:
                     args.byte_code = true;
                     break;
+                case OPTION_DEFINES:
+                    pystring::split(ctx.current_opt_arg, args.defines, ":");
+                    break;
+                case OPTION_MODULE:
+                    args.module = ctx.current_opt_arg;
+                    break;
                 case OPTION_FORMAT:
                     args.output_format = format_t::from_str(ctx.current_opt_arg);
                     if (args.output_format == format_t::INVALID) {
@@ -255,11 +265,13 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "args_t:\n");
     fmt::print(stderr, "  valid: {}\n", valid);
     fmt::print(stderr, "  exit_code: {}\n", exit_code);
-    fmt::print(stderr, "  input:  '{}'\n", input);
+    fmt::print(stderr, "  input: '{}'\n", input);
     fmt::print(stderr, "  output: '{}'\n", output);
     fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
-    fmt::print(stderr, "  slang:  '{}'\n", slang_t::bits_to_str(slang));
+    fmt::print(stderr, "  slang: '{}'\n", slang_t::bits_to_str(slang));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
+    fmt::print(stderr, "  module: '{}'\n", module);
+    fmt::print(stderr, "  defines: '{}'\n", pystring::join(":", defines));
     fmt::print(stderr, "  output_format: '{}'\n", format_t::to_str(output_format));
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  ifdef: {}\n", ifdef);

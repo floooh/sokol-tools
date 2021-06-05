@@ -24,12 +24,15 @@ void spirv_t::finalize_spirv_tools() {
 }
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang) {
+static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
     src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgpu(slang) ? 1 : 0);
+    for (const std::string& define : defines) {
+        src += fmt::format("#define {} (1)\n", define);
+    }
     for (int line_index : snippet.lines) {
         src += fmt::format("{}\n", inp.lines[line_index].line);
     }
@@ -208,6 +211,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     spv_options.disableOptimizer = true;
     spv_options.optimizeSize = false;
     out_spirv.blobs.push_back(spirv_blob_t(snippet_index));
+    out_spirv.blobs.back().source = src;
     glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
@@ -221,7 +225,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
 }
 
 /* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang) {
+spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
@@ -230,7 +234,7 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang) {
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
-            std::string src = merge_source(inp, snippet, slang);
+            std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangVertex, slang, src, inp, snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
@@ -238,7 +242,7 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang) {
         }
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
-            std::string src = merge_source(inp, snippet, slang);
+            std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangFragment, slang, src, inp, snippet_index, auto_map, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
@@ -289,6 +293,14 @@ void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) con
         fmt::print(stderr, "  errors: none\n\n");
     }
     for (const spirv_blob_t& blob : blobs) {
+        fmt::print(stderr, "  source for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        std::vector<std::string> src_lines;
+        pystring::splitlines(blob.source, src_lines);
+        for (const std::string& src_line: src_lines) {
+            fmt::print(stderr, "    {}\n", src_line);
+        }
+        fmt::print(stderr, "\n");
+
         fmt::print(stderr, "  SPIR-V for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
         spvtools::SpirvTools spirv_tools(SPV_ENV_OPENGL_4_5);
         std::string dasm_str;

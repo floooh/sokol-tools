@@ -201,6 +201,8 @@ struct args_t {
     std::string input;                  // input file path
     std::string output;                 // output file path
     std::string tmpdir;                 // directory for temporary files
+    std::string module;                 // optional @module name override
+    std::vector<std::string> defines;   // additional preprocessor defines
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     format_t::type_t output_format = format_t::SOKOL; // output format
@@ -299,7 +301,7 @@ struct input_t {
     std::map<std::string, program_t> programs;    // all @program definitions
 
     input_t() { };
-    static input_t load_and_parse(const std::string& path);
+    static input_t load_and_parse(const std::string& path, const std::string& module_override);
     void dump_debug(errmsg_t::msg_format_t err_fmt) const;
 
     errmsg_t error(int index, const std::string& msg) const {
@@ -325,7 +327,8 @@ struct input_t {
 /* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
 struct spirv_blob_t {
     int snippet_index = -1;         // index into input_t.snippets
-    std::vector<uint32_t> bytecode; // the SPIRV blob
+    std::string source;             // source code this blob was compiled from
+    std::vector<uint32_t> bytecode; // the resulting SPIRV blob
 
     spirv_blob_t(int snippet_index): snippet_index(snippet_index) { };
 };
@@ -338,7 +341,7 @@ struct spirv_t {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang);
+    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
     static spirv_t compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };

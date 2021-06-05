@@ -18,7 +18,7 @@ int main(int argc, const char** argv) {
     }
 
     // load the source and parse tagged blocks
-    input_t inp = input_t::load_and_parse(args.input);
+    input_t inp = input_t::load_and_parse(args.input, args.module);
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirv[i] = spirv_t::compile_input_glsl(inp, slang);
+            spirv[i] = spirv_t::compile_input_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
