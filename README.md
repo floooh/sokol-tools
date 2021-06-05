@@ -1,6 +1,6 @@
 # sokol-tools
 
-[![Build Status](https://travis-ci.org/floooh/sokol-tools.svg?branch=master)](https://travis-ci.org/floooh/sokol-tools)
+[![Build Status](https://github.com/floooh/sokol-tools/workflows/build/badge.svg)](https://github.com/floooh/sokol-tools/actions)
 
 Command line tools for the [sokol headers](https://github.com/floooh/sokol).
 
