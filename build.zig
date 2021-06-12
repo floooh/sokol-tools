@@ -8,7 +8,6 @@ pub fn build(b: *bld.Builder) void {
         "bytecode.cc",
         "input.cc",
         "main.cc",
-        "output.cc",
         "sokol.cc",
         "sokolzig.cc",
         "spirv.cc",
