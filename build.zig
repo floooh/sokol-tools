@@ -11,7 +11,8 @@ pub fn build(b: *bld.Builder) void {
         "sokol.cc",
         "sokolzig.cc",
         "spirv.cc",
-        "spirvcross.cc"
+        "spirvcross.cc",
+        "util.cc"
     };
     const incl_dirs = [_][] const u8 {
         "ext/fmt/include",
