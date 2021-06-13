@@ -152,7 +152,7 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
     optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
 
     spvtools::OptimizerOptions spvOptOptions;
-    spvOptOptions.set_run_validator(false); // The validator may run as a seperate step later on
+    spvOptOptions.set_run_validator(false); // The validator may run as a separate step later on
     optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 }
 
