@@ -250,7 +250,7 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
         }
         snippet_index++;
     }
-    // when arriving here, no compile errors occured
+    // when arriving here, no compile errors occurred
     // spirv.bytecodes array contains the SPIRV-bytecode
     // for each shader snippet
     return out_spirv;
