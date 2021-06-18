@@ -8,11 +8,11 @@ pub fn build(b: *bld.Builder) void {
         "bytecode.cc",
         "input.cc",
         "main.cc",
-        "output.cc",
         "sokol.cc",
         "sokolzig.cc",
         "spirv.cc",
-        "spirvcross.cc"
+        "spirvcross.cc",
+        "util.cc"
     };
     const incl_dirs = [_][] const u8 {
         "ext/fmt/include",
