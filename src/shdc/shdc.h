@@ -214,6 +214,7 @@ struct args_t {
     std::vector<std::string> defines;   // additional preprocessor defines
     uint32_t slang = 0;                 // combined slang_t bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
+    bool reflection = false;            // if true, generate runtime reflection functions
     format_t::type_t output_format = format_t::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
     bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
