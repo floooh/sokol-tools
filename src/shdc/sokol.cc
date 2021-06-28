@@ -484,6 +484,16 @@ static void write_attr_index_func(const program_t& prog, const args_t& args, con
     L("}}\n");
 }
 
+static void write_image_index_stage(const spirvcross_source_t* src) {
+    for (const image_t& img: src->refl.images) {
+        if (img.slot >= 0) {
+            L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+            L("      return {};\n", img.slot);
+            L("    }}\n");
+        }
+    }
+}
+
 static void write_image_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
@@ -493,28 +503,26 @@ static void write_image_index_func(const program_t& prog, const args_t& args, co
     L("  (void)stage; (void)img_name;\n");
     if (!vs_src->refl.images.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        for (const image_t& img: vs_src->refl.images) {
-            if (img.slot >= 0) {
-                L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
-                L("      return {};\n", img.slot);
-                L("    }}\n");
-            }
-        }
+        write_image_index_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.images.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        for (const image_t& img: fs_src->refl.images) {
-            if (img.slot >= 0) {
-                L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
-                L("      return {};\n", img.slot);
-                L("    }}\n");
-            }
-        }
+        write_image_index_stage(fs_src);
         L("  }}\n");
     }
     L("  return -1;\n");
     L("}}\n");
+}
+
+static void write_uniformblock_index_stage(const spirvcross_source_t* src) {
+    for (const uniform_block_t& ub: src->refl.uniform_blocks) {
+        if (ub.slot >= 0) {
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            L("      return {};\n", ub.slot);
+            L("    }}\n");
+        }
+    }
 }
 
 static void write_uniformblock_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
@@ -526,28 +534,61 @@ static void write_uniformblock_index_func(const program_t& prog, const args_t& a
     L("  (void)stage; (void)ub_name;\n");
     if (!vs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                L("      return {};\n", ub.slot);
-                L("    }}\n");
-            }
-        }
+        write_uniformblock_index_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                L("      return {};\n", ub.slot);
-                L("    }}\n");
-            }
-        }
+        write_uniformblock_index_stage(fs_src);
         L("  }}\n");
     }
     L("  return -1;\n");
     L("}}\n");
+}
+
+static void write_uniformblock_size_stage(const spirvcross_source_t* src, const input_t& inp) {
+    for (const uniform_block_t& ub: src->refl.uniform_blocks) {
+        if (ub.slot >= 0) {
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            L("      return sizeof({}{}_t);\n", mod_prefix(inp), ub.name);
+            L("    }}\n");
+        }
+    }
+}
+
+static void write_uniformblock_size_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+    assert(vs_src && fs_src);
+
+    L("{}int {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("  (void)stage; (void)ub_name;\n");
+    if (!vs_src->refl.uniform_blocks.empty()) {
+        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
+        write_uniformblock_size_stage(vs_src, inp);
+        L("  }}\n");
+    }
+    if (!fs_src->refl.uniform_blocks.empty()) {
+        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
+        write_uniformblock_size_stage(fs_src, inp);
+        L("  }}\n");
+    }
+    L("  return 0;\n");
+    L("}}\n");
+}
+
+static void write_uniform_offset_stage(const spirvcross_source_t* src) {
+    for (const uniform_block_t& ub: src->refl.uniform_blocks) {
+        if (ub.slot >= 0) {
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            for (const uniform_t& u: ub.uniforms) {
+                L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                L("        return {};\n", u.offset);
+                L("      }}\n");
+            }
+            L("    }}\n");
+        }
+    }
 }
 
 static void write_uniform_offset_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
@@ -559,36 +600,33 @@ static void write_uniform_offset_func(const program_t& prog, const args_t& args,
     L("  (void)stage; (void)ub_name; (void)u_name;\n");
     if (!vs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                for (const uniform_t& u: ub.uniforms) {
-                    L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                    L("        return {};\n", u.offset);
-                    L("      }}\n");
-                }
-                L("    }}\n");
-            }
-        }
+        write_uniform_offset_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                for (const uniform_t& u: ub.uniforms) {
-                    L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                    L("        return {};\n", u.offset);
-                    L("      }}\n");
-                }
-                L("    }}\n");
-            }
-        }
+        write_uniform_offset_stage(fs_src);
         L("  }}\n");
     }
     L("  return -1;\n");
     L("}}\n");
+}
+
+static void write_uniform_desc_stage(const spirvcross_source_t* src) {
+    for (const uniform_block_t& ub: src->refl.uniform_blocks) {
+        if (ub.slot >= 0) {
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            for (const uniform_t& u: ub.uniforms) {
+                L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                L("        desc.name = \"{}\";\n", u.name);
+                L("        desc.type = {};\n", uniform_type_to_sokol_type_str(u.type));
+                L("        desc.array_count = {};\n", u.array_count);
+                L("        return desc;\n");
+                L("      }}\n");
+            }
+            L("    }}\n");
+        }
+    }
 }
 
 static void write_uniform_desc_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
@@ -605,38 +643,12 @@ static void write_uniform_desc_func(const program_t& prog, const args_t& args, c
     L("  #endif\n");
     if (!vs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                for (const uniform_t& u: ub.uniforms) {
-                    L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                    L("        desc.name = \"{}\";\n", u.name);
-                    L("        desc.type = {};\n", uniform_type_to_sokol_type_str(u.type));
-                    L("        desc.array_count = {};\n", u.array_count);
-                    L("        return desc;\n");
-                    L("      }}\n");
-                }
-                L("    }}\n");
-            }
-        }
+        write_uniform_desc_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            if (ub.slot >= 0) {
-                L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-                for (const uniform_t& u: ub.uniforms) {
-                    L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                    L("        desc.name = \"{}\";\n", u.name);
-                    L("        desc.type = {};\n", uniform_type_to_sokol_type_str(u.type));
-                    L("        desc.array_count = {};\n", u.array_count);
-                    L("        return desc;\n");
-                    L("      }}\n");
-                }
-                L("    }}\n");
-            }
-        }
+        write_uniform_desc_stage(fs_src);
         L("  }}\n");
     }
     L("  return desc;\n");
@@ -706,6 +718,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
             write_attr_index_func(prog, args, inp, spirvcross[slang_index]);
             write_image_index_func(prog, args, inp, spirvcross[slang_index]);
             write_uniformblock_index_func(prog, args, inp, spirvcross[slang_index]);
+            write_uniformblock_size_func(prog, args, inp, spirvcross[slang_index]);
             write_uniform_offset_func(prog, args, inp, spirvcross[slang_index]);
             write_uniform_desc_func(prog, args, inp, spirvcross[slang_index]);
         }
