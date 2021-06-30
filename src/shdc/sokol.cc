@@ -467,11 +467,11 @@ static void write_shader_desc_func(const program_t& prog, const args_t& args, co
     L("}}\n");
 }
 
-static void write_attr_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_attr_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     assert(vs_src);
 
-    L("{}int {}{}_attr_index(const char* attr_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)attr_name;\n");
     for (const attr_t& attr: vs_src->refl.inputs) {
         if (attr.slot >= 0) {
@@ -484,7 +484,7 @@ static void write_attr_index_func(const program_t& prog, const args_t& args, con
     L("}}\n");
 }
 
-static void write_image_index_stage(const spirvcross_source_t* src) {
+static void write_image_slot_stage(const spirvcross_source_t* src) {
     for (const image_t& img: src->refl.images) {
         if (img.slot >= 0) {
             L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
@@ -494,28 +494,28 @@ static void write_image_index_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_image_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_image_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
 
-    L("{}int {}{}_image_index(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)img_name;\n");
     if (!vs_src->refl.images.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_image_index_stage(vs_src);
+        write_image_slot_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.images.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_image_index_stage(fs_src);
+        write_image_slot_stage(fs_src);
         L("  }}\n");
     }
     L("  return -1;\n");
     L("}}\n");
 }
 
-static void write_uniformblock_index_stage(const spirvcross_source_t* src) {
+static void write_uniformblock_slot_stage(const spirvcross_source_t* src) {
     for (const uniform_block_t& ub: src->refl.uniform_blocks) {
         if (ub.slot >= 0) {
             L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
@@ -525,21 +525,21 @@ static void write_uniformblock_index_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_uniformblock_index_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_uniformblock_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
 
-    L("{}int {}{}_uniformblock_index(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)ub_name;\n");
     if (!vs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_uniformblock_index_stage(vs_src);
+        write_uniformblock_slot_stage(vs_src);
         L("  }}\n");
     }
     if (!fs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_uniformblock_index_stage(fs_src);
+        write_uniformblock_slot_stage(fs_src);
         L("  }}\n");
     }
     L("  return -1;\n");
@@ -715,9 +715,9 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
         if (args.reflection) {
             int slang_index = (int)slang_t::first_valid(args.slang);
             assert((slang_index >= 0) && (slang_index < slang_t::NUM));
-            write_attr_index_func(prog, args, inp, spirvcross[slang_index]);
-            write_image_index_func(prog, args, inp, spirvcross[slang_index]);
-            write_uniformblock_index_func(prog, args, inp, spirvcross[slang_index]);
+            write_attr_slot_func(prog, args, inp, spirvcross[slang_index]);
+            write_image_slot_func(prog, args, inp, spirvcross[slang_index]);
+            write_uniformblock_slot_func(prog, args, inp, spirvcross[slang_index]);
             write_uniformblock_size_func(prog, args, inp, spirvcross[slang_index]);
             write_uniform_offset_func(prog, args, inp, spirvcross[slang_index]);
             write_uniform_desc_func(prog, args, inp, spirvcross[slang_index]);
