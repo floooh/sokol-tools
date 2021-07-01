@@ -169,6 +169,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("#include <stdint.h>\n");
     L("#include <stdbool.h>\n");
     L("#include <string.h>\n");
+    L("#include <stddef.h>\n");
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
@@ -561,7 +562,7 @@ static void write_uniformblock_size_func(const program_t& prog, const args_t& ar
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
 
-    L("{}int {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)ub_name;\n");
     if (!vs_src->refl.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
