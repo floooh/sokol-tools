@@ -48,7 +48,7 @@ static const getopt_option_t option_list[] = {
 };
 
 static void print_help_string(getopt_context_t& ctx) {
-    fmt::print(stderr, 
+    fmt::print(stderr,
         "Shader compiler / code generator for sokol_gfx.h based on GLslang + SPIRV-Cross\n"
         "https://github.com/floooh/sokol-tools\n\n"
         "Usage: sokol-shdc -i input [-o output] [options]\n\n"
@@ -68,6 +68,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - @msl_options options...: MSL (Metal) specific compile options\n"
         "    valid options are: flip_vert_y and fixup_clipspace\n"
         "  - @end: ends a @vs, @fs or @block code block\n"
+        "  - @include filename: include a file\n"
         "  - @include_block block_name: include a code block in a @vs or @fs block\n"
         "  - @program name vs_name fs_name: a named, linked shader program\n\n"
         "An input file must contain at least one @vs block, one @fs block\n"
