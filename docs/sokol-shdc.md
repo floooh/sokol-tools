@@ -916,7 +916,7 @@ shader doesn't expect an image of that name on that shader stage.
 
 Code example:
 
-```
+```c
 sg_image specular_texture = ...;
 sg_bindings binds = { ... };
 
