@@ -887,7 +887,7 @@ sg_layout_desc layout = {
 // the @program name is 'prog':
 const int pos_slot = mod_prog_attr_slot("position");
 if (pos_slot >= 0) {
-    layout.attrs[pos_slot].forma
+    layout.attrs[pos_slot] = { ... };
 }
 const int nrm_slot = mod_prog_attr_slot("normal");
 if (nrm_slot >= 0) {
