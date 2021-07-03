@@ -184,7 +184,20 @@ The ```${slang}``` variable (short for shader-language, but you can call it
 any way you want) must resolve to a string with the shader dialects you want
 to generate.
 
-I recommend to initialize this ${slang} variable together with the
+There are 3 other versions of the sokol_shader() macro:
+
+- **sokol_shader_with_reflection([filename] [slang])**: this is the same as ```sokol_shader()``` but
+  calls sokol-shdc with the ```--reflection``` command line option, which generates
+  additional runtime inspection functions
+- **sokol_shader_variant([filename] [slang] [module] [defines])**: this macro additionally passed
+  the ```--module``` and ```-defines``` command line arguments and allows to create a
+  conditionally compiled variant of the GLSL input file, the output file will be called
+  [filename].[module].h
+- **sokol_shader_variant_with_reflection([filename] [slang] [module] [defines])**: same
+  as ```sokol_shader_variant()```, but additionally adds the ```--reflection``` command
+  line argument for generating runtime inspection functions
+
+I recommend to initialize the ${slang} variable together with the
 target-platform defines for sokol_gfx.h For instance, the [sokol-app
 samples](https://github.com/floooh/sokol-samples/tree/master/sapp) have the following
 block in their CMakeLists.txt file:
