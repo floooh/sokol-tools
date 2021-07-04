@@ -16,9 +16,9 @@ Shader-code-generator for sokol_gfx.h
 
 - **01-Jul-2021**:
     - A new command line option ```--reflection``` which adds a small set of
-    runtime introspection functions to the generated code (currently only the C
+    runtime introspection functions to the generated code (currently only in the C
     code generator)
-    - A new command line options ```--defines``` to pass a combination
+    - A new command line option ```--defines``` to pass a combination
       of preprocessor defines to the GLSL compilation pass, this can be
       used to stamp out different 'variations' from the same GLSL
       source file
