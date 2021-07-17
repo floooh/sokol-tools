@@ -54,7 +54,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "Usage: sokol-shdc -i input [-o output] [options]\n\n"
         "Where [input] is exactly one .glsl file, and [output] is a C header\n"
         "with embedded shader source code and/or byte code and code-generated\n"
-        "uniform-block and shader-descripton C structs ready for use with sokol_gfx.h\n\n"
+        "uniform-block and shader-description C structs ready for use with sokol_gfx.h\n\n"
         "The input source file contains custom '@-tags' to group the\n"
         "source code for several shaders and shared code blocks into one file:\n\n"
         "  - @module name: optional shader module name, will be used as prefix in generated code\n"

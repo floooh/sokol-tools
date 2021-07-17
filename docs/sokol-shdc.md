@@ -790,7 +790,7 @@ layout(binding=0) uniform vs_params {
 ```
 
 In this case the generated bind slot constant can be ignored since it has
-been explicitely defined as 0:
+been explicitly defined as 0:
 
 ```c
 vs_params_t vs_params = {
@@ -826,7 +826,7 @@ sg_apply_bindings(&(sg_bindings){
 ```
 
 Just like with uniform blocks, texture sampler bind slots can
-be defined explicitely in the GLSL shader:
+be defined explicitly in the GLSL shader:
 
 ```glsl
 layout(binding=0) uniform sampler2D tex;

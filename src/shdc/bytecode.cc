@@ -1,9 +1,9 @@
 /*
     Compile HLSL / Metal source code to bytecode, HLSL only works
-    when running on Windos, Metal only works when running on macOS.
+    when running on Windows, Metal only works when running on macOS.
 
     Uses d3dcompiler.dll for HLSL, and for Metal, invokes the Metal
-    compiler toolchain commandline tools.
+    compiler toolchain command line tools.
 
     On Metal, bytecode compilation only happens for the macOS and iOS
     targets, but not for running in the simulator, in this case,
