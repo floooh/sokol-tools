@@ -1,7 +1,12 @@
-const bld = @import("std").build;
+const std = @import("std");
+const bld = std.build;
 
 pub fn build(b: *bld.Builder) void {
-    const dir = "src/shdc/";
+    _ = build_exe(b, b.standardTargetOptions(.{}), b.standardReleaseOptions(), "");
+}
+
+pub fn build_exe(b: *bld.Builder, target: std.zig.CrossTarget, mode: std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
+    const dir = prefix_path ++ "src/shdc/";
     const sources = [_][]const u8 {
         "args.cc",
         "bare.cc",
@@ -28,56 +33,60 @@ pub fn build(b: *bld.Builder) void {
     const flags = [_][]const u8 { };
 
     const exe = b.addExecutable("sokol-shdc", null);
-    exe.setTarget(b.standardTargetOptions(.{}));
-    exe.setBuildMode(b.standardReleaseOptions());
+    exe.setTarget(target);
+    exe.setBuildMode(mode);
     exe.linkSystemLibrary("c");
     exe.linkSystemLibrary("c++");
-    exe.linkLibrary(lib_fmt(b));
-    exe.linkLibrary(lib_getopt(b));
-    exe.linkLibrary(lib_pystring(b));
-    exe.linkLibrary(lib_spirvcross(b));
-    exe.linkLibrary(lib_spirvtools(b));
-    exe.linkLibrary(lib_glslang(b));
+    exe.linkLibrary(lib_fmt(b, target, mode, prefix_path));
+    exe.linkLibrary(lib_getopt(b, target, mode, prefix_path));
+    exe.linkLibrary(lib_pystring(b,target, mode, prefix_path));
+    exe.linkLibrary(lib_spirvcross(b, target, mode,prefix_path));
+    exe.linkLibrary(lib_spirvtools(b, target, mode, prefix_path));
+    exe.linkLibrary(lib_glslang(b, target, mode, prefix_path));
     inline for (incl_dirs) |incl_dir| {
-        exe.addIncludeDir(incl_dir);
+        exe.addIncludeDir(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         exe.addCSourceFile(dir ++ src, &flags);
     }
     exe.install();
+    return exe;
 }
 
-fn lib_getopt(b: *bld.Builder) *bld.LibExeObjStep {
+fn lib_getopt(b: *bld.Builder, target: std.zig.CrossTarget,  mode: std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
     const lib = b.addStaticLibrary("getopt", null);
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
-    lib.addIncludeDir("ext/getopt/include");
+    lib.addIncludeDir(prefix_path ++ "ext/getopt/include");
     const flags = [_][]const u8 { };
-    lib.addCSourceFile("ext/getopt/src/getopt.c", &flags);
+    lib.addCSourceFile(prefix_path ++ "ext/getopt/src/getopt.c", &flags);
     return lib;
 }
 
-fn lib_pystring(b: *bld.Builder) *bld.LibExeObjStep {
+fn lib_pystring(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
     const lib = b.addStaticLibrary("pystring", null);
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     const flags = [_][]const u8 { };
-    lib.addCSourceFile("ext/pystring/pystring.cpp", &flags);
+    lib.addCSourceFile(prefix_path ++ "ext/pystring/pystring.cpp", &flags);
     return lib;
 }
 
-fn lib_fmt(b: *bld.Builder) *bld.LibExeObjStep {
-    const dir = "ext/fmt/src/";
+fn lib_fmt(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
+    const dir = prefix_path ++ "ext/fmt/src/";
     const sources = [_][]const u8 {
         "format.cc",
         "os.cc"
     };
     const lib = b.addStaticLibrary("fmt", null);
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setBuildMode(mode);
+    lib.setTarget(target);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
-    lib.addIncludeDir("ext/fmt/include");
+    lib.addIncludeDir(prefix_path ++ "ext/fmt/include");
     const flags = [_][]const u8 { };
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
@@ -85,8 +94,8 @@ fn lib_fmt(b: *bld.Builder) *bld.LibExeObjStep {
     return lib;
 }
 
-fn lib_spirvcross(b: *bld.Builder) *bld.LibExeObjStep {
-    const dir = "ext/SPIRV-Cross/";
+fn lib_spirvcross(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
+    const dir = prefix_path ++ "ext/SPIRV-Cross/";
     const sources = [_][]const u8 {
         "spirv_cross.cpp",
         "spirv_parser.cpp",
@@ -103,7 +112,8 @@ fn lib_spirvcross(b: *bld.Builder) *bld.LibExeObjStep {
     };
 
     const lib = b.addStaticLibrary("spirvcross", null);
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     lib.addIncludeDir("ext/SPIRV-Cross");
@@ -113,10 +123,10 @@ fn lib_spirvcross(b: *bld.Builder) *bld.LibExeObjStep {
     return lib;
 }
 
-fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
+fn lib_glslang(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
     const lib = b.addStaticLibrary("glslang", null);
 
-    const dir = "ext/glslang/";
+    const dir = prefix_path ++ "ext/glslang/";
     const sources = [_][]const u8 {
         "OGLCompilersDLL/InitializeDll.cpp",
         "glslang/CInterface/glslang_c_interface.cpp",
@@ -181,11 +191,12 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
         "-DENABLE_OPT=1",
     };
 
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludeDir(incl_dir);
+        lib.addIncludeDir(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
@@ -203,8 +214,8 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
     return lib;
 }
 
-fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
-    const dir = "ext/SPIRV-Tools/source/";
+fn lib_spirvtools(b: *bld.Builder, target: std.zig.CrossTarget, mode: std.builtin.Mode, comptime prefix_path: []const u8) *bld.LibExeObjStep {
+    const dir = prefix_path ++ "ext/SPIRV-Tools/source/";
     const sources = [_][]const u8 {
         "assembly_grammar.cpp",
         "binary.cpp",
@@ -388,11 +399,12 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
     const flags = [_][]const u8 { };
 
     const lib = b.addStaticLibrary("spirvtools", null);
-    lib.setBuildMode(b.standardReleaseOptions());
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludeDir(incl_dir);
+        lib.addIncludeDir(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
