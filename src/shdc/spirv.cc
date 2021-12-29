@@ -315,6 +315,7 @@ void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) con
     fmt::print(stderr, "\n");
 }
 
+// copied from ext/glslang/glslang/OSDependent/Web/glslang.js.cpp
 const TBuiltInResource DefaultTBuiltInResource = {
     /* .MaxLights = */ 32,
     /* .MaxClipPlanes = */ 6,
@@ -408,6 +409,7 @@ const TBuiltInResource DefaultTBuiltInResource = {
     /* .maxTaskWorkGroupSizeY_NV = */ 1,
     /* .maxTaskWorkGroupSizeZ_NV = */ 1,
     /* .maxMeshViewCountNV = */ 4,
+    /* .maxDualSourceDrawBuffersEXT = */ 1,
 
     /* .limits = */ {
         /* .nonInductiveForLoops = */ 1,
