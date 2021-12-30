@@ -421,12 +421,14 @@ struct uniform_block_t {
     std::string name;
     std::vector<uniform_t> uniforms;
     int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
+    bool flattened = false;
 
     bool equals(const uniform_block_t& other) const {
         if ((slot != other.slot) ||
             (size != other.size) ||
             (name != other.name) ||
-            (uniforms.size() != other.uniforms.size()))
+            (uniforms.size() != other.uniforms.size()) ||
+            (flattened != other.flattened))
         {
             return false;
         }

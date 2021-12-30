@@ -2,9 +2,7 @@
 @vs vs
 uniform params {
     mat4 mvp[3];
-};
-uniform bparams {
-    ivec4 b2[2];
+    ivec4 b2[1];
 };
 
 in vec4 position;

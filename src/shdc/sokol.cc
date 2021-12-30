@@ -386,9 +386,19 @@ static void write_stage(const char* indent,
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
+                if (ub->flattened) {
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
+                }
+                else {
+                    for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
+                        const uniform_t& u = ub->uniforms[u_index];
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}\";\n", indent, stage_name, ub_index, u_index, u.name);
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = \"{}\";\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
+                    }
+                }
             }
         }
     }

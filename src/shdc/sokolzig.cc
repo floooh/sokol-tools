@@ -18,6 +18,21 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
+static const char* uniform_type_to_sokol_type_str(uniform_t::type_t type) {
+    switch (type) {
+        case uniform_t::FLOAT:  return ".FLOAT";
+        case uniform_t::FLOAT2: return ".FLOAT2";
+        case uniform_t::FLOAT3: return ".FLOAT3";
+        case uniform_t::FLOAT4: return ".FLOAT4";
+        case uniform_t::INT:    return ".INT";
+        case uniform_t::INT2:   return ".INT2";
+        case uniform_t::INT3:   return ".INT3";
+        case uniform_t::INT4:   return ".INT4";
+        case uniform_t::MAT4:   return ".MAT4";
+        default: return "FIXME";
+    }
+}
+
 static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t type) {
     switch (type) {
         case uniform_t::FLOAT:
@@ -321,9 +336,19 @@ static void write_stage(const char* indent,
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
+                if (ub->flattened) {
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
+                }
+                else {
+                    for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
+                        const uniform_t& u = ub->uniforms[u_index];
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}\";\n", indent, stage_name, ub_index, u_index, u.name);
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = \"{}\";\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
+                    }
+                }
             }
         }
     }

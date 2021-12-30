@@ -91,17 +91,10 @@ static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& 
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        SPIRType::BaseType basic_type = SPIRType::Unknown;
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
-            if (basic_type == SPIRType::Unknown) {
-                basic_type = m_type.basetype;
-                if ((basic_type != SPIRType::Float) && (basic_type != SPIRType::Int)) {
-                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
-                }
-            }
-            else if (basic_type != m_type.basetype) {
-                return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks cannot mix base types (float vs int)", ub_res.name));
+            if ((m_type.basetype != SPIRType::Float) && (m_type.basetype != SPIRType::Int)) {
+                return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
             }
             if (m_type.array.size() > 0) {
                 if (m_type.vecsize != 4) {
@@ -116,13 +109,33 @@ static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& 
     return errmsg_t();
 }
 
+static bool can_flatten_uniform_block(const Compiler& compiler, const Resource& ub_res) {
+    const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+    SPIRType::BaseType basic_type = SPIRType::Unknown;
+    for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
+        const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
+        if (basic_type == SPIRType::Unknown) {
+            basic_type = m_type.basetype;
+            if ((basic_type != SPIRType::Float) && (basic_type != SPIRType::Int)) {
+                return false;
+            }
+        }
+        else if (basic_type != m_type.basetype) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     /* this flattens each uniform block into a vec4 array, in WebGL/GLES2 this
         allows more efficient uniform updates
     */
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
-        compiler.flatten_buffer_block(ub_res.id);
+        if (can_flatten_uniform_block(compiler, ub_res)) {
+            compiler.flatten_buffer_block(ub_res.id);
+        }
     }
 }
 
@@ -240,6 +253,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
         }
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.name = ub_res.name;
+        refl_ub.flattened = can_flatten_uniform_block(compiler, ub_res);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             uniform_t refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
