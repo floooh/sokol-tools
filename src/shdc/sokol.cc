@@ -18,13 +18,35 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
-const char* uniform_type_to_sokol_type_str(uniform_t::type_t type) {
+static const char* uniform_type_to_sokol_type_str(uniform_t::type_t type) {
     switch (type) {
-        case uniform_t::FLOAT: return "SG_UNIFORMTYPE_FLOAT";
+        case uniform_t::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
         case uniform_t::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
         case uniform_t::FLOAT3: return "SG_UNIFORMTYPE_FLOAT3";
         case uniform_t::FLOAT4: return "SG_UNIFORMTYPE_FLOAT4";
+        case uniform_t::INT:    return "SG_UNIFORMTYPE_INT";
+        case uniform_t::INT2:   return "SG_UNIFORMTYPE_INT2";
+        case uniform_t::INT3:   return "SG_UNIFORMTYPE_INT3";
+        case uniform_t::INT4:   return "SG_UNIFORMTYPE_INT4";
         case uniform_t::MAT4: return "SG_UNIFORMTYPE_MAT4";
+        default: return "FIXME";
+    }
+}
+
+static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t type) {
+    switch (type) {
+        case uniform_t::FLOAT:
+        case uniform_t::FLOAT2:
+        case uniform_t::FLOAT3:
+        case uniform_t::FLOAT4:
+        case uniform_t::MAT2:
+        case uniform_t::MAT4:
+             return "SG_UNIFORMTYPE_FLOAT4";
+        case uniform_t::INT:
+        case uniform_t::INT2:
+        case uniform_t::INT3:
+        case uniform_t::INT4:
+            return "SG_UNIFORMTYPE_INT4";
         default: return "FIXME";
     }
 }
@@ -217,26 +239,29 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                 // default type names (float)
                 if (uniform.array_count == 1) {
                     switch (uniform.type) {
-                        case uniform_t::FLOAT:   L("    float {};\n", uniform.name); break;
-                        case uniform_t::FLOAT2:  L("    float {}[2];\n", uniform.name); break;
-                        case uniform_t::FLOAT3:  L("    float {}[3];\n", uniform.name); break;
-                        case uniform_t::FLOAT4:  L("    float {}[4];\n", uniform.name); break;
-                        case uniform_t::MAT4:    L("    float {}[16];\n", uniform.name); break;
-                        default:                 L("    INVALID_UNIFORM_TYPE;\n"); break;
+                        case uniform_t::FLOAT:      L("    float {};\n", uniform.name); break;
+                        case uniform_t::FLOAT2:     L("    float {}[2];\n", uniform.name); break;
+                        case uniform_t::FLOAT3:     L("    float {}[3];\n", uniform.name); break;
+                        case uniform_t::FLOAT4:     L("    float {}[4];\n", uniform.name); break;
+                        case uniform_t::INT:        L("    int {};\n", uniform.name); break;
+                        case uniform_t::INT2:       L("    int {}[2];\n", uniform.name); break;
+                        case uniform_t::INT3:       L("    int {}[3];\n", uniform.name); break;
+                        case uniform_t::INT4:       L("    int {}[4];\n", uniform.name); break;
+                        case uniform_t::MAT2:       L("    float {}[4];\n", uniform.name); break;
+                        case uniform_t::MAT4:       L("    float {}[16];\n", uniform.name); break;
+                        default:                    L("    INVALID_UNIFORM_TYPE;\n"); break;
                     }
                 }
                 else {
                     switch (uniform.type) {
-                        case uniform_t::FLOAT:   L("    float {}[{}];\n", uniform.name, uniform.array_count); break;
-                        case uniform_t::FLOAT2:  L("    float {}[{}][2];\n", uniform.name, uniform.array_count); break;
-                        case uniform_t::FLOAT3:  L("    float {}[{}][3];\n", uniform.name, uniform.array_count); break;
-                        case uniform_t::FLOAT4:  L("    float {}[{}][4];\n", uniform.name, uniform.array_count); break;
-                        case uniform_t::MAT4:    L("    float {}[{}][16];\n", uniform.name, uniform.array_count); break;
-                        default:                 L("    INVALID_UNIFORM_TYPE;\n"); break;
+                        case uniform_t::FLOAT4:     L("    float {}[{}][4];\n", uniform.name, uniform.array_count); break;
+                        case uniform_t::INT4:       L("    int {}[{}][4];\n",   uniform.name, uniform.array_count); break;
+                        case uniform_t::MAT4:       L("    float {}[{}][16];\n", uniform.name, uniform.array_count); break;
+                        default:                    L("    INVALID_UNIFORM_TYPE;\n"); break;
                     }
                 }
             }
-            cur_offset += uniform_type_size(uniform.type) * uniform.array_count;
+            cur_offset += uniform_size(uniform.type, uniform.array_count);
         }
         /* pad to multiple of 16-bytes struct size */
         const int round16 = roundup(cur_offset, 16);
@@ -364,7 +389,7 @@ static void write_stage(const char* indent,
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
-                L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;\n", indent, stage_name, ub_index);
+                L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
                 L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
             }
         }

@@ -42,14 +42,39 @@ const char* uniform_type_str(uniform_t::type_t type) {
     }
 }
 
-int uniform_type_size(uniform_t::type_t type) {
-    switch (type) {
-        case uniform_t::FLOAT:  return 4;
-        case uniform_t::FLOAT2: return 8;
-        case uniform_t::FLOAT3: return 12;
-        case uniform_t::FLOAT4: return 16;
-        case uniform_t::MAT4:   return 64;
-        default: return 0;
+int uniform_size(uniform_t::type_t type, int array_size) {
+    if (array_size > 1) {
+        switch (type) {
+            case uniform_t::FLOAT4:
+            case uniform_t::INT4:
+                return 16 * array_size;
+            case uniform_t::MAT2:
+                return 16 * array_size;
+            case uniform_t::MAT4:
+                return 64 * array_size;
+            default: return 0;
+        }
+    }
+    else {
+        switch (type) {
+            case uniform_t::FLOAT:
+            case uniform_t::INT:
+                return 4;
+            case uniform_t::FLOAT2:
+            case uniform_t::INT2:
+                return 8;
+            case uniform_t::FLOAT3:
+            case uniform_t::INT3:
+                return 12;
+            case uniform_t::FLOAT4:
+            case uniform_t::INT4:
+                return 16;
+            case uniform_t::MAT2:
+                return 16;
+            case uniform_t::MAT4:
+                return 64;
+            default: return 0;
+        }
     }
 }
 

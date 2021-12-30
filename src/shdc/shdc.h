@@ -380,6 +380,11 @@ struct uniform_t {
         FLOAT2,
         FLOAT3,
         FLOAT4,
+        INT,
+        INT2,
+        INT3,
+        INT4,
+        MAT2,
         MAT4,
     };
     std::string name;
@@ -393,6 +398,11 @@ struct uniform_t {
             case FLOAT2:    return "FLOAT2";
             case FLOAT3:    return "FLOAT3";
             case FLOAT4:    return "FLOAT4";
+            case INT:       return "INT";
+            case INT2:      return "INT2";
+            case INT3:      return "INT3";
+            case INT4:      return "INT4";
+            case MAT2:      return "MAT2";
             case MAT4:      return "MAT4";
             default:        return "INVALID";
         }
@@ -554,7 +564,7 @@ struct bare_t {
 namespace util {
     errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
-    int uniform_type_size(uniform_t::type_t type);
+    int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);

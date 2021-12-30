@@ -86,6 +86,36 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
     }
 }
 
+static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& blob) {
+    CompilerGLSL compiler(blob.bytecode);
+    ShaderResources res = compiler.get_shader_resources();
+    for (const Resource& ub_res: res.uniform_buffers) {
+        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+        SPIRType::BaseType basic_type = SPIRType::Unknown;
+        for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
+            const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
+            if (basic_type == SPIRType::Unknown) {
+                basic_type = m_type.basetype;
+                if ((basic_type != SPIRType::Float) && (basic_type != SPIRType::Int)) {
+                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
+                }
+            }
+            else if (basic_type != m_type.basetype) {
+                return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks cannot mix base types (float vs int)", ub_res.name));
+            }
+            if (m_type.array.size() > 0) {
+                if (m_type.vecsize != 4) {
+                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be of type vec4[], ivec4[] or mat4[]", ub_res.name));
+                }
+                if (m_type.array.size() > 1) {
+                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be 1-dimensional", ub_res.name));
+                }
+            }
+        }
+    }
+    return errmsg_t();
+}
+
 static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     /* this flattens each uniform block into a vec4 array, in WebGL/GLES2 this
         allows more efficient uniform updates
@@ -97,22 +127,35 @@ static void flatten_uniform_blocks(CompilerGLSL& compiler) {
 }
 
 static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
-    if (type.basetype == SPIRType::Float) {
-        if (type.columns == 1) {
-            // scalar or vec
-            switch (type.vecsize) {
-                case 1: return uniform_t::FLOAT;
-                case 2: return uniform_t::FLOAT2;
-                case 3: return uniform_t::FLOAT3;
-                case 4: return uniform_t::FLOAT4;
+    switch (type.basetype) {
+        case SPIRType::Float:
+            if (type.columns == 1) {
+                // scalar or vec
+                switch (type.vecsize) {
+                    case 1: return uniform_t::FLOAT;
+                    case 2: return uniform_t::FLOAT2;
+                    case 3: return uniform_t::FLOAT3;
+                    case 4: return uniform_t::FLOAT4;
+                }
             }
-        }
-        else {
-            // a matrix
-            if ((type.vecsize == 4) && (type.columns == 4)) {
-                return uniform_t::MAT4;
+            else {
+                // a matrix
+                if ((type.vecsize == 4) && (type.columns == 4)) {
+                    return uniform_t::MAT4;
+                }
             }
-        }
+            break;
+        case SPIRType::Int:
+            if (type.columns == 1) {
+                switch (type.vecsize) {
+                    case 1: return uniform_t::INT;
+                    case 2: return uniform_t::INT2;
+                    case 3: return uniform_t::INT3;
+                    case 4: return uniform_t::INT4;
+                }
+            }
+            break;
+        default: break;
     }
     // fallthrough: invalid type
     return uniform_t::INVALID;
@@ -398,6 +441,10 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
         assert((type == snippet_t::VS) || (type == snippet_t::FS));
+        spv_cross.error = validate_uniform_blocks(inp, blob);
+        if (spv_cross.error.valid) {
+            return spv_cross;
+        }
         switch (slang) {
             case slang_t::GLSL330:
                 src = to_glsl(blob, 330, false, false, opt_mask, type);

@@ -99,6 +99,7 @@ int main(int argc, const char** argv) {
         }
     }
 
+    // generate output files
     errmsg_t output_err;
     switch (args.output_format) {
         case format_t::BARE:
