@@ -384,7 +384,6 @@ struct uniform_t {
         INT2,
         INT3,
         INT4,
-        MAT2,
         MAT4,
     };
     std::string name;
@@ -402,7 +401,6 @@ struct uniform_t {
             case INT2:      return "INT2";
             case INT3:      return "INT3";
             case INT4:      return "INT4";
-            case MAT2:      return "MAT2";
             case MAT4:      return "MAT4";
             default:        return "INVALID";
         }

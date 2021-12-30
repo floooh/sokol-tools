@@ -39,7 +39,6 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
         case uniform_t::FLOAT2:
         case uniform_t::FLOAT3:
         case uniform_t::FLOAT4:
-        case uniform_t::MAT2:
         case uniform_t::MAT4:
              return "SG_UNIFORMTYPE_FLOAT4";
         case uniform_t::INT:
@@ -247,7 +246,6 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                         case uniform_t::INT2:       L("    int {}[2];\n", uniform.name); break;
                         case uniform_t::INT3:       L("    int {}[3];\n", uniform.name); break;
                         case uniform_t::INT4:       L("    int {}[4];\n", uniform.name); break;
-                        case uniform_t::MAT2:       L("    float {}[4];\n", uniform.name); break;
                         case uniform_t::MAT4:       L("    float {}[16];\n", uniform.name); break;
                         default:                    L("    INVALID_UNIFORM_TYPE;\n"); break;
                     }
