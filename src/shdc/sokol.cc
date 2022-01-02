@@ -122,9 +122,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             }
         }
         for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            L("                Uniform block '{}':\n", ub.name);
-            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.name);
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
+            L("                Uniform block '{}':\n", ub.struct_name);
+            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
@@ -134,9 +134,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         }
         L("            Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            L("                Uniform block '{}':\n", ub.name);
-            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.name);
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
+            L("                Uniform block '{}':\n", ub.struct_name);
+            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
@@ -177,13 +177,13 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     }
     L("\n");
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
-        L("    Bind slot and C-struct for uniform block '{}':\n\n", ub.name);
-        L("        {}{}_t {} = {{\n", mod_prefix(inp), ub.name, ub.name);
+        L("    Bind slot and C-struct for uniform block '{}':\n\n", ub.struct_name);
+        L("        {}{}_t {} = {{\n", mod_prefix(inp), ub.struct_name, ub.struct_name);
         for (const uniform_t& uniform: ub.uniforms) {
             L("            .{} = ...;\n", uniform.name);
         };
         L("        }};\n");
-        L("        sg_apply_uniforms(SG_SHADERSTAGE_[VS|FS], SLOT_{}{}, &SG_RANGE({}));\n", mod_prefix(inp), ub.name, ub.name);
+        L("        sg_apply_uniforms(SG_SHADERSTAGE_[VS|FS], SLOT_{}{}, &SG_RANGE({}));\n", mod_prefix(inp), ub.struct_name, ub.struct_name);
         L("\n");
     }
     L("*/\n");
@@ -215,10 +215,10 @@ static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirv
 
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
-        L("#define SLOT_{}{} ({})\n", mod_prefix(inp), ub.name, ub.slot);
+        L("#define SLOT_{}{} ({})\n", mod_prefix(inp), ub.struct_name, ub.slot);
         L("#pragma pack(push,1)\n");
         int cur_offset = 0;
-        L("SOKOL_SHDC_ALIGN(16) typedef struct {}{}_t {{\n", mod_prefix(inp), ub.name);
+        L("SOKOL_SHDC_ALIGN(16) typedef struct {}{}_t {{\n", mod_prefix(inp), ub.struct_name);
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
             if (next_offset > cur_offset) {
@@ -266,7 +266,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
         if (cur_offset != round16) {
             L("    uint8_t _pad_{}[{}];\n", cur_offset, round16-cur_offset);
         }
-        L("}} {}{}_t;\n", mod_prefix(inp), ub.name);
+        L("}} {}{}_t;\n", mod_prefix(inp), ub.struct_name);
         L("#pragma pack(pop)\n");
     }
 }
@@ -387,15 +387,15 @@ static void write_stage(const char* indent,
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->struct_name);
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
                 }
                 else {
                     for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                         const uniform_t& u = ub->uniforms[u_index];
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}\";\n", indent, stage_name, ub_index, u_index, u.name);
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = \"{}\";\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}.{}\";\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = {};\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
                         L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
                     }
                 }
@@ -552,7 +552,7 @@ static void write_image_slot_func(const program_t& prog, const args_t& args, con
 static void write_uniformblock_slot_stage(const spirvcross_source_t* src) {
     for (const uniform_block_t& ub: src->refl.uniform_blocks) {
         if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             L("      return {};\n", ub.slot);
             L("    }}\n");
         }
@@ -583,8 +583,8 @@ static void write_uniformblock_slot_func(const program_t& prog, const args_t& ar
 static void write_uniformblock_size_stage(const spirvcross_source_t* src, const input_t& inp) {
     for (const uniform_block_t& ub: src->refl.uniform_blocks) {
         if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
-            L("      return sizeof({}{}_t);\n", mod_prefix(inp), ub.name);
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
+            L("      return sizeof({}{}_t);\n", mod_prefix(inp), ub.struct_name);
             L("    }}\n");
         }
     }
@@ -614,7 +614,7 @@ static void write_uniformblock_size_func(const program_t& prog, const args_t& ar
 static void write_uniform_offset_stage(const spirvcross_source_t* src) {
     for (const uniform_block_t& ub: src->refl.uniform_blocks) {
         if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             for (const uniform_t& u: ub.uniforms) {
                 L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                 L("        return {};\n", u.offset);
@@ -649,7 +649,7 @@ static void write_uniform_offset_func(const program_t& prog, const args_t& args,
 static void write_uniform_desc_stage(const spirvcross_source_t* src) {
     for (const uniform_block_t& ub: src->refl.uniform_blocks) {
         if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             for (const uniform_t& u: ub.uniforms) {
                 L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                 L("        desc.name = \"{}\";\n", u.name);

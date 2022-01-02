@@ -244,6 +244,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
+        std::string n = compiler.get_name(ub_res.id);
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
@@ -252,7 +253,11 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
             refl_ub.slot -= 4;
         }
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
-        refl_ub.name = ub_res.name;
+        refl_ub.struct_name = ub_res.name;
+        refl_ub.inst_name = compiler.get_name(ub_res.id);
+        if (refl_ub.inst_name.empty()) {
+            refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
+        }
         refl_ub.flattened = can_flatten_uniform_block(compiler, ub_res);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             uniform_t refl_uniform;
@@ -288,6 +293,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     options.es = is_gles;
     options.vulkan_semantics = is_vulkan;
     options.enable_420pack_extension = false;
+    options.emit_uniform_buffer_as_plain_uniforms = !is_vulkan;
     options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(options);
@@ -355,7 +361,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
 
 static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
-        if (spv_cross.unique_uniform_blocks[i].name == name) {
+        if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
             return i;
         }
     }
@@ -375,14 +381,14 @@ static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::s
 static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
     for (spirvcross_source_t& src: spv_cross.sources) {
         for (uniform_block_t& ub: src.refl.uniform_blocks) {
-            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.name);
+            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
             if (other_ub_index >= 0) {
                 if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
                     // identical uniform block already exists, take note of the index
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
                     return false;
                 }
             }
@@ -549,7 +555,7 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
             }
         }
         for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
+            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
             for (const uniform_t& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
                     uniform.name,

@@ -418,15 +418,18 @@ struct uniform_block_t {
     static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
     int slot = -1;
     int size = 0;
-    std::string name;
+    std::string struct_name;
+    std::string inst_name;
     std::vector<uniform_t> uniforms;
     int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
     bool flattened = false;
 
+    // FIXME: hmm is this correct??
     bool equals(const uniform_block_t& other) const {
         if ((slot != other.slot) ||
             (size != other.size) ||
-            (name != other.name) ||
+            (struct_name != other.struct_name) ||
+            (inst_name != other.inst_name) ||
             (uniforms.size() != other.uniforms.size()) ||
             (flattened != other.flattened))
         {

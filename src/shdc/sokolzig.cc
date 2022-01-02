@@ -123,9 +123,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             }
         }
         for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
-            L("//              Uniform block '{}':\n", ub.name);
-            L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.name);
-            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
+            L("//              Uniform block '{}':\n", ub.struct_name);
+            L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: vs_src->refl.images) {
             L("//              Image '{}':\n", img.name);
@@ -135,9 +135,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         }
         L("//          Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
-            L("//              Uniform block '{}':\n", ub.name);
-            L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.name);
-            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.name, ub.slot);
+            L("//              Uniform block '{}':\n", ub.struct_name);
+            L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: fs_src->refl.images) {
             L("//              Image '{}':\n", img.name);
@@ -181,10 +181,10 @@ static std::string struct_case_name(const std::string& prefix, const std::string
 
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
-        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.name, ub.slot);
+        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
-        L("pub const {} = extern struct {{\n", struct_case_name(mod_prefix(inp), ub.name));
+        L("pub const {} = extern struct {{\n", struct_case_name(mod_prefix(inp), ub.struct_name));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
@@ -337,15 +337,15 @@ static void write_stage(const char* indent,
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->name);
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->struct_name);
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
                 }
                 else {
                     for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                         const uniform_t& u = ub->uniforms[u_index];
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}\";\n", indent, stage_name, ub_index, u_index, u.name);
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = \"{}\";\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}.{}\";\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = {};\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
                         L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
                     }
                 }
