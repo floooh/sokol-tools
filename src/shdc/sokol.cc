@@ -385,6 +385,7 @@ static void write_stage(const char* indent,
         const uniform_block_t* ub = find_uniform_block(src.refl, ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
+            L("{}desc.{}.uniform_blocks[{}].layout = SG_UNIFORMLAYOUT_STD140;\n", indent, stage_name, ub_index);
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->struct_name);
