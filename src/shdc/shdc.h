@@ -380,6 +380,10 @@ struct uniform_t {
         FLOAT2,
         FLOAT3,
         FLOAT4,
+        INT,
+        INT2,
+        INT3,
+        INT4,
         MAT4,
     };
     std::string name;
@@ -393,6 +397,10 @@ struct uniform_t {
             case FLOAT2:    return "FLOAT2";
             case FLOAT3:    return "FLOAT3";
             case FLOAT4:    return "FLOAT4";
+            case INT:       return "INT";
+            case INT2:      return "INT2";
+            case INT3:      return "INT3";
+            case INT4:      return "INT4";
             case MAT4:      return "MAT4";
             default:        return "INVALID";
         }
@@ -410,15 +418,20 @@ struct uniform_block_t {
     static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
     int slot = -1;
     int size = 0;
-    std::string name;
+    std::string struct_name;
+    std::string inst_name;
     std::vector<uniform_t> uniforms;
     int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
+    bool flattened = false;
 
+    // FIXME: hmm is this correct??
     bool equals(const uniform_block_t& other) const {
         if ((slot != other.slot) ||
             (size != other.size) ||
-            (name != other.name) ||
-            (uniforms.size() != other.uniforms.size()))
+            (struct_name != other.struct_name) ||
+            (inst_name != other.inst_name) ||
+            (uniforms.size() != other.uniforms.size()) ||
+            (flattened != other.flattened))
         {
             return false;
         }
@@ -554,7 +567,7 @@ struct bare_t {
 namespace util {
     errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
-    int uniform_type_size(uniform_t::type_t type);
+    int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);

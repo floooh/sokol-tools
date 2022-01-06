@@ -86,33 +86,89 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
     }
 }
 
+static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& blob) {
+    CompilerGLSL compiler(blob.bytecode);
+    ShaderResources res = compiler.get_shader_resources();
+    for (const Resource& ub_res: res.uniform_buffers) {
+        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+        for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
+            const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
+            if ((m_type.basetype != SPIRType::Float) && (m_type.basetype != SPIRType::Int)) {
+                return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
+            }
+            if (m_type.array.size() > 0) {
+                if (m_type.vecsize != 4) {
+                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be of type vec4[], ivec4[] or mat4[]", ub_res.name));
+                }
+                if (m_type.array.size() > 1) {
+                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be 1-dimensional", ub_res.name));
+                }
+            }
+        }
+    }
+    return errmsg_t();
+}
+
+static bool can_flatten_uniform_block(const Compiler& compiler, const Resource& ub_res) {
+    const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+    SPIRType::BaseType basic_type = SPIRType::Unknown;
+    for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
+        const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
+        if (basic_type == SPIRType::Unknown) {
+            basic_type = m_type.basetype;
+            if ((basic_type != SPIRType::Float) && (basic_type != SPIRType::Int)) {
+                return false;
+            }
+        }
+        else if (basic_type != m_type.basetype) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     /* this flattens each uniform block into a vec4 array, in WebGL/GLES2 this
         allows more efficient uniform updates
     */
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
-        compiler.flatten_buffer_block(ub_res.id);
+        if (can_flatten_uniform_block(compiler, ub_res)) {
+            compiler.flatten_buffer_block(ub_res.id);
+        }
     }
 }
 
 static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
-    if (type.basetype == SPIRType::Float) {
-        if (type.columns == 1) {
-            // scalar or vec
-            switch (type.vecsize) {
-                case 1: return uniform_t::FLOAT;
-                case 2: return uniform_t::FLOAT2;
-                case 3: return uniform_t::FLOAT3;
-                case 4: return uniform_t::FLOAT4;
+    switch (type.basetype) {
+        case SPIRType::Float:
+            if (type.columns == 1) {
+                // scalar or vec
+                switch (type.vecsize) {
+                    case 1: return uniform_t::FLOAT;
+                    case 2: return uniform_t::FLOAT2;
+                    case 3: return uniform_t::FLOAT3;
+                    case 4: return uniform_t::FLOAT4;
+                }
             }
-        }
-        else {
-            // a matrix
-            if ((type.vecsize == 4) && (type.columns == 4)) {
-                return uniform_t::MAT4;
+            else {
+                // a matrix
+                if ((type.vecsize == 4) && (type.columns == 4)) {
+                    return uniform_t::MAT4;
+                }
             }
-        }
+            break;
+        case SPIRType::Int:
+            if (type.columns == 1) {
+                switch (type.vecsize) {
+                    case 1: return uniform_t::INT;
+                    case 2: return uniform_t::INT2;
+                    case 3: return uniform_t::INT3;
+                    case 4: return uniform_t::INT4;
+                }
+            }
+            break;
+        default: break;
     }
     // fallthrough: invalid type
     return uniform_t::INVALID;
@@ -188,6 +244,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
+        std::string n = compiler.get_name(ub_res.id);
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
@@ -196,7 +253,12 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
             refl_ub.slot -= 4;
         }
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
-        refl_ub.name = ub_res.name;
+        refl_ub.struct_name = ub_res.name;
+        refl_ub.inst_name = compiler.get_name(ub_res.id);
+        if (refl_ub.inst_name.empty()) {
+            refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
+        }
+        refl_ub.flattened = can_flatten_uniform_block(compiler, ub_res);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             uniform_t refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
@@ -231,6 +293,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     options.es = is_gles;
     options.vulkan_semantics = is_vulkan;
     options.enable_420pack_extension = false;
+    options.emit_uniform_buffer_as_plain_uniforms = !is_vulkan;
     options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(options);
@@ -298,7 +361,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
 
 static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
-        if (spv_cross.unique_uniform_blocks[i].name == name) {
+        if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
             return i;
         }
     }
@@ -318,14 +381,14 @@ static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::s
 static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
     for (spirvcross_source_t& src: spv_cross.sources) {
         for (uniform_block_t& ub: src.refl.uniform_blocks) {
-            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.name);
+            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
             if (other_ub_index >= 0) {
                 if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
                     // identical uniform block already exists, take note of the index
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
                     return false;
                 }
             }
@@ -398,6 +461,10 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
         assert((type == snippet_t::VS) || (type == snippet_t::FS));
+        spv_cross.error = validate_uniform_blocks(inp, blob);
+        if (spv_cross.error.valid) {
+            return spv_cross;
+        }
         switch (slang) {
             case slang_t::GLSL330:
                 src = to_glsl(blob, 330, false, false, opt_mask, type);
@@ -488,7 +555,7 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
             }
         }
         for (const uniform_block_t& ub: source.refl.uniform_blocks) {
-            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.name, ub.slot, ub.size);
+            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
             for (const uniform_t& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
                     uniform.name,

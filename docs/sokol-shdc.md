@@ -14,6 +14,17 @@ Shader-code-generator for sokol_gfx.h
 
 ## Updates
 
+- **07-Jan-2022**:
+    - support for additional uniform types:
+        - int => SG_UNIFORMTYPE_INT
+        - ivec2 => SG_UNIFORMTYPE_INT2
+        - ivec3 => SG_UNIFORMTYPE_INT3
+        - ivec4 => SG_UNIFORMTYPE_INT4
+    - add support for mixed-type uniform blocks, those will not be flattened 
+      for the output GLSL dialects
+    - stricter checks for allowed types in uniform blocks (e.g. arrays
+      are only allowed for vec4, ivec4 and mat4)
+
 - **01-Jul-2021**:
     - A new command line option ```--reflection``` which adds a small set of
     runtime introspection functions to the generated code (currently only in the C
@@ -842,27 +853,68 @@ sg_apply_bindings(&(sg_bindings){
 });
 ```
 
-### Uniform blocks and C structs
+### GLSL uniform blocks and C structs
 
 There are a few caveats with uniform blocks:
 
-- Member types are currently restricted to:
+- The memory layout of uniform blocks on the CPU side must be compatible
+  across all sokol-gfx backends. To achieve this, uniform block content
+  is restricted to a subset of the std140 packing rule that's compatible
+  with the glUniform() functions.
+
+- Uniform block member types are restricted to:
     - float
     - vec2
     - vec3
     - vec4
+    - int
+    - ivec2
+    - ivec3
+    - ivec4
+    - mat4
+    
+    This restriction exists so that the uniform data is compatible
+    with all sokol_gfx.h backends down to GLES2 and WebGL.
+    
+- Arrays are only allowed for the following types:
+    - vec4
+    - int4
     - mat4
 
-    This limitation is currently also present in sokol_gfx.h
-    itself (SG_UNIFORMTYPE_*). More float-based types like
-    mat2 and mat3 will most likely be added in the future,
-    but there's currently no portable way to support integer
-    types across all backends.
+    This restriction exists because the element stride must 
+    be the same as the element width so that the uniform data
+    is compatible both with the std140 layout and glUniformNfv() calls.
 
-- In GL, uniform blocks will be 'flattened' to arrays of vec4,
-this allows to update uniform data with a single call to glUniform4v
-per uniform block, no matter how many members a uniform block
-actually has
+- Uniform block member alignment is as follows (compatible with std140):
+    - float, int:   4 bytes
+    - vec2, ivec2:  8 bytes
+    - vec3, ivec3:  16 bytes
+    - vec4, ivec4:  16 bytes
+    - mat4:         16 bytes
+    - vec4[]        16 bytes
+    - ivec4[]       16 bytes
+    - mat4[]        16 bytes
+
+- For the GLSL outputs, uniform blocks will be flattened into a single
+  vec4 arrays if all elements in the uniform block have the same
+  'base type' (float or int):
+    - 'float' base type: float, vec2, vec3, vec4, mat4
+    - 'int' base type: int, ivec2, ivec3, ivec4
+  
+  The advantage of flattened uniform blocks is that they can be updated 
+  with a single glUniform4fv() call.
+
+  Mixed-base-type uniform blocks are allowed, but will not be flattened, this
+  means that such mixed uniform blocks require multiple glUniform() calls.
+
+  If the performance of uniform block updates matters in the GL backends, it
+  may make sense to split complex uniform blocks into two separate blocks with
+  the same base type (e.g. all 'float-y' members into one uniform block, and
+  all 'int-y' members into another).
+
+  In the non-GL sokol-gfx backends (D3D11, Metal, WebGPU), uniform block
+  updates are always a a single operation.
+
 
 ## Runtime Inspection
 
