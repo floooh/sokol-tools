@@ -71,7 +71,7 @@ fn lib_fmt(b: *bld.Builder) *bld.LibExeObjStep {
     const dir = "ext/fmt/src/";
     const sources = [_][]const u8 {
         "format.cc",
-        "posix.cc"
+        "os.cc"
     };
     const lib = b.addStaticLibrary("fmt", null);
     lib.setBuildMode(b.standardReleaseOptions());
@@ -141,7 +141,6 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
         "glslang/MachineIndependent/parseConst.cpp",
         "glslang/MachineIndependent/ParseContextBase.cpp",
         "glslang/MachineIndependent/ParseHelper.cpp",
-        "glslang/MachineIndependent/pch.cpp",
         "glslang/MachineIndependent/PoolAlloc.cpp",
         "glslang/MachineIndependent/propagateNoContraction.cpp",
         "glslang/MachineIndependent/reflection.cpp",
@@ -150,6 +149,7 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
         "glslang/MachineIndependent/ShaderLang.cpp",
         "glslang/MachineIndependent/SymbolTable.cpp",
         "glslang/MachineIndependent/Versions.cpp",
+        "glslang/MachineIndependent/SpirvIntrinsics.cpp",
         "SPIRV/disassemble.cpp",
         "SPIRV/doc.cpp",
         "SPIRV/GlslangToSpv.cpp",
@@ -161,6 +161,7 @@ fn lib_glslang(b: *bld.Builder) *bld.LibExeObjStep {
         "SPIRV/SpvTools.cpp",
     };
     const incl_dirs = [_][]const u8 {
+        "ext/generated",
         "ext/glslang",
         "ext/glslang/glslang",
         "ext/glslang/glslang/Public",
@@ -293,7 +294,6 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/dead_branch_elim_pass.cpp",
         "opt/dead_insert_elim_pass.cpp",
         "opt/dead_variable_elimination.cpp",
-        "opt/decompose_initialized_variables_pass.cpp",
         "opt/decoration_manager.cpp",
         "opt/def_use_manager.cpp",
         "opt/desc_sroa.cpp",
@@ -311,7 +311,6 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/fold_spec_constant_op_and_composite_pass.cpp",
         "opt/freeze_spec_constant_value_pass.cpp",
         "opt/function.cpp",
-        "opt/generate_webgpu_initializers_pass.cpp",
         "opt/graphics_robust_access_pass.cpp",
         "opt/if_conversion.cpp",
         "opt/inline_exhaustive_pass.cpp",
@@ -324,7 +323,6 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/instrument_pass.cpp",
         "opt/ir_context.cpp",
         "opt/ir_loader.cpp",
-        "opt/legalize_vector_shuffle_pass.cpp",
         "opt/licm_pass.cpp",
         "opt/local_access_chain_convert_pass.cpp",
         "opt/local_redundancy_elimination.cpp",
@@ -348,7 +346,6 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/pass_manager.cpp",
         "opt/pch_source_opt.cpp",
         "opt/private_to_local_pass.cpp",
-        "opt/process_lines_pass.cpp",
         "opt/propagator.cpp",
         "opt/reduce_load_size.cpp",
         "opt/redundancy_elimination.cpp",
@@ -361,12 +358,9 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/scalar_replacement_pass.cpp",
         "opt/set_spec_constant_default_value_pass.cpp",
         "opt/simplification_pass.cpp",
-        "opt/split_invalid_unreachable_pass.cpp",
         "opt/ssa_rewrite_pass.cpp",
         "opt/strength_reduction_pass.cpp",
-        "opt/strip_atomic_counter_memory_pass.cpp",
         "opt/strip_debug_info_pass.cpp",
-        "opt/strip_reflect_info_pass.cpp",
         "opt/struct_cfg_analysis.cpp",
         "opt/type_manager.cpp",
         "opt/types.cpp",
@@ -376,6 +370,14 @@ fn lib_spirvtools(b: *bld.Builder) *bld.LibExeObjStep {
         "opt/vector_dce.cpp",
         "opt/workaround1209.cpp",
         "opt/wrap_opkill.cpp",
+        "opt/strip_nonsemantic_info_pass.cpp",
+        "opt/convert_to_sampled_image_pass.cpp",
+        "opt/interp_fixup_pass.cpp",
+        "opt/inst_debug_printf_pass.cpp",
+        "opt/remove_unused_interface_variables_pass.cpp",
+        "opt/debug_info_manager.cpp",
+        "opt/replace_desc_array_access_using_var_index.cpp",
+        "opt/desc_sroa_util.cpp",
     };
     const incl_dirs = [_][]const u8 {
         "ext/generated",
