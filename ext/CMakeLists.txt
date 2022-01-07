@@ -106,6 +106,5 @@ fips_begin_lib(tint)
     fips_deps(SPIRV-Tools)
 fips_end_lib()
 target_include_directories(tint PUBLIC tint tint/include/tint)
-target_compile_definitions(tint PRIVATE TINT_BUILD_SPV_READER=1)
 target_compile_definitions(tint PUBLIC TINT_BUILD_SPV_READER=1 TINT_BUILD_WGSL_WRITER=1)
 
