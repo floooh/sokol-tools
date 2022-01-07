@@ -29,7 +29,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgsl(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_WGSL ({})\n", slang_t::is_wgsl(slang) ? 1 : 0);
     for (const std::string& define : defines) {
         src += fmt::format("#define {} (1)\n", define);
     }
