@@ -75,7 +75,7 @@ int main(int argc, const char** argv) {
     //  (so it's GLSL => SPIRV => GLSL => SPIRV). The reason for this
     //  double-compile is assignment of binding decorations in SPIRV-Cross
     std::array<bytecode_t, slang_t::NUM> bytecode;
-    if (args.byte_code || (args.slang & slang_t::bit(slang_t::WGPU))) {
+    if (args.byte_code || (args.slang & slang_t::bit(slang_t::WGSL))) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {
@@ -98,6 +98,12 @@ int main(int argc, const char** argv) {
             }
         }
     }
+    
+size_t u8_size = bytecode[slang_t::WGSL].blobs[0].data.size();
+size_t u32_size = u8_size / sizeof(uint32_t);
+std::vector<uint32_t> spv_data(u32_size);
+memcpy(spv_data.data(), bytecode[slang_t::WGSL].blobs[0].data.data(), u8_size);
+wgsl::bla(spv_data);
 
     // generate output files
     errmsg_t output_err;

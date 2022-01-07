@@ -22,7 +22,7 @@ struct slang_t {
         METAL_MACOS,
         METAL_IOS,
         METAL_SIM,
-        WGPU,
+        WGSL,
         NUM
     };
 
@@ -39,7 +39,7 @@ struct slang_t {
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
             case METAL_SIM:     return "metal_sim";
-            case WGPU:          return "wgpu";
+            case WGSL:          return "wgsl";
             default:            return "<invalid>";
         }
     }
@@ -86,8 +86,8 @@ struct slang_t {
                 return false;
         }
     }
-    static bool is_wgpu(type_t c) {
-        return WGPU == c;
+    static bool is_wgsl(type_t c) {
+        return WGSL == c;
     }
     static slang_t::type_t first_valid(uint32_t mask) {
         int i = 0;
@@ -574,6 +574,11 @@ namespace util {
     const image_t* find_image(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
-};
+}
+
+/* SPIRV-WGSL helper functions */
+namespace wgsl {
+    void bla(const std::vector<uint32_t> spirv_blob);
+}
 
 } // namespace shdc

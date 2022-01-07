@@ -488,7 +488,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::METAL_SIM:
                 src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
                 break;
-            case slang_t::WGPU:
+            case slang_t::WGSL:
                 // hackety hack, just compile to GLSL even for SPIRV output
                 // so that we can use the same SPIRV-Cross's reflection API
                 // calls as for the other output types

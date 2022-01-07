@@ -29,7 +29,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgpu(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgsl(slang) ? 1 : 0);
     for (const std::string& define : defines) {
         src += fmt::format("#define {} (1)\n", define);
     }
@@ -109,7 +109,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
 */
 static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
     // not supported by spvtools::Optimizer
-    assert(slang != slang_t::WGPU);
+    assert(slang != slang_t::WGSL);
     spv_target_env target_env = SPV_ENV_UNIVERSAL_1_2;
     spvtools::Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(
@@ -216,7 +216,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
         fmt::print(spirv_log);
     }
     // run optimizer passes
-    if (slang != slang_t::WGPU) {
+    if (slang != slang_t::WGSL) {
         spirv_optimize(slang, out_spirv.blobs.back().bytecode);
     }
     return true;
