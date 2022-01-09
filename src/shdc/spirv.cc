@@ -108,13 +108,11 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     ("for (;;) { }") to WebGL
 */
 static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    spv_target_env target_env;
     if (slang == slang_t::WGPU) {
-        target_env = SPV_ENV_WEBGPU_0;
+        return;
     }
-    else {
-        target_env = SPV_ENV_UNIVERSAL_1_2;
-    }
+    spv_target_env target_env;
+    target_env = SPV_ENV_UNIVERSAL_1_2;
     spvtools::Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(
         [](spv_message_level_t level, const char *source, const spv_position_t &position, const char *message) {
