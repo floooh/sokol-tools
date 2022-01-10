@@ -344,7 +344,7 @@ struct spirv_blob_t {
 };
 
 /* glsl-to-spirv compiler wrapper */
-struct spirvcross_t;
+struct cross_t;
 struct spirv_t {
     std::vector<errmsg_t> errors;
     std::vector<spirv_blob_t> blobs;
@@ -352,7 +352,7 @@ struct spirv_t {
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
     static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
-    static spirv_t compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross);
+    static spirv_t compile_spirv_glsl(const input_t& inp, slang_t::type_t slang, const cross_t* cross);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 
@@ -421,7 +421,7 @@ struct uniform_block_t {
     std::string struct_name;
     std::string inst_name;
     std::vector<uniform_t> uniforms;
-    int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
+    int unique_index = -1;      // index into cross_t.unique_uniform_blocks
     bool flattened = false;
 
     // FIXME: hmm is this correct??
@@ -463,7 +463,7 @@ struct image_t {
     std::string name;
     type_t type = IMAGE_TYPE_INVALID;
     basetype_t base_type = IMAGE_BASETYPE_INVALID;
-    int unique_index = -1;      // index into spirvcross_t.unique_images
+    int unique_index = -1;      // index into cross_t.unique_images
 
     static const char* type_to_str(type_t t) {
         switch (t) {
@@ -503,7 +503,7 @@ struct stage_t {
     }
 };
 
-struct spirvcross_refl_t {
+struct cross_refl_t {
     stage_t::type_t stage = stage_t::INVALID;
     std::string entry_point;
     std::array<attr_t, attr_t::NUM> inputs;
@@ -513,21 +513,21 @@ struct spirvcross_refl_t {
 };
 
 /* result of a spirv-cross compilation */
-struct spirvcross_source_t {
+struct cross_source_t {
     bool valid = false;
     int snippet_index = -1;
     std::string source_code;
-    spirvcross_refl_t refl;
+    cross_refl_t refl;
 };
 
-/* spirv-cross wrapper */
-struct spirvcross_t {
+/* SPIRVCross and Tint wrapper */
+struct cross_t {
     errmsg_t error;
-    std::vector<spirvcross_source_t> sources;
+    std::vector<cross_source_t> sources;
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<image_t> unique_images;
 
-    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
+    static cross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
@@ -543,42 +543,37 @@ struct bytecode_t {
     std::vector<errmsg_t> errors;
     std::vector<bytecode_blob_t> blobs;
 
-    static bytecode_t compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    static bytecode_t compile(const args_t& args, const input_t& inp, const cross_t& cross, slang_t::type_t slang);
     int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
 
 /* C header-generator for sokol_gfx.h */
 struct sokol_t {
-    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* Zig module-generator for sokol.gfx.zig */
 struct sokolzig_t {
-    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* bare format generator */
 struct bare_t {
-    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* utility functions for generators */
 namespace util {
-    errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    errmsg_t check_errors(const input_t& inp, const cross_t& cross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
     int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
-    const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
-    const image_t* find_image(const spirvcross_refl_t& refl, int slot);
-    const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
+    const uniform_block_t* find_uniform_block(const cross_refl_t& refl, int slot);
+    const image_t* find_image(const cross_refl_t& refl, int slot);
+    const cross_source_t* find_cross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const cross_t& cross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
-}
-
-/* SPIRV-WGSL helper functions */
-namespace wgsl {
-    void bla(const std::vector<uint32_t> spirv_blob);
 }
 
 } // namespace shdc

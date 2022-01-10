@@ -7,15 +7,15 @@ namespace shdc {
 namespace util {
 
 errmsg_t check_errors(const input_t& inp,
-                      const spirvcross_t& spirvcross,
+                      const cross_t& cross,
                       slang_t::type_t slang)
 {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        int vs_src_index = cross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = cross.find_source_by_snippet_index(fs_snippet_index);
         if (vs_src_index < 0) {
             return inp.error(inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
@@ -87,7 +87,7 @@ std::string mod_prefix(const input_t& inp) {
     }
 }
 
-const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot) {
+const uniform_block_t* find_uniform_block(const cross_refl_t& refl, int slot) {
     for (const uniform_block_t& ub: refl.uniform_blocks) {
         if (ub.slot == slot) {
             return &ub;
@@ -96,7 +96,7 @@ const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slo
     return nullptr;
 }
 
-const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
+const image_t* find_image(const cross_refl_t& refl, int slot) {
     for (const image_t& img: refl.images) {
         if (img.slot == slot) {
             return &img;
@@ -105,12 +105,12 @@ const image_t* find_image(const spirvcross_refl_t& refl, int slot) {
     return nullptr;
 }
 
-const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
+const cross_source_t* find_cross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const cross_t& cross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
-    int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
+    int src_index = cross.find_source_by_snippet_index(snippet_index);
     if (src_index >= 0) {
-        return &spirvcross.sources[src_index];
+        return &cross.sources[src_index];
     }
     else {
         return nullptr;

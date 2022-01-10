@@ -23,7 +23,7 @@ using namespace spirv_cross;
 
 namespace shdc {
 
-int spirvcross_t::find_source_by_snippet_index(int snippet_index) const {
+int cross_t::find_source_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)sources.size(); i++) {
         if (sources[i].snippet_index == snippet_index) {
             return i;
@@ -207,8 +207,8 @@ static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
     }
 }
 
-static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
-    spirvcross_refl_t refl;
+static cross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
+    cross_refl_t refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
@@ -285,7 +285,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
     return refl;
 }
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -303,7 +303,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
         flatten_uniform_blocks(compiler);
     }
     std::string src = compiler.compile();
-    spirvcross_source_t res;
+    cross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -312,7 +312,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -326,7 +326,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_mod
     fix_bind_slots(compiler, type, false);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
-    spirvcross_source_t res;
+    cross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -335,7 +335,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_mod
     return res;
 }
 
-static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -348,7 +348,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     compiler.set_msl_options(mslOptions);
     fix_bind_slots(compiler, type, false);
     std::string src = compiler.compile();
-    spirvcross_source_t res;
+    cross_source_t res;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -359,7 +359,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options
     return res;
 }
 
-static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+static int find_unique_uniform_block_by_name(const cross_t& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
         if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
             return i;
@@ -368,7 +368,7 @@ static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, cons
     return -1;
 }
 
-static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+static int find_unique_image_by_name(const cross_t& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_images.size(); i++) {
         if (spv_cross.unique_images[i].name == name) {
             return i;
@@ -378,8 +378,8 @@ static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::s
 }
 
 // find all identical uniform blocks across all shaders, and check for collisions
-static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
-    for (spirvcross_source_t& src: spv_cross.sources) {
+static bool gather_unique_uniform_blocks(const input_t& inp, cross_t& spv_cross) {
+    for (cross_source_t& src: spv_cross.sources) {
         for (uniform_block_t& ub: src.refl.uniform_blocks) {
             int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
             if (other_ub_index >= 0) {
@@ -403,8 +403,8 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
 }
 
 // find all identical images across all shaders, and check for collisions
-static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
-    for (spirvcross_source_t& src: spv_cross.sources) {
+static bool gather_unique_images(const input_t& inp, cross_t& spv_cross) {
+    for (cross_source_t& src: spv_cross.sources) {
         for (image_t& img: src.refl.images) {
             int other_img_index = find_unique_image_by_name(spv_cross, img.name);
             if (other_img_index >= 0) {
@@ -429,7 +429,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
 
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
-static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
+static errmsg_t validate_linking(const input_t& inp, const cross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         int vs_snippet_index = inp.vs_map.at(prog.vs_name);
@@ -437,8 +437,8 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
         int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
         int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
         assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
+        const cross_source_t& vs_src = spv_cross.sources[vs_src_index];
+        const cross_source_t& fs_src = spv_cross.sources[fs_src_index];
         assert(vs_snippet_index == vs_src.snippet_index);
         assert(fs_snippet_index == fs_src.snippet_index);
         for (int i = 0; i < attr_t::NUM; i++) {
@@ -454,10 +454,10 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     return errmsg_t();
 }
 
-spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
-    spirvcross_t spv_cross;
+cross_t cross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
+    cross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
-        spirvcross_source_t src;
+        cross_source_t src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
         assert((type == snippet_t::VS) || (type == snippet_t::FS));
@@ -524,8 +524,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
-    fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
+void cross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
+    fmt::print(stderr, "cross_t ({}):\n", slang_t::to_str(slang));
     if (error.valid) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }
@@ -533,7 +533,7 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
         fmt::print(stderr, "  error: not set\n");
     }
     std::vector<std::string> lines;
-    for (const spirvcross_source_t& source: sources) {
+    for (const cross_source_t& source: sources) {
         fmt::print(stderr, "    source for snippet {}:\n", source.snippet_index);
         pystring::splitlines(source.source_code, lines);
         for (const std::string& line: lines) {

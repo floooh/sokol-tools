@@ -96,7 +96,7 @@ static std::string func_case_name(const std::string& prefix, const std::string& 
     return all;
 }
 
-static void write_header(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_header(const args_t& args, const input_t& inp, const cross_t& cross) {
     L("//\n");
     L("//  #version:{}# (machine generated, don't edit!)\n", args.gen_version);
     L("//\n");
@@ -109,8 +109,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
 
-        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const cross_source_t* vs_src = find_cross_source_by_shader_name(prog.vs_name, inp, cross);
+        const cross_source_t* fs_src = find_cross_source_by_shader_name(prog.fs_name, inp, cross);
         assert(vs_src && fs_src);
         L("//      Shader program '{}':\n", prog.name);
         L("//          Get shader desc: shd.{}ShaderDesc(sg.queryBackend());\n", func_case_name(mod_prefix(inp), prog.name));
@@ -150,8 +150,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("//\n");
 }
 
-static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const spirvcross_source_t& src: spirvcross.sources) {
+static void write_vertex_attrs(const input_t& inp, const cross_t& cross) {
+    for (const cross_source_t& src: cross.sources) {
         if (src.refl.stage == stage_t::VS) {
             const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
             for (const attr_t& attr: src.refl.inputs) {
@@ -163,8 +163,8 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
     }
 }
 
-static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const image_t& img: spirvcross.unique_images) {
+static void write_image_bind_slots(const input_t& inp, const cross_t& cross) {
+    for (const image_t& img: cross.unique_images) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
 }
@@ -179,8 +179,8 @@ static std::string struct_case_name(const std::string& prefix, const std::string
     return pystring::join("", parts);
 }
 
-static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
-    for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
+static void write_uniform_blocks(const input_t& inp, const cross_t& cross, slang_t::type_t slang) {
+    for (const uniform_block_t& ub: cross.unique_uniform_blocks) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
@@ -245,7 +245,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
 }
 
 static void write_shader_sources_and_blobs(const input_t& inp,
-                                           const spirvcross_t& spirvcross,
+                                           const cross_t& cross,
                                            const bytecode_t& bytecode,
                                            slang_t::type_t slang)
 {
@@ -254,9 +254,9 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         if ((snippet.type != snippet_t::VS) && (snippet.type != snippet_t::FS)) {
             continue;
         }
-        int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
+        int src_index = cross.find_source_by_snippet_index(snippet_index);
         assert(src_index >= 0);
-        const spirvcross_source_t& src = spirvcross.sources[src_index];
+        const cross_source_t& src = cross.sources[src_index];
         int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
         const bytecode_blob_t* blob = 0;
         if (blob_index != -1) {
@@ -306,7 +306,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
 
 static void write_stage(const char* indent,
                         const char* stage_name,
-                        const spirvcross_source_t* src,
+                        const cross_source_t* src,
                         const std::string& src_name,
                         const bytecode_blob_t* blob,
                         const std::string& blob_name,
@@ -363,9 +363,9 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
-    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const cross_t& cross, const bytecode_t& bytecode, slang_t::type_t slang) {
+    const cross_source_t* vs_src = find_cross_source_by_shader_name(prog.vs_name, inp, cross);
+    const cross_source_t* fs_src = find_cross_source_by_shader_name(prog.fs_name, inp, cross);
     assert(vs_src && fs_src);
     const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
     const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
@@ -403,7 +403,7 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
 }
 
 errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
+                     const std::array<cross_t,slang_t::NUM>& cross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     // first write everything into a string, and only when no errors occur,
@@ -416,21 +416,21 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, cross[i], slang);
             if (err.valid) {
                 return err;
             }
             if (!comment_header_written) {
-                write_header(args, inp, spirvcross[i]);
+                write_header(args, inp, cross[i]);
                 comment_header_written = true;
             }
             if (!common_decls_written) {
                 common_decls_written = true;
-                write_vertex_attrs(inp, spirvcross[i]);
-                write_image_bind_slots(inp, spirvcross[i]);
-                write_uniform_blocks(inp, spirvcross[i], slang);
+                write_vertex_attrs(inp, cross[i]);
+                write_image_bind_slots(inp, cross[i]);
+                write_uniform_blocks(inp, cross[i], slang);
             }
-            write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
+            write_shader_sources_and_blobs(inp, cross[i], bytecode[i], slang);
         }
     }
 
@@ -444,7 +444,7 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
             slang_t::type_t slang = (slang_t::type_t) i;
             if (args.slang & slang_t::bit(slang)) {
                 L("        {} => {{\n", sokol_backend(slang));
-                write_shader_desc_init("            ", prog, inp, spirvcross[i], bytecode[i], slang);
+                write_shader_desc_init("            ", prog, inp, cross[i], bytecode[i], slang);
                 L("        }},\n");
             }
         }

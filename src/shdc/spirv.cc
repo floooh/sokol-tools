@@ -168,7 +168,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     // NOTE: where using AutoMapBinding here, but this will just throw all bindings
     // into descriptor set null, which is not what we actually want.
-    // We'll fix up the bindings later before calling SPIRVCross.
+    // We'll fix up the bindings later before calling SPIRV-Cross.
     if (auto_map) {
         shader.setAutoMapLocations(true);
         shader.setAutoMapBindings(true);
@@ -254,12 +254,12 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
     return out_spirv;
 }
 
-/* compile the GLSL output of spirvcross back to SPIRV */
-spirv_t spirv_t::compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross) {
-    assert(spirvcross);
+/* compile the GLSL output of SPIRV-Cross back to SPIRV */
+spirv_t spirv_t::compile_spirv_glsl(const input_t& inp, slang_t::type_t slang, const cross_t* cross) {
+    assert(cross);
     spirv_t out_spirv;
     const bool auto_map = false;
-    for (const spirvcross_source_t& src : spirvcross->sources) {
+    for (const cross_source_t& src : cross->sources) {
         const snippet_t& snippet = inp.snippets[src.snippet_index];
         assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
         if (snippet.type == snippet_t::VS) {

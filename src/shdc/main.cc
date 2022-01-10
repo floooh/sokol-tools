@@ -54,16 +54,16 @@ int main(int argc, const char** argv) {
     }
 
     // cross-translate SPIRV to shader dialects
-    std::array<spirvcross_t,slang_t::NUM> spirvcross;
+    std::array<cross_t,slang_t::NUM> cross;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
+            cross[i] = cross_t::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
-                spirvcross[i].dump_debug(args.error_format, slang);
+                cross[i].dump_debug(args.error_format, slang);
             }
-            if (spirvcross[i].error.valid) {
-                spirvcross[i].error.print(args.error_format);
+            if (cross[i].error.valid) {
+                cross[i].error.print(args.error_format);
                 return 10;
             }
         }
@@ -79,7 +79,7 @@ int main(int argc, const char** argv) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {
-                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
+                bytecode[i] = bytecode_t::compile(args, inp, cross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();
                 }
@@ -99,23 +99,17 @@ int main(int argc, const char** argv) {
         }
     }
     
-size_t u8_size = bytecode[slang_t::WGSL].blobs[0].data.size();
-size_t u32_size = u8_size / sizeof(uint32_t);
-std::vector<uint32_t> spv_data(u32_size);
-memcpy(spv_data.data(), bytecode[slang_t::WGSL].blobs[0].data.data(), u8_size);
-wgsl::bla(spv_data);
-
     // generate output files
     errmsg_t output_err;
     switch (args.output_format) {
         case format_t::BARE:
-            output_err = bare_t::gen(args, inp, spirvcross, bytecode);
+            output_err = bare_t::gen(args, inp, cross, bytecode);
             break;
         case format_t::SOKOL_ZIG:
-            output_err = sokolzig_t::gen(args, inp, spirvcross, bytecode);
+            output_err = sokolzig_t::gen(args, inp, cross, bytecode);
             break;
         default:
-            output_err = sokol_t::gen(args, inp, spirvcross, bytecode);
+            output_err = sokol_t::gen(args, inp, cross, bytecode);
             break;
     }
     if (output_err.valid) {

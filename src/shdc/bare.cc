@@ -29,7 +29,7 @@ static const char* slang_file_extension(slang_t::type_t c, bool binary) {
 }
 
 static errmsg_t write_stage(const std::string& file_path,
-                            const spirvcross_source_t* src,
+                            const cross_source_t* src,
                             const bytecode_blob_t* blob)
 {
     // write text or binary to output file
@@ -58,14 +58,14 @@ static errmsg_t write_stage(const std::string& file_path,
 
 static errmsg_t write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
-                                               const spirvcross_t& spirvcross,
+                                               const cross_t& cross,
                                                const bytecode_t& bytecode,
                                                slang_t::type_t slang)
 {
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const cross_source_t* vs_src = find_cross_source_by_shader_name(prog.vs_name, inp, cross);
+        const cross_source_t* fs_src = find_cross_source_by_shader_name(prog.fs_name, inp, cross);
         const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
         std::string file_path_vs = fmt::format("{}_{}{}_{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), slang_file_extension(slang, vs_blob));
@@ -86,17 +86,17 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
 }
 
 errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
+                     const std::array<cross_t,slang_t::NUM>& cross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            errmsg_t err = check_errors(inp, cross[i], slang);
             if (err.valid) {
                 return err;
             }
-            err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
+            err = write_shader_sources_and_blobs(args, inp, cross[i], bytecode[i], slang);
             if (err.valid) {
                 return err;
             }
