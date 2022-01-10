@@ -103,13 +103,13 @@ int main(int argc, const char** argv) {
     errmsg_t output_err;
     switch (args.output_format) {
         case format_t::BARE:
-            output_err = bare_t::gen(args, inp, cross, bytecode);
+            output_err = output_bare_t::gen(args, inp, cross, bytecode);
             break;
         case format_t::SOKOL_ZIG:
-            output_err = sokolzig_t::gen(args, inp, cross, bytecode);
+            output_err = output_sokolzig_t::gen(args, inp, cross, bytecode);
             break;
         default:
-            output_err = sokol_t::gen(args, inp, cross, bytecode);
+            output_err = output_sokol_t::gen(args, inp, cross, bytecode);
             break;
     }
     if (output_err.valid) {

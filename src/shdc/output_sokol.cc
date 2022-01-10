@@ -691,9 +691,9 @@ static void write_uniform_desc_func(const program_t& prog, const args_t& args, c
 
 }
 
-errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<cross_t,slang_t::NUM>& cross,
-                     const std::array<bytecode_t,slang_t::NUM>& bytecode)
+errmsg_t output_sokol_t::gen(const args_t& args, const input_t& inp,
+                             const std::array<cross_t,slang_t::NUM>& cross,
+                             const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)

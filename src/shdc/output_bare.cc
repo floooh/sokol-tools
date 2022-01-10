@@ -85,9 +85,9 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
     return errmsg_t();
 }
 
-errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<cross_t,slang_t::NUM>& cross,
-                     const std::array<bytecode_t,slang_t::NUM>& bytecode)
+errmsg_t output_bare_t::gen(const args_t& args, const input_t& inp,
+                            const std::array<cross_t,slang_t::NUM>& cross,
+                            const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;

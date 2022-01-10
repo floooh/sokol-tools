@@ -549,17 +549,17 @@ struct bytecode_t {
 };
 
 /* C header-generator for sokol_gfx.h */
-struct sokol_t {
+struct output_sokol_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* Zig module-generator for sokol.gfx.zig */
-struct sokolzig_t {
+struct output_sokolzig_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
 /* bare format generator */
-struct bare_t {
+struct output_bare_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<cross_t,slang_t::NUM>& cross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
