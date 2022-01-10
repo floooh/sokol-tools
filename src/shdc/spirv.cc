@@ -107,9 +107,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     bounded for-loops are converted to what looks like an unbounded loop
     ("for (;;) { }") to WebGL
 */
-static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    // not supported by spvtools::Optimizer
-    assert(slang != slang_t::WGSL);
+static void spirv_optimize(std::vector<uint32_t>& spirv) {
     spv_target_env target_env = SPV_ENV_UNIVERSAL_1_2;
     spvtools::Optimizer optimizer(target_env);
     optimizer.SetMessageConsumer(
@@ -153,7 +151,7 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, bool optimize, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -216,24 +214,25 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
         fmt::print(spirv_log);
     }
     // run optimizer passes
-    if (slang != slang_t::WGSL) {
-        spirv_optimize(slang, out_spirv.blobs.back().bytecode);
+    if (optimize) {
+        spirv_optimize(out_spirv.blobs.back().bytecode);
     }
     return true;
 }
 
 /* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
+spirv_t spirv_t::compile_input(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
     int snippet_index = 0;
     const bool auto_map = true;
+    const bool optimize = slang != slang_t::WGSL;
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangVertex, slang, src, inp, snippet_index, auto_map, out_spirv)) {
+            if (!compile(EShLangVertex, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -241,7 +240,7 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangFragment, slang, src, inp, snippet_index, auto_map, out_spirv)) {
+            if (!compile(EShLangFragment, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -255,24 +254,22 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
 }
 
 /* compile the GLSL output of SPIRV-Cross back to SPIRV */
-spirv_t spirv_t::compile_spirv_glsl(const input_t& inp, slang_t::type_t slang, const cross_t* cross) {
-    assert(cross);
+spirv_t spirv_t::compile_source(const input_t& inp, int snippet_index, const std::string& src) {
     spirv_t out_spirv;
     const bool auto_map = false;
-    for (const cross_source_t& src : cross->sources) {
-        const snippet_t& snippet = inp.snippets[src.snippet_index];
-        assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
-        if (snippet.type == snippet_t::VS) {
-            if (!compile(EShLangVertex, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
-                // spirv.errors contains error list
-                break;
-            }
+    const bool optimize = false;
+    const snippet_t& snippet = inp.snippets[snippet_index];
+    assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
+    if (snippet.type == snippet_t::VS) {
+        if (!compile(EShLangVertex, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+            // spirv.errors contains error list
+            return out_spirv;
         }
-        else if (snippet.type == snippet_t::FS) {
-            if (!compile(EShLangFragment, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
-                // spirv.errors contains error list
-                break;
-            }
+    }
+    else if (snippet.type == snippet_t::FS) {
+        if (!compile(EShLangFragment, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+            // spirv.errors contains error list
+            return out_spirv;
         }
     }
     return out_spirv;

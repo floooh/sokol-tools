@@ -307,9 +307,22 @@ static cross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool i
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.snippet_index = blob.snippet_index;
         res.refl = parse_reflection(compiler, is_vulkan);
     }
     return res;
+}
+
+static cross_source_t to_glsl_330(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(blob, 330, false, false, opt_mask, type);
+}
+
+static cross_source_t to_glsl_100(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(blob, 100, true, false, opt_mask, type);
+}
+
+static cross_source_t to_glsl_300es(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(blob, 300, true, false, opt_mask, type);
 }
 
 static cross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
@@ -330,9 +343,18 @@ static cross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, u
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.snippet_index = blob.snippet_index;
         res.refl = parse_reflection(compiler, false);
     }
     return res;
+}
+
+static cross_source_t to_hlsl_4(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_hlsl(blob, 40, opt_mask, type);
+}
+
+static cross_source_t to_hlsl_5(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_hlsl(blob, 50, opt_mask, type);
 }
 
 static cross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
@@ -352,11 +374,30 @@ static cross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Pla
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        res.snippet_index = blob.snippet_index;
         res.refl = parse_reflection(compiler, false);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
     return res;
+}
+
+static cross_source_t to_msl_macos(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);
+}
+
+static cross_source_t to_msl_ios(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
+}
+
+static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    // first compile the SPIRV back to GLSL
+    const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
+    // next compile the GLSL back to SPIRV
+    spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, glsl.source_code);
+    // FIXME: compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
+    // to the wgsl ouput...
+    return glsl;
 }
 
 static int find_unique_uniform_block_by_name(const cross_t& spv_cross, const std::string& name) {
@@ -455,73 +496,70 @@ static errmsg_t validate_linking(const input_t& inp, const cross_t& spv_cross) {
 }
 
 cross_t cross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
-    cross_t spv_cross;
+    cross_t cross;
     for (const auto& blob: spirv.blobs) {
         cross_source_t src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
         assert((type == snippet_t::VS) || (type == snippet_t::FS));
-        spv_cross.error = validate_uniform_blocks(inp, blob);
-        if (spv_cross.error.valid) {
-            return spv_cross;
+        cross.error = validate_uniform_blocks(inp, blob);
+        if (cross.error.valid) {
+            return cross;
         }
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl(blob, 330, false, false, opt_mask, type);
+                src = to_glsl_330(blob, opt_mask, type);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl(blob, 100, true, false, opt_mask, type);
+                src = to_glsl_100(blob, opt_mask, type);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, 300, true, false, opt_mask, type);
+                src = to_glsl_300es(blob, opt_mask, type);
                 break;
             case slang_t::HLSL4:
-                src = to_hlsl(blob, 40, opt_mask, type);
+                src = to_hlsl_4(blob, opt_mask, type);
                 break;
             case slang_t::HLSL5:
-                src = to_hlsl(blob, 50, opt_mask, type);
+                src = to_hlsl_5(blob, opt_mask, type);
                 break;
             case slang_t::METAL_MACOS:
-                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);
+                src = to_msl_macos(blob, opt_mask, type);
                 break;
             case slang_t::METAL_IOS:
             case slang_t::METAL_SIM:
-                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
+                src = to_msl_ios(blob, opt_mask, type);
                 break;
             case slang_t::WGSL:
-                // hackety hack, just compile to GLSL even for SPIRV output
-                // so that we can use the same SPIRV-Cross's reflection API
-                // calls as for the other output types
-                src = to_glsl(blob, 450, false, true, opt_mask, type);
+                src = to_wgsl(inp, blob, opt_mask, type);
                 break;
             default: break;
         }
         if (src.valid) {
-            src.snippet_index = blob.snippet_index;
-            spv_cross.sources.push_back(std::move(src));
+            assert(src.snippet_index == blob.snippet_index);
+            cross.sources.push_back(std::move(src));
         }
         else {
             const int line_index = inp.snippets[blob.snippet_index].lines[0];
             std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
-            spv_cross.error = inp.error(line_index, err_msg);
-            return spv_cross;
+            cross.error = inp.error(line_index, err_msg);
+            return cross;
         }
-        if (!gather_unique_uniform_blocks(inp, spv_cross)) {
-            // error has been set in spv_cross.error
-            return spv_cross;
+        if (!gather_unique_uniform_blocks(inp, cross)) {
+            // error has been set in cross.error
+            return cross;
         }
-        if (!gather_unique_images(inp, spv_cross)) {
-            // error has been set in spv_cross.error
-            return spv_cross;
+        if (!gather_unique_images(inp, cross)) {
+            // error has been set in cross.error
+            return cross;
         }
     }
     // check that vertex-shader outputs match their fragment shader inputs
-    errmsg_t err = validate_linking(inp, spv_cross);
+    errmsg_t err = validate_linking(inp, cross);
     if (err.valid) {
-        spv_cross.error = err;
-        return spv_cross;
+        cross.error = err;
+        return cross;
     }
-    return spv_cross;
+    return cross;
 }
 
 void cross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
