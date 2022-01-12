@@ -429,7 +429,6 @@ struct uniform_block_t {
         if ((slot != other.slot) ||
             (size != other.size) ||
             (struct_name != other.struct_name) ||
-            (inst_name != other.inst_name) ||
             (uniforms.size() != other.uniforms.size()) ||
             (flattened != other.flattened))
         {
