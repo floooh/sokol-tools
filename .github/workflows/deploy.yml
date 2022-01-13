@@ -26,7 +26,6 @@ jobs:
       with:
         submodules: true
     - uses: seanmiddleditch/gha-setup-ninja@master
-    - name: prepare
     - name: build
       run: |
         python fips set local on
@@ -44,7 +43,6 @@ jobs:
       with:
         submodules: true
     - uses: seanmiddleditch/gha-setup-ninja@master
-    - name: prepare
     - name: build
       run: |
         python fips set local on
@@ -54,7 +52,7 @@ jobs:
       with:
         name: osx-arm64-ninja-release
         path: fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
-        retention-days: 2
+        retention-days: 1
   linux:
     runs-on: ubuntu-latest
     steps:
@@ -69,7 +67,7 @@ jobs:
       with:
         name: linux-ninja-release
         path: sokol-shdc
-        retention-days: 2
+        retention-days: 1
   deploy:
     needs: [windows, mac_intel, mac_arm, linux]
     runs-on: ubuntu-latest
