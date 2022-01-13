@@ -1,6 +1,6 @@
 # sokol-tools
 
-[![Build Status](https://github.com/floooh/sokol-tools/workflows/build/badge.svg)](https://github.com/floooh/sokol-tools/actions)
+[![Build](https://github.com/floooh/sokol-tools/actions/workflows/build.yml/badge.svg)](https://github.com/floooh/sokol-tools/actions/workflows/build.yml)
 
 Command line tools for the [sokol headers](https://github.com/floooh/sokol).
 
