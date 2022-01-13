@@ -74,7 +74,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        repository: floooh/sokol-tools-citest
+        repository: floooh/sokol-tools-bin
         ssh-key: ${{ secrets.GHACTIONS_PUSH }}
     - uses: actions/download-artifact@v2
       with:
