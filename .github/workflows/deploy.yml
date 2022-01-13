@@ -1,0 +1,102 @@
+name: build
+
+on: workflow_dispatch
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - name: prepare
+      run:  python fips set local on
+    - name: build
+      run:  python fips build win64-vstudio-release
+    - name: upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: win64-vstudio-release
+        path: fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
+        retention-days: 2
+  mac_intel:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: prepare
+      run:  python fips set local on
+    - name: build
+      run:  python fips build osx-x64-ninja-release
+    - name: upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: osx-x64-ninja-release
+        path: fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
+        retention-days: 2
+  mac_arm:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: prepare
+      run:  python fips set local on
+    - name: build
+      run:  python fips build osx-arm64-ninja-release
+    - name: upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: osx-arm64-ninja-release
+        path: fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
+        retention-days: 2
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: build
+      run: ./build_docker.sh
+    - name: upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: linux-ninja-release
+        path: sokol-shdc
+        retention-days: 2
+  deploy:
+    needs: [windows, mac_intel, mac_arm, linux]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: floooh/sokol-tools-citest
+        ssh-key: ${{ secrets.GHACTIONS_PUSH }}
+    - uses: actions/download-artifact@v2
+      with:
+        name: win64-vstudio-release
+        path: bin/win32
+    - uses: actions/download-artifact@v2
+      with:
+        name: osx-x64-ninja-release
+        path: bin/osx
+    - uses: actions/download-artifact@v2
+      with:
+        name: osx-arm64-ninja-release
+        path: bin/osx_arm64
+    - uses: actions/download-artifact@v2
+      with:
+        name: linux-ninja-release
+        path: bin/linux
+    - name: "commit and push"
+      run: |
+        chmod a+x bin/osx/sokol-shdc bin/osx_arm64/sokol-shdc bin/linux/sokol-shdc
+        git config user.email "none"
+        git config user.name "GH Action"
+        git add .
+        git commit -m "updated (${{ github.run_number }})"
+        git push
