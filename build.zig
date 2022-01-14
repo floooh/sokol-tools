@@ -1,6 +1,19 @@
 const std = @import("std");
 const bld = std.build;
 
+const common_flags = [_][]const u8 {
+    "-fstrict-aliasing",
+};
+const common_c_flags = common_flags;
+const common_cpp_flags = common_flags ++ [_][]const u8{
+    "-fno-rtti",
+    "-fno-exceptions",
+};
+
+const spvcross_public_cpp_flags = [_][]const u8 {
+    "-DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS",
+};
+
 pub fn build(b: *bld.Builder) void {
     _ = build_exe(b, b.standardTargetOptions(.{}), b.standardReleaseOptions(), "");
 }
@@ -30,7 +43,7 @@ pub fn build_exe(b: *bld.Builder, target: std.zig.CrossTarget, mode: std.builtin
         "ext/glslang/SPIRV",
         "ext/SPIRV-Tools/include"
     };
-    const flags = [_][]const u8 { };
+    const flags = common_cpp_flags ++ spvcross_public_cpp_flags;
 
     const exe = b.addExecutable("sokol-shdc", null);
     exe.setTarget(target);
@@ -59,7 +72,7 @@ fn lib_getopt(b: *bld.Builder, target: std.zig.CrossTarget,  mode: std.builtin.M
     lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.addIncludeDir(prefix_path ++ "ext/getopt/include");
-    const flags = [_][]const u8 { };
+    const flags = common_c_flags;
     lib.addCSourceFile(prefix_path ++ "ext/getopt/src/getopt.c", &flags);
     return lib;
 }
@@ -70,7 +83,7 @@ fn lib_pystring(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.built
     lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
-    const flags = [_][]const u8 { };
+    const flags = common_cpp_flags;
     lib.addCSourceFile(prefix_path ++ "ext/pystring/pystring.cpp", &flags);
     return lib;
 }
@@ -87,7 +100,7 @@ fn lib_fmt(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builtin.Mo
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     lib.addIncludeDir(prefix_path ++ "ext/fmt/include");
-    const flags = [_][]const u8 { };
+    const flags = common_cpp_flags;
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
@@ -107,9 +120,7 @@ fn lib_spirvcross(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.bui
         "spirv_reflect.cpp",
         "spirv_cross_util.cpp",
     };
-    const flags = [_][]const u8 {
-        "-DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS",
-    };
+    const flags = common_cpp_flags ++ spvcross_public_cpp_flags;
 
     const lib = b.addStaticLibrary("spirvcross", null);
     lib.setTarget(target);
@@ -185,11 +196,10 @@ fn lib_glslang(b: *bld.Builder, target : std.zig.CrossTarget,  mode : std.builti
     const unix_sources = [_][]const u8 {
         "glslang/OSDependent/Unix/ossource.cpp"
     };
-    const os_define = if (lib.target.isWindows()) "-DGLSLANG_OSINCLUDE_WIN32" else "-DGLSLANG_OSINCLUDE_UNIX";
-    const flags = [_][]const u8 {
-        os_define,
-        "-DENABLE_OPT=1",
-    };
+    const cmn_flags = common_cpp_flags ++ [_][]const u8{ "-DENABLE_OPT=1" };
+    const win_flags = cmn_flags ++ [_][]const u8{ "-DGLSLANG_OSINCLUDE_WIN32" };
+    const unx_flags = cmn_flags ++ [_][]const u8{ "-DGLSLANG_OSINCLUDE_UNIX" };
+    const flags = if (lib.target.isWindows()) win_flags else unx_flags;
 
     lib.setTarget(target);
     lib.setBuildMode(mode);
@@ -396,7 +406,7 @@ fn lib_spirvtools(b: *bld.Builder, target: std.zig.CrossTarget, mode: std.builti
         "ext/SPIRV-Tools/include",
         "ext/SPIRV-Headers/include",
     };
-    const flags = [_][]const u8 { };
+    const flags = common_cpp_flags;
 
     const lib = b.addStaticLibrary("spirvtools", null);
     lib.setTarget(target);
