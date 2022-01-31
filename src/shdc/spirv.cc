@@ -164,7 +164,7 @@ static bool compile(EShLanguage stage, const std::string& src, const input_t& in
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-    // NOTE: where using AutoMapBinding here, but this will just throw all bindings
+    // NOTE: we're using AutoMapBinding here, but this will just throw all bindings
     // into descriptor set null, which is not what we actually want.
     // We'll fix up the bindings later before calling SPIRV-Cross.
     if (auto_map) {
