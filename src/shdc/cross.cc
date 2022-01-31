@@ -9,6 +9,7 @@
 #include "spirv_glsl.hpp"
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
+#include "tint.h"
 
 /*
     for "Vulkan convention", fragment shader uniform block bindings live in the same
@@ -393,11 +394,26 @@ static cross_source_t to_msl_ios(const spirv_blob_t& blob, uint32_t opt_mask, sn
 static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
     // first compile the SPIRV back to GLSL
     const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
+__builtin_printf("GLSL\n%s\n", glsl.source_code.c_str());
     // next compile the GLSL back to SPIRV
     spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, glsl.source_code);
-    // FIXME: compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
-    // to the wgsl ouput...
-    return glsl;
+    assert(spirv.errors.size() == 0);
+    // compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
+    tint::Program program = tint::reader::spirv::Parse(spirv.blobs[0].bytecode);
+    cross_source_t res;
+    tint::writer::wgsl::Options gen_options;
+    auto result = tint::writer::wgsl::Generate(&program, gen_options);
+__builtin_printf("WGSL\n%s\n", result.wgsl.c_str());
+    if (result.success) {
+        res.valid = true;
+        res.source_code = result.wgsl;
+        res.snippet_index = blob.snippet_index;
+        res.refl = glsl.refl;
+    }
+    else {
+        // FIXME: do something with result.error
+    }
+    return res;
 }
 
 static int find_unique_uniform_block_by_name(const cross_t& spv_cross, const std::string& name) {
