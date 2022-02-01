@@ -395,12 +395,12 @@ static cross_source_t to_msl_ios(const spirv_blob_t& blob, uint32_t opt_mask, sn
 
 static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
     cross_source_t res;
-    // first compile the SPIRV back to GLSL
-    const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
-    // next compile the GLSL back to SPIRV
-    spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, glsl.source_code);
+    // compile the SPIRV back to HLSL via SPIRVCross
+    const cross_source_t hlsl = to_hlsl_4(blob, opt_mask, type);
+    // next compile the HLSL back to SPIRV via glslang
+    spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, hlsl.source_code);
     assert(spirv.errors.size() == 0);
-    // compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
+    // compile SPIRV to WGSL via Tint
     tint::Program program = tint::reader::spirv::Parse(spirv.blobs[0].bytecode);
     if (!program.Diagnostics().contains_errors()) {
         tint::writer::wgsl::Options gen_options;
@@ -409,7 +409,7 @@ static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint
             res.valid = true;
             res.source_code = result.wgsl;
             res.snippet_index = blob.snippet_index;
-            res.refl = glsl.refl;
+            res.refl = hlsl.refl;
         }
         else {
             res.error = inp.error(blob.snippet_index, result.error);

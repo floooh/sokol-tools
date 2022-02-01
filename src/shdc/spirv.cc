@@ -151,7 +151,7 @@ static void spirv_optimize(std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, bool optimize, spirv_t& out_spirv) {
+static bool compile(glslang::EShSource lang, EShLanguage stage, glslang::EShClient client, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, bool optimize, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -160,8 +160,12 @@ static bool compile(EShLanguage stage, const std::string& src, const input_t& in
     glslang::TShader shader(stage);
     // FIXME: add custom defines here: compiler.addProcess(...)
     //shader.setStrings(sources, 1);
+    if (lang == glslang::EShSourceHlsl) {
+        shader.setEntryPoint("main");
+        shader.setShiftBinding(glslang::EResSampler, 4);
+    }
     shader.setStringsWithLengthsAndNames(sources, sourcesLen, sourcesNames, 1);
-    shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
+    shader.setEnvInput(lang, stage, client, 100/*???*/);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     // NOTE: we're using AutoMapBinding here, but this will just throw all bindings
@@ -232,7 +236,7 @@ spirv_t spirv_t::compile_input(const input_t& inp, slang_t::type_t slang, const 
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangVertex, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+            if (!compile(glslang::EShSourceGlsl, EShLangVertex, glslang::EShClientOpenGL, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -240,7 +244,7 @@ spirv_t spirv_t::compile_input(const input_t& inp, slang_t::type_t slang, const 
         else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangFragment, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+            if (!compile(glslang::EShSourceGlsl, EShLangFragment, glslang::EShClientOpenGL, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -261,13 +265,13 @@ spirv_t spirv_t::compile_source(const input_t& inp, int snippet_index, const std
     const snippet_t& snippet = inp.snippets[snippet_index];
     assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
     if (snippet.type == snippet_t::VS) {
-        if (!compile(EShLangVertex, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+        if (!compile(glslang::EShSourceHlsl, EShLangVertex, glslang::EShClientNone, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
             // spirv.errors contains error list
             return out_spirv;
         }
     }
     else if (snippet.type == snippet_t::FS) {
-        if (!compile(EShLangFragment, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
+        if (!compile(glslang::EShSourceHlsl, EShLangFragment, glslang::EShClientNone, src, inp, snippet_index, auto_map, optimize, out_spirv)) {
             // spirv.errors contains error list
             return out_spirv;
         }
