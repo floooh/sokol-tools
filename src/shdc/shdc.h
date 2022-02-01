@@ -518,6 +518,7 @@ struct cross_source_t {
     bool valid = false;
     int snippet_index = -1;
     std::string source_code;
+    errmsg_t error;
     cross_refl_t refl;
 };
 

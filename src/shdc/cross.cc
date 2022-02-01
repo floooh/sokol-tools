@@ -75,6 +75,7 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
         ub_slot = (type == snippet_t::type_t::VS) ? 0 : vk_fs_ub_binding_offset;
     }
     for (const Resource& ub_res: res.uniform_buffers) {
+        compiler.unset_decoration(ub_res.id, spv::DecorationLocation);
         compiler.set_decoration(ub_res.id, spv::DecorationDescriptorSet, 0);
         compiler.set_decoration(ub_res.id, spv::DecorationBinding, ub_slot++);
     }
@@ -82,6 +83,7 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
     uint32_t img_slot = 0;
     uint32_t img_set = (type == snippet_t::type_t::VS) ? 1 : 2;
     for (const Resource& img_res: res.sampled_images) {
+        compiler.unset_decoration(img_res.id, spv::DecorationLocation);
         compiler.set_decoration(img_res.id, spv::DecorationDescriptorSet, img_set);
         compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
     }
@@ -392,26 +394,31 @@ static cross_source_t to_msl_ios(const spirv_blob_t& blob, uint32_t opt_mask, sn
 }
 
 static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    cross_source_t res;
     // first compile the SPIRV back to GLSL
     const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
-__builtin_printf("GLSL\n%s\n", glsl.source_code.c_str());
     // next compile the GLSL back to SPIRV
     spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, glsl.source_code);
     assert(spirv.errors.size() == 0);
     // compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
     tint::Program program = tint::reader::spirv::Parse(spirv.blobs[0].bytecode);
-    cross_source_t res;
-    tint::writer::wgsl::Options gen_options;
-    auto result = tint::writer::wgsl::Generate(&program, gen_options);
-__builtin_printf("WGSL\n%s\n", result.wgsl.c_str());
-    if (result.success) {
-        res.valid = true;
-        res.source_code = result.wgsl;
-        res.snippet_index = blob.snippet_index;
-        res.refl = glsl.refl;
+    if (!program.Diagnostics().contains_errors()) {
+        tint::writer::wgsl::Options gen_options;
+        auto result = tint::writer::wgsl::Generate(&program, gen_options);
+        if (result.success) {
+            res.valid = true;
+            res.source_code = result.wgsl;
+            res.snippet_index = blob.snippet_index;
+            res.refl = glsl.refl;
+        }
+        else {
+            res.error = inp.error(blob.snippet_index, result.error);
+            res.snippet_index = blob.snippet_index;
+        }
     }
     else {
-        // FIXME: do something with result.error
+        res.error = inp.error(blob.snippet_index, program.Diagnostics().str());
+        res.snippet_index = blob.snippet_index;
     }
     return res;
 }
@@ -556,7 +563,13 @@ cross_t cross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::ty
         }
         else {
             const int line_index = inp.snippets[blob.snippet_index].lines[0];
-            std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
+            std::string err_msg;
+            if (src.error.valid) {
+                err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", slang_t::to_str((slang_t::type_t)slang), src.error.msg);
+            }
+            else {
+                err_msg = fmt::format("Failed to cross-compile to {}\n", slang_t::to_str((slang_t::type_t)slang));
+            }
             cross.error = inp.error(line_index, err_msg);
             return cross;
         }
