@@ -82,10 +82,33 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, bool is_v
 
     uint32_t img_slot = 0;
     uint32_t img_set = (type == snippet_t::type_t::VS) ? 1 : 2;
-    for (const Resource& img_res: res.sampled_images) {
-        compiler.unset_decoration(img_res.id, spv::DecorationLocation);
-        compiler.set_decoration(img_res.id, spv::DecorationDescriptorSet, img_set);
-        compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
+    if (is_vulkan) {
+        // separate textures/samplers, sampler follows texture
+        for (const Resource& tex_res: res.separate_images) {
+            compiler.unset_decoration(tex_res.id, spv::DecorationLocation);
+            compiler.set_decoration(tex_res.id, spv::DecorationDescriptorSet, img_set);
+            compiler.set_decoration(tex_res.id, spv::DecorationBinding, img_slot);
+            // find matching sampler
+            // FIXME: this needs some sort of error handling if the matching sampler can't be found!
+            const std::string smp_name = fmt::format("{}_smp", tex_res.name);
+            for (const Resource& smp_res: res.separate_samplers) {
+                if (smp_name == smp_res.name) {
+                    compiler.unset_decoration(smp_res.id, spv::DecorationLocation);
+                    compiler.set_decoration(smp_res.id, spv::DecorationDescriptorSet, img_set);
+                    compiler.set_decoration(smp_res.id, spv::DecorationBinding, img_slot + 1);
+                    break;
+                }
+            }
+            img_slot += 2;
+        }
+    }
+    else {
+        // combined image-samplers
+        for (const Resource& img_res: res.sampled_images) {
+            compiler.unset_decoration(img_res.id, spv::DecorationLocation);
+            compiler.set_decoration(img_res.id, spv::DecorationDescriptorSet, img_set);
+            compiler.set_decoration(img_res.id, spv::DecorationBinding, img_slot++);
+        }
     }
 }
 
@@ -275,15 +298,32 @@ static cross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
         }
         refl.uniform_blocks.push_back(refl_ub);
     }
-    // images
-    for (const Resource& img_res: shd_resources.sampled_images) {
-        image_t refl_img;
-        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-        refl_img.name = img_res.name;
-        const SPIRType& img_type = compiler.get_type(img_res.type_id);
-        refl_img.type = spirtype_to_image_type(img_type);
-        refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
-        refl.images.push_back(refl_img);
+    if (is_vulkan) {
+        // separate textures/samplers
+        for (const Resource& tex_res: shd_resources.separate_images) {
+            image_t refl_tex;
+            // In 'vulkan mode', textures and samplers are separate on consecutive bind slots,
+            // but since the sokol_gfx.h API has 'combined image-samplers' there's no
+            // separate slot for the samplers, thus the '/2'
+            refl_tex.slot = compiler.get_decoration(tex_res.id, spv::DecorationBinding) / 2;
+            refl_tex.name = tex_res.name;
+            const SPIRType& img_type = compiler.get_type(tex_res.type_id);
+            refl_tex.type = spirtype_to_image_type(img_type);
+            refl_tex.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
+            refl.images.push_back(refl_tex);
+        }
+    }
+    else {
+        // combined image samplers
+        for (const Resource& img_res: shd_resources.sampled_images) {
+            image_t refl_img;
+            refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+            refl_img.name = img_res.name;
+            const SPIRType& img_type = compiler.get_type(img_res.type_id);
+            refl_img.type = spirtype_to_image_type(img_type);
+            refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
+            refl.images.push_back(refl_img);
+        }
     }
     return refl;
 }

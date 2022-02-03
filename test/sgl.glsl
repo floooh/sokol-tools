@@ -1,7 +1,7 @@
 @vs vs
 uniform vs_params {
-    uniform mat4 mvp;
-    uniform mat4 tm;
+    mat4 mvp;
+    mat4 tm;
 };
 in vec4 position;
 in vec2 texcoord0;
@@ -16,7 +16,14 @@ void main() {
 @end
 
 @fs fs
+
+#if SOKOL_WGSL
+uniform texture2D tex;
+uniform sampler tex_smp;
+#define tex sampler2D(tex,tex_smp)
+#else
 uniform sampler2D tex;
+#endif
 in vec4 uv;
 in vec4 color;
 out vec4 frag_color;
