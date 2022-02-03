@@ -351,9 +351,9 @@ struct spirv_t {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_input(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
+    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
     // helper function for WGSL generation
-    static spirv_t compile_source(const input_t& inp, int snippet_index, const std::string& src);
+    static spirv_t compile_intermediate_glsl(const input_t& inp, int snippet_index, const std::string& src);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 

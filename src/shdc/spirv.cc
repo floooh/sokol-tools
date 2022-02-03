@@ -221,7 +221,7 @@ static bool compile(EShLanguage stage, const std::string& src, const input_t& in
 }
 
 /* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_input(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
+spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
@@ -254,7 +254,7 @@ spirv_t spirv_t::compile_input(const input_t& inp, slang_t::type_t slang, const 
 }
 
 /* compile the GLSL output of SPIRV-Cross back to SPIRV */
-spirv_t spirv_t::compile_source(const input_t& inp, int snippet_index, const std::string& src) {
+spirv_t spirv_t::compile_intermediate_glsl(const input_t& inp, int snippet_index, const std::string& src) {
     spirv_t out_spirv;
     const bool auto_map = false;
     const bool optimize = false;

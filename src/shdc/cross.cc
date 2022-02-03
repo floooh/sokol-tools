@@ -438,7 +438,7 @@ static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint
     // first compile the SPIRV back to GLSL
     const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
     // next compile the GLSL back to SPIRV
-    spirv_t spirv = spirv_t::compile_source(inp, blob.snippet_index, glsl.source_code);
+    spirv_t spirv = spirv_t::compile_intermediate_glsl(inp, blob.snippet_index, glsl.source_code);
     assert(spirv.errors.size() == 0);
     // compile SPIRV to WGSL via Tint, copy the reflection info from glsl over
     tint::Program program = tint::reader::spirv::Parse(spirv.blobs[0].bytecode);

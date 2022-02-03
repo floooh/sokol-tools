@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirv[i] = spirv_t::compile_input(inp, slang, args.defines);
+            spirv[i] = spirv_t::compile_input_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
