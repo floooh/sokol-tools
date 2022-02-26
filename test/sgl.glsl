@@ -16,14 +16,8 @@ void main() {
 @end
 
 @fs fs
+@texture 2D tex
 
-#if SOKOL_WGSL
-uniform texture2D tex;
-uniform sampler tex_smp;
-#define tex sampler2D(tex,tex_smp)
-#else
-uniform sampler2D tex;
-#endif
 in vec4 uv;
 in vec4 color;
 out vec4 frag_color;

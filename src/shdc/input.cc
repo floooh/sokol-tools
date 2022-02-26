@@ -108,6 +108,7 @@ static const std::string glsl_options_tag = "@glsl_options";
 static const std::string hlsl_options_tag = "@hlsl_options";
 static const std::string msl_options_tag = "@msl_options";
 static const std::string include_tag = "@include";
+static const std::string texture_tag = "@texture";
 
 static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, input_t& inp) {
     // Returns true if it saw no errors, even if it did nothing.
@@ -293,6 +294,22 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
     return true;
 }
 
+static bool validate_texture_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens.size() < 3) {
+        inp.out_error = inp.error(line_index, "@texture must have exactly two args (@texture type name).");
+        return false;
+    }
+    if (!in_snippet) {
+        inp.out_error = inp.error(line_index, "@texture must be inside a @block, @vs or @fs block.");
+        return false;
+    }
+    if ((tokens[1] != "2D") && (tokens[1] != "3D") && (tokens[1] != "Cube") && (tokens[1] != "2DArray")) {
+        inp.out_error = inp.error(line_index, "@texture type must be '2D', '3D', 'Cube' or '2DArray'");
+        return false;
+    }
+    return true;
+}
+
 /* This parses the split input line array for custom tags (@vs, @fs, @block,
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
@@ -303,7 +320,7 @@ static bool parse(input_t& inp) {
     snippet_t cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
-    for (const line_t& line_info : inp.lines) {
+    for (line_t& line_info : inp.lines) {
         const std::string& line = line_info.line;
         add_line = in_snippet;
         pystring::split(line, tokens);
@@ -423,6 +440,14 @@ static bool parse(input_t& inp) {
                 inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
                 add_line = false;
             }
+            else if (tokens[0] == texture_tag) {
+                // this just does a slightly more thorough validation, the interesting stuff for
+                // the @texture tag already happened when loading the file
+                if (!validate_texture_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                add_line = false;
+            }
             else if (tokens[0][0] == '@') {
                 inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
@@ -448,8 +473,7 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
     return true;
 }
 
-static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs,
-                                input_t& inp, int parent_line_index) {
+static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, input_t& inp, int parent_line_index) {
     std::string path_used = path;
     std::string str = load_file_into_str(path_used);
     if (str.empty()) {
@@ -496,7 +520,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
     // preprocess
     std::vector<std::string> tokens;
     for (std::string& line : lines) {
-        // look for @include tags
+        // look for @include and @texture tags
         pystring::split(line, tokens);
         if (tokens.size() > 0) {
             if (!normalize_pragma_sokol(tokens, line, line_index, inp)) {
@@ -512,6 +536,23 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                     return false;
                 }
             }
+            else if (tokens[0] == texture_tag) {
+                if (!validate_texture_tag(tokens, true, line_index, inp)) {
+                    return false;
+                }
+                const std::string& tex_type = tokens[1];
+                const std::string& tex_name = tokens[2];
+                // keep @texture tag in for more thorough validation inside the parse function
+                inp.lines.push_back({line, filename_index, line_index});
+                // add macro magic for combined vs non-combined image samplers
+                inp.lines.push_back({std::string("#if SOKOL_WGSL\n"), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform texture{} {};\n", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform sampler {}_smp;\n", tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("#define {} sampler{}({},{}_smp)\n", tex_name, tex_type, tex_name, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({std::string("#else\n"), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform sampler{} {};\n", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({std::string("#endif\n"), filename_index, ++line_index});
+            }
             else {
                 // otherwise process file as normal
                 inp.lines.push_back({line, filename_index, line_index});
@@ -520,11 +561,10 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         else {
             // this is an empty line, but add it anyway so the error line
             // indices are always correct
-            inp.lines.push_back({ line, filename_index, line_index});
+            inp.lines.push_back({line, filename_index, line_index});
         }
         line_index++;
     }
-
     return true;
 }
 
