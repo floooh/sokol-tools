@@ -545,13 +545,13 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 // keep @texture tag in for more thorough validation inside the parse function
                 inp.lines.push_back({line, filename_index, line_index});
                 // add macro magic for combined vs non-combined image samplers
-                inp.lines.push_back({std::string("#if SOKOL_WGSL\n"), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform texture{} {};\n", tex_type, tex_name), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform sampler {}_smp;\n", tex_name), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("#define {} sampler{}({},{}_smp)\n", tex_name, tex_type, tex_name, tex_name), filename_index, ++line_index});
-                inp.lines.push_back({std::string("#else\n"), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform sampler{} {};\n", tex_type, tex_name), filename_index, ++line_index});
-                inp.lines.push_back({std::string("#endif\n"), filename_index, ++line_index});
+                inp.lines.push_back({std::string("#if SOKOL_WGSL"), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform texture{} {};", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform sampler {}_smp;", tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("#define {} sampler{}({},{}_smp)", tex_name, tex_type, tex_name, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({std::string("#else"), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform sampler{} {};", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({std::string("#endif"), filename_index, ++line_index});
             }
             else {
                 // otherwise process file as normal
