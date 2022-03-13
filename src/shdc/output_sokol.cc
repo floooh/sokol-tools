@@ -50,21 +50,22 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
     }
 }
 
-static const char* img_type_to_sokol_type_str(image_t::type_t type) {
+static const char* image_type_to_sokol_str(texture_t::image_type_t type) {
     switch (type) {
-        case image_t::IMAGE_TYPE_2D:    return "SG_IMAGETYPE_2D";
-        case image_t::IMAGE_TYPE_CUBE:  return "SG_IMAGETYPE_CUBE";
-        case image_t::IMAGE_TYPE_3D:    return "SG_IMAGETYPE_3D";
-        case image_t::IMAGE_TYPE_ARRAY: return "SG_IMAGETYPE_ARRAY";
+        case texture_t::IMAGE_TYPE_2D:    return "SG_IMAGETYPE_2D";
+        case texture_t::IMAGE_TYPE_CUBE:  return "SG_IMAGETYPE_CUBE";
+        case texture_t::IMAGE_TYPE_3D:    return "SG_IMAGETYPE_3D";
+        case texture_t::IMAGE_TYPE_ARRAY: return "SG_IMAGETYPE_ARRAY";
         default: return "INVALID";
     }
 }
 
-static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
-    switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return "SG_SAMPLERTYPE_FLOAT";
-        case image_t::IMAGE_BASETYPE_SINT:  return "SG_SAMPLERTYPE_SINT";
-        case image_t::IMAGE_BASETYPE_UINT:  return "SG_SAMPLERTYPE_UINT";
+static const char* sampler_type_to_sokol_str(texture_t::sampler_type_t type) {
+    switch (type) {
+        case texture_t::SAMPLER_TYPE_FLOAT: return "SG_SAMPLERTYPE_FLOAT";
+        case texture_t::SAMPLER_TYPE_SINT:  return "SG_SAMPLERTYPE_SINT";
+        case texture_t::SAMPLER_TYPE_UINT:  return "SG_SAMPLERTYPE_UINT";
+        case texture_t::SAMPLER_TYPE_UNFILTERABLE_FLOAT: return "SG_SAMPLERTYPE_UNFILTERABLE_FLOAT";
         default: return "INVALID";
     }
 }
@@ -126,11 +127,11 @@ static void write_header(const args_t& args, const input_t& inp, const cross_t& 
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: vs_src->refl.images) {
-            L("                Image '{}':\n", img.name);
-            L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        for (const texture_t& tex: vs_src->refl.textures) {
+            L("                Texture '{}':\n", tex.name);
+            L("                    Image Type: {}\n", image_type_to_sokol_str(tex.image_type));
+            L("                    Sampler Type: {}\n", sampler_type_to_sokol_str(tex.sampler_type));
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), tex.name, tex.slot);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
@@ -138,11 +139,11 @@ static void write_header(const args_t& args, const input_t& inp, const cross_t& 
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
-            L("                Image '{}':\n", img.name);
-            L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        for (const texture_t& tex: fs_src->refl.textures) {
+            L("                Image '{}':\n", tex.name);
+            L("                    Image Type: {}\n", image_type_to_sokol_str(tex.image_type));
+            L("                    Sampler Type: {}\n", sampler_type_to_sokol_str(tex.sampler_type));
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), tex.name, tex.slot);
         }
         L("\n");
     }
@@ -172,8 +173,8 @@ static void write_header(const args_t& args, const input_t& inp, const cross_t& 
         }
     }
     L("    Image bind slots, use as index in sg_bindings.vs_images[] or .fs_images[]\n\n");
-    for (const image_t& img: cross.unique_images) {
-        L("        SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
+    for (const texture_t& tex: cross.unique_textures) {
+        L("        SLOT_{}{} = {};\n", mod_prefix(inp), tex.name, tex.slot);
     }
     L("\n");
     for (const uniform_block_t& ub: cross.unique_uniform_blocks) {
@@ -207,9 +208,9 @@ static void write_vertex_attrs(const input_t& inp, const cross_t& cross) {
     }
 }
 
-static void write_image_bind_slots(const input_t& inp, const cross_t& cross) {
-    for (const image_t& img: cross.unique_images) {
-        L("#define SLOT_{}{} ({})\n", mod_prefix(inp), img.name, img.slot);
+static void write_texture_bind_slots(const input_t& inp, const cross_t& cross) {
+    for (const texture_t& tex: cross.unique_textures) {
+        L("#define SLOT_{}{} ({})\n", mod_prefix(inp), tex.name, tex.slot);
     }
 }
 
@@ -291,7 +292,7 @@ static void write_common_decls(slang_t::type_t slang, const args_t& args, const 
         }
     }
     write_vertex_attrs(inp, cross);
-    write_image_bind_slots(inp, cross);
+    write_texture_bind_slots(inp, cross);
     write_uniform_blocks(inp, cross, slang);
 }
 
@@ -403,12 +404,12 @@ static void write_stage(const char* indent,
             }
         }
     }
-    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image(src.refl, img_index);
-        if (img) {
-            L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, img_index, img->name);
-            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
-            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
+    for (int tex_index = 0; tex_index < texture_t::NUM; tex_index++) {
+        const texture_t* tex = find_texture(src.refl, tex_index);
+        if (tex) {
+            L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, tex_index, tex->name);
+            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, tex_index, image_type_to_sokol_str(tex->image_type));
+            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, tex_index, sampler_type_to_sokol_str(tex->sampler_type));
         }
     }
 }
@@ -520,10 +521,10 @@ static void write_attr_slot_func(const program_t& prog, const args_t& args, cons
 }
 
 static void write_image_slot_stage(const cross_source_t* src) {
-    for (const image_t& img: src->refl.images) {
-        if (img.slot >= 0) {
-            L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
-            L("      return {};\n", img.slot);
+    for (const texture_t& tex: src->refl.textures) {
+        if (tex.slot >= 0) {
+            L("    if (0 == strcmp(img_name, \"{}\")) {{\n", tex.name);
+            L("      return {};\n", tex.slot);
             L("    }}\n");
         }
     }
@@ -536,12 +537,12 @@ static void write_image_slot_func(const program_t& prog, const args_t& args, con
 
     L("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)img_name;\n");
-    if (!vs_src->refl.images.empty()) {
+    if (!vs_src->refl.textures.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_image_slot_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.images.empty()) {
+    if (!fs_src->refl.textures.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_image_slot_stage(fs_src);
         L("  }}\n");

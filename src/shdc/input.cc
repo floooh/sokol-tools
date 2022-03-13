@@ -295,16 +295,20 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
 }
 
 static bool validate_texture_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
-    if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, "@texture must have exactly two args (@texture type name).");
+    if (tokens.size() < 4) {
+        inp.out_error = inp.error(line_index, "@texture must have exactly two args (@texture image_type sample_type name).");
         return false;
     }
     if (!in_snippet) {
         inp.out_error = inp.error(line_index, "@texture must be inside a @block, @vs or @fs block.");
         return false;
     }
-    if ((tokens[1] != "2D") && (tokens[1] != "3D") && (tokens[1] != "Cube") && (tokens[1] != "2DArray")) {
-        inp.out_error = inp.error(line_index, "@texture type must be '2D', '3D', 'Cube' or '2DArray'");
+    if ((tokens[1] != "2d") && (tokens[1] != "3d") && (tokens[1] != "cube") && (tokens[1] != "2darray")) {
+        inp.out_error = inp.error(line_index, "@texture image_type must be '2d', '3d', 'cube' or '2darray'");
+        return false;
+    }
+    if ((tokens[2] != "float") && (tokens[2] != "unfilterable_float") && (tokens[2] != "sint") && (tokens[3] != "uint")) {
+        inp.out_error = inp.error(line_index, "@texture sample_type must be 'float', 'sint', 'uint' or 'unfilterable_float'");
         return false;
     }
     return true;
@@ -408,6 +412,16 @@ static bool parse(input_t& inp) {
                 for (int line_index : src_snippet.lines) {
                     cur_snippet.lines.push_back(line_index);
                 }
+                for (const auto& pair: src_snippet.textures) {
+                    const texture_t& tex = pair.second;
+                    if (cur_snippet.textures.count(tex.name)) {
+                        inp.out_error = inp.error(line_index, "@texture declarations must have unique name in snippet!\n");
+                        return false;
+                    }
+                    else {
+                        cur_snippet.textures[tex.name] = tex;
+                    }
+                }
                 add_line = false;
             }
             else if (tokens[0] == end_tag) {
@@ -441,10 +455,19 @@ static bool parse(input_t& inp) {
                 add_line = false;
             }
             else if (tokens[0] == texture_tag) {
-                // this just does a slightly more thorough validation, the interesting stuff for
-                // the @texture tag already happened when loading the file
                 if (!validate_texture_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
+                }
+                texture_t tex;
+                tex.image_type = texture_t::str_to_image_type(tokens[1]);
+                tex.sampler_type = texture_t::str_to_sampler_type(tokens[2]);
+                tex.name = tokens[3];
+                if (cur_snippet.textures.count(tex.name) > 0) {
+                    inp.out_error = inp.error(line_index, "@texture declarations must have unique name in snippet!\n");
+                    return false;
+                }
+                else {
+                    cur_snippet.textures[tex.name] = tex;
                 }
                 add_line = false;
             }
@@ -471,6 +494,44 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
         return false;
     }
     return true;
+}
+
+static std::string to_glsl_texture(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type) {
+    std::string str;
+    if (sampler_type == texture_t::SAMPLER_TYPE_SINT) {
+        str += "i";
+    }
+    else if (sampler_type == texture_t::SAMPLER_TYPE_UINT) {
+        str += "u";
+    }
+    str += "texture";
+    switch (image_type) {
+        case texture_t::IMAGE_TYPE_2D:      str += "2D";
+        case texture_t::IMAGE_TYPE_CUBE:    str += "Cube";
+        case texture_t::IMAGE_TYPE_3D:      str += "3D";
+        case texture_t::IMAGE_TYPE_ARRAY:   str += "2DArray";
+        default: break;
+    }
+    return str;
+}
+
+static std::string to_glsl_sampler(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type) {
+    std::string str;
+    if (sampler_type == texture_t::SAMPLER_TYPE_SINT) {
+        str += "i";
+    }
+    else if (sampler_type == texture_t::SAMPLER_TYPE_UINT) {
+        str += "u";
+    }
+    str += "sampler";
+    switch (image_type) {
+        case texture_t::IMAGE_TYPE_2D:      str += "2D";
+        case texture_t::IMAGE_TYPE_CUBE:    str += "Cube";
+        case texture_t::IMAGE_TYPE_3D:      str += "3D";
+        case texture_t::IMAGE_TYPE_ARRAY:   str += "2DArray";
+        default: break;
+    }
+    return str;
 }
 
 static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, input_t& inp, int parent_line_index) {
@@ -540,17 +601,18 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 if (!validate_texture_tag(tokens, true, line_index, inp)) {
                     return false;
                 }
-                const std::string& tex_type = tokens[1];
-                const std::string& tex_name = tokens[2];
+                texture_t::image_type_t image_type = texture_t::str_to_image_type(tokens[1]);
+                texture_t::sampler_type_t sampler_type = texture_t::str_to_sampler_type(tokens[2]);
+                const std::string& tex_name = tokens[3];
                 // keep @texture tag in for more thorough validation inside the parse function
                 inp.lines.push_back({line, filename_index, line_index});
                 // add macro magic for combined vs non-combined image samplers
                 inp.lines.push_back({std::string("#if SOKOL_WGSL"), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform texture{} {};", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform {} {};", to_glsl_texture(image_type, sampler_type)), filename_index, ++line_index});
                 inp.lines.push_back({fmt::format("uniform sampler {}_smp;", tex_name), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("#define {} sampler{}({},{}_smp)", tex_name, tex_type, tex_name, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("#define {} {}({},{}_smp)", tex_name, to_glsl_sampler(image_type, sampler_type), tex_name, tex_name), filename_index, ++line_index});
                 inp.lines.push_back({std::string("#else"), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform sampler{} {};", tex_type, tex_name), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform {} {};", to_glsl_sampler(image_type, sampler_type), tex_name), filename_index, ++line_index});
                 inp.lines.push_back({std::string("#endif"), filename_index, ++line_index});
             }
             else {
@@ -621,6 +683,13 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
             fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
             fmt::print(stderr, "      name: {}\n", snippet.name);
             fmt::print(stderr, "      type: {}\n", snippet_t::type_to_str(snippet.type));
+            fmt::print(stderr, "      textures:\n");
+            for (const auto& pair: snippet.textures) {
+                const texture_t& tex = pair.second;
+                fmt::print(stderr, "        name: {}\n", tex.name);
+                fmt::print(stderr, "        image type: {}\n", texture_t::image_type_to_str(tex.image_type));
+                fmt::print(stderr, "        sampler type: {}\n", texture_t::sampler_type_to_str(tex.sampler_type));
+            }
             fmt::print(stderr, "      lines:\n");
             int line_nr = 1;
             for (int line_index : snippet.lines) {

@@ -248,6 +248,66 @@ struct option_t {
     }
 };
 
+struct texture_t {
+    static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
+    enum image_type_t {
+        IMAGE_TYPE_INVALID,
+        IMAGE_TYPE_2D,
+        IMAGE_TYPE_CUBE,
+        IMAGE_TYPE_3D,
+        IMAGE_TYPE_ARRAY
+    };
+    enum sampler_type_t {
+        SAMPLER_TYPE_INVALID,
+        SAMPLER_TYPE_FLOAT,
+        SAMPLER_TYPE_SINT,
+        SAMPLER_TYPE_UINT,
+        SAMPLER_TYPE_UNFILTERABLE_FLOAT,
+    };
+    int slot = -1;
+    std::string name;
+    image_type_t image_type = IMAGE_TYPE_INVALID;
+    sampler_type_t sampler_type = SAMPLER_TYPE_INVALID;
+    int unique_index = -1;      // index into cross_t.unique_images
+
+    static const char* image_type_to_str(image_type_t t) {
+        switch (t) {
+            case IMAGE_TYPE_2D:     return "IMAGE_TYPE_2D";
+            case IMAGE_TYPE_CUBE:   return "IMAGE_TYPE_CUBE";
+            case IMAGE_TYPE_3D:     return "IMAGE_TYPE_3D";
+            case IMAGE_TYPE_ARRAY:  return "IMAGE_TYPE_ARRAY";
+            default:                return "IMAGE_TYPE_INVALID";
+        }
+    }
+    static image_type_t str_to_image_type(const std::string& str) {
+        if (str == "2d") return IMAGE_TYPE_2D;
+        else if (str == "cube") return IMAGE_TYPE_CUBE;
+        else if (str == "3d") return IMAGE_TYPE_3D;
+        else if (str == "2darray") return IMAGE_TYPE_ARRAY;
+        else return IMAGE_TYPE_INVALID;
+    }
+    static const char* sampler_type_to_str(sampler_type_t t) {
+        switch (t) {
+            case SAMPLER_TYPE_FLOAT:  return "SAMPLE_TYPE_FLOAT";
+            case SAMPLER_TYPE_SINT:   return "SAMPLE_TYPE_SINT";
+            case SAMPLER_TYPE_UINT:   return "SAMPLE_TYPE_UINT";
+            case SAMPLER_TYPE_UNFILTERABLE_FLOAT:  return "SAMPLE_TYPE_UNFILTERABLE_FLOAT";
+            default:                    return "SAMPLE_TYPE_INVALID";
+        }
+    }
+    static sampler_type_t str_to_sampler_type(const std::string& str) {
+        if (str == "float") return SAMPLER_TYPE_FLOAT;
+        else if (str == "sint") return SAMPLER_TYPE_SINT;
+        else if (str == "uint") return SAMPLER_TYPE_UINT;
+        else if (str == "unfilterable_float") return SAMPLER_TYPE_UNFILTERABLE_FLOAT;
+        else return SAMPLER_TYPE_INVALID;
+    }
+
+    bool equals(const texture_t& other) {
+        return (slot == other.slot) && (name == other.name) && (image_type == other.image_type) && (sampler_type == other.sampler_type);
+    }
+};
+
 /* a named code-snippet (@block, @vs or @fs) in the input source file */
 struct snippet_t {
     enum type_t {
@@ -260,6 +320,7 @@ struct snippet_t {
     std::array<uint32_t, slang_t::NUM> options = { };
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
+    std::map<std::string, texture_t> textures;  // texture declarations in snippet by texture name
 
     snippet_t() { };
     snippet_t(type_t t, const std::string& n): type(t), name(n) { };
@@ -445,50 +506,6 @@ struct uniform_block_t {
     }
 };
 
-struct image_t {
-    static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
-    enum type_t {
-        IMAGE_TYPE_INVALID,
-        IMAGE_TYPE_2D,
-        IMAGE_TYPE_CUBE,
-        IMAGE_TYPE_3D,
-        IMAGE_TYPE_ARRAY
-    };
-    enum basetype_t {
-        IMAGE_BASETYPE_INVALID,
-        IMAGE_BASETYPE_FLOAT,
-        IMAGE_BASETYPE_SINT,
-        IMAGE_BASETYPE_UINT
-    };
-    int slot = -1;
-    std::string name;
-    type_t type = IMAGE_TYPE_INVALID;
-    basetype_t base_type = IMAGE_BASETYPE_INVALID;
-    int unique_index = -1;      // index into cross_t.unique_images
-
-    static const char* type_to_str(type_t t) {
-        switch (t) {
-            case IMAGE_TYPE_2D:     return "IMAGE_TYPE_2D";
-            case IMAGE_TYPE_CUBE:   return "IMAGE_TYPE_CUBE";
-            case IMAGE_TYPE_3D:     return "IMAGE_TYPE_3D";
-            case IMAGE_TYPE_ARRAY:  return "IMAGE_TYPE_ARRAY";
-            default:                return "IMAGE_TYPE_INVALID";
-        }
-    }
-    static const char* basetype_to_str(basetype_t t) {
-        switch (t) {
-            case IMAGE_BASETYPE_FLOAT:  return "IMAGE_BASETYPE_FLOAT";
-            case IMAGE_BASETYPE_SINT:   return "IMAGE_BASETYPE_SINT";
-            case IMAGE_BASETYPE_UINT:   return "IMAGE_BASETYPE_UINT";
-            default:                    return "IMAGE_BASETYPE_INVALID";
-        }
-    }
-
-    bool equals(const image_t& other) {
-        return (slot == other.slot) && (name == other.name) && (type == other.type) && (base_type == other.base_type);
-    }
-};
-
 struct stage_t {
     enum type_t {
         INVALID,
@@ -510,7 +527,7 @@ struct cross_refl_t {
     std::array<attr_t, attr_t::NUM> inputs;
     std::array<attr_t, attr_t::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
-    std::vector<image_t> images;
+    std::vector<texture_t> textures;
 };
 
 /* result of a spirv-cross compilation */
@@ -527,7 +544,7 @@ struct cross_t {
     errmsg_t error;
     std::vector<cross_source_t> sources;
     std::vector<uniform_block_t> unique_uniform_blocks;
-    std::vector<image_t> unique_images;
+    std::vector<texture_t> unique_textures;
 
     static cross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
@@ -573,7 +590,7 @@ namespace util {
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block(const cross_refl_t& refl, int slot);
-    const image_t* find_image(const cross_refl_t& refl, int slot);
+    const texture_t* find_texture(const cross_refl_t& refl, int slot);
     const cross_source_t* find_cross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const cross_t& cross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
 }

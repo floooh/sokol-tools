@@ -96,10 +96,10 @@ const uniform_block_t* find_uniform_block(const cross_refl_t& refl, int slot) {
     return nullptr;
 }
 
-const image_t* find_image(const cross_refl_t& refl, int slot) {
-    for (const image_t& img: refl.images) {
-        if (img.slot == slot) {
-            return &img;
+const texture_t* find_texture(const cross_refl_t& refl, int slot) {
+    for (const texture_t& tex: refl.textures) {
+        if (tex.slot == slot) {
+            return &tex;
         }
     }
     return nullptr;

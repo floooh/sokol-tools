@@ -200,36 +200,37 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
     return uniform_t::INVALID;
 }
 
-static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
+static texture_t::image_type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_t::IMAGE_TYPE_ARRAY;
+            return texture_t::IMAGE_TYPE_ARRAY;
         }
     }
     else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
-            case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
-            case spv::Dim3D:    return image_t::IMAGE_TYPE_3D;
+            case spv::Dim2D:    return texture_t::IMAGE_TYPE_2D;
+            case spv::DimCube:  return texture_t::IMAGE_TYPE_CUBE;
+            case spv::Dim3D:    return texture_t::IMAGE_TYPE_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_t::IMAGE_TYPE_INVALID;
+    return texture_t::IMAGE_TYPE_INVALID;
 }
 
-static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
+// FIXME: this cannot detect SAMPLER_TYPE_UNFILTERABLE_FLOAT!
+static texture_t::sampler_type_t spirtype_to_sampler_type(const SPIRType& type) {
     switch (type.basetype) {
         case SPIRType::Int:
         case SPIRType::Short:
         case SPIRType::SByte:
-            return image_t::IMAGE_BASETYPE_SINT;
+            return texture_t::SAMPLER_TYPE_SINT;
         case SPIRType::UInt:
         case SPIRType::UShort:
         case SPIRType::UByte:
-            return image_t::IMAGE_BASETYPE_UINT;
+            return texture_t::SAMPLER_TYPE_UINT;
         default:
-            return image_t::IMAGE_BASETYPE_FLOAT;
+            return texture_t::SAMPLER_TYPE_FLOAT;
     }
 }
 
@@ -301,28 +302,28 @@ static cross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
     if (is_vulkan) {
         // separate textures/samplers
         for (const Resource& tex_res: shd_resources.separate_images) {
-            image_t refl_tex;
+            texture_t refl_tex;
             // In 'vulkan mode', textures and samplers are separate on consecutive bind slots,
             // but since the sokol_gfx.h API has 'combined image-samplers' there's no
             // separate slot for the samplers, thus the '/2'
             refl_tex.slot = compiler.get_decoration(tex_res.id, spv::DecorationBinding) / 2;
             refl_tex.name = tex_res.name;
             const SPIRType& img_type = compiler.get_type(tex_res.type_id);
-            refl_tex.type = spirtype_to_image_type(img_type);
-            refl_tex.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
-            refl.images.push_back(refl_tex);
+            refl_tex.image_type = spirtype_to_image_type(img_type);
+            refl_tex.sampler_type = spirtype_to_sampler_type(compiler.get_type(img_type.image.type));
+            refl.textures.push_back(refl_tex);
         }
     }
     else {
         // combined image samplers
-        for (const Resource& img_res: shd_resources.sampled_images) {
-            image_t refl_img;
-            refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-            refl_img.name = img_res.name;
-            const SPIRType& img_type = compiler.get_type(img_res.type_id);
-            refl_img.type = spirtype_to_image_type(img_type);
-            refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
-            refl.images.push_back(refl_img);
+        for (const Resource& tex_res: shd_resources.sampled_images) {
+            texture_t refl_tex;
+            refl_tex.slot = compiler.get_decoration(tex_res.id, spv::DecorationBinding);
+            refl_tex.name = tex_res.name;
+            const SPIRType& img_type = compiler.get_type(tex_res.type_id);
+            refl_tex.image_type = spirtype_to_image_type(img_type);
+            refl_tex.sampler_type = spirtype_to_sampler_type(compiler.get_type(img_type.image.type));
+            refl.textures.push_back(refl_tex);
         }
     }
     return refl;
@@ -472,9 +473,9 @@ static int find_unique_uniform_block_by_name(const cross_t& spv_cross, const std
     return -1;
 }
 
-static int find_unique_image_by_name(const cross_t& spv_cross, const std::string& name) {
-    for (int i = 0; i < (int)spv_cross.unique_images.size(); i++) {
-        if (spv_cross.unique_images[i].name == name) {
+static int find_unique_texture_by_name(const cross_t& spv_cross, const std::string& name) {
+    for (int i = 0; i < (int)spv_cross.unique_textures.size(); i++) {
+        if (spv_cross.unique_textures[i].name == name) {
             return i;
         }
     }
@@ -506,25 +507,25 @@ static bool gather_unique_uniform_blocks(const input_t& inp, cross_t& spv_cross)
     return true;
 }
 
-// find all identical images across all shaders, and check for collisions
-static bool gather_unique_images(const input_t& inp, cross_t& spv_cross) {
+// find all identical textures across all shaders, and check for collisions
+static bool gather_unique_textures(const input_t& inp, cross_t& spv_cross) {
     for (cross_source_t& src: spv_cross.sources) {
-        for (image_t& img: src.refl.images) {
-            int other_img_index = find_unique_image_by_name(spv_cross, img.name);
-            if (other_img_index >= 0) {
-                if (img.equals(spv_cross.unique_images[other_img_index])) {
-                    // identical image already exists, take note of the index
-                    img.unique_index = other_img_index;
+        for (texture_t& tex: src.refl.textures) {
+            int other_tex_index = find_unique_texture_by_name(spv_cross, tex.name);
+            if (other_tex_index >= 0) {
+                if (tex.equals(spv_cross.unique_textures[other_tex_index])) {
+                    // identical texture already exists, take note of the index
+                    tex.unique_index = other_tex_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", tex.name));
                     return false;
                 }
             }
             else {
                 // new unique image
-                img.unique_index = (int) spv_cross.unique_images.size();
-                spv_cross.unique_images.push_back(img);
+                tex.unique_index = (int) spv_cross.unique_textures.size();
+                spv_cross.unique_textures.push_back(tex);
             }
         }
     }
@@ -617,7 +618,7 @@ cross_t cross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::ty
             // error has been set in cross.error
             return cross;
         }
-        if (!gather_unique_images(inp, cross)) {
+        if (!gather_unique_textures(inp, cross)) {
             // error has been set in cross.error
             return cross;
         }
@@ -671,9 +672,9 @@ void cross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) 
                     uniform.offset);
             }
         }
-        for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}, basetype: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
+        for (const texture_t& tex: source.refl.textures) {
+            fmt::print(stderr, "      texture: {}, slot: {}, image_type: {}, sampler_type: {}\n",
+                tex.name, tex.slot, texture_t::image_type_to_str(tex.image_type), texture_t::sampler_type_to_str(tex.sampler_type));
         }
         fmt::print(stderr, "\n");
     }

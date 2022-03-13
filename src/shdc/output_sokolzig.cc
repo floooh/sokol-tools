@@ -50,21 +50,22 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
     }
 }
 
-static const char* img_type_to_sokol_type_str(image_t::type_t type) {
+static const char* image_type_to_sokol_str(texture_t::image_type_t type) {
     switch (type) {
-        case image_t::IMAGE_TYPE_2D:    return "._2D";
-        case image_t::IMAGE_TYPE_CUBE:  return ".CUBE";
-        case image_t::IMAGE_TYPE_3D:    return "._3D";
-        case image_t::IMAGE_TYPE_ARRAY: return ".ARRAY";
+        case texture_t::IMAGE_TYPE_2D:    return "._2D";
+        case texture_t::IMAGE_TYPE_CUBE:  return ".CUBE";
+        case texture_t::IMAGE_TYPE_3D:    return "._3D";
+        case texture_t::IMAGE_TYPE_ARRAY: return ".ARRAY";
         default: return "INVALID";
     }
 }
 
-static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
-    switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return ".FLOAT";
-        case image_t::IMAGE_BASETYPE_SINT:  return ".SINT";
-        case image_t::IMAGE_BASETYPE_UINT:  return ".UINT";
+static const char* sampler_type_to_sokol_str(texture_t::sampler_type_t type) {
+    switch (type) {
+        case texture_t::SAMPLER_TYPE_FLOAT: return ".FLOAT";
+        case texture_t::SAMPLER_TYPE_SINT:  return ".SINT";
+        case texture_t::SAMPLER_TYPE_UINT:  return ".UINT";
+        case texture_t::SAMPLER_TYPE_UNFILTERABLE_FLOAT:  return ".UNFILTERABLE_FLOAT";
         default: return "INVALID";
     }
 }
@@ -127,11 +128,11 @@ static void write_header(const args_t& args, const input_t& inp, const cross_t& 
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: vs_src->refl.images) {
-            L("//              Image '{}':\n", img.name);
-            L("//                  Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("//                  Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
-            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        for (const texture_t& tex: vs_src->refl.textures) {
+            L("//              Texture '{}':\n", tex.name);
+            L("//                  Image Type: {}\n", image_type_to_sokol_str(tex.image_type));
+            L("//                  Sampler Type: {}\n", sampler_type_to_sokol_str(tex.sampler_type));
+            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), tex.name, tex.slot);
         }
         L("//          Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
@@ -139,11 +140,11 @@ static void write_header(const args_t& args, const input_t& inp, const cross_t& 
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
-            L("//              Image '{}':\n", img.name);
-            L("//                  Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("//                  Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
-            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        for (const texture_t& tex: fs_src->refl.textures) {
+            L("//              Texture '{}':\n", tex.name);
+            L("//                  Image Type: {}\n", image_type_to_sokol_str(tex.image_type));
+            L("//                  Sampler Type: {}\n", sampler_type_to_sokol_str(tex.sampler_type));
+            L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), tex.name, tex.slot);
         }
         L("//\n");
     }
@@ -163,9 +164,9 @@ static void write_vertex_attrs(const input_t& inp, const cross_t& cross) {
     }
 }
 
-static void write_image_bind_slots(const input_t& inp, const cross_t& cross) {
-    for (const image_t& img: cross.unique_images) {
-        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
+static void write_texture_bind_slots(const input_t& inp, const cross_t& cross) {
+    for (const texture_t& tex: cross.unique_textures) {
+        L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), tex.name, tex.slot);
     }
 }
 
@@ -353,12 +354,12 @@ static void write_stage(const char* indent,
             }
         }
     }
-    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image(src->refl, img_index);
-        if (img) {
-            L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, img_index, img->name);
-            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
-            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
+    for (int tex_index = 0; tex_index < texture_t::NUM; tex_index++) {
+        const texture_t* tex = find_texture(src->refl, tex_index);
+        if (tex) {
+            L("{}desc.{}.images[{}].name = \"{}\";\n", indent, stage_name, tex_index, tex->name);
+            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, tex_index, image_type_to_sokol_str(tex->image_type));
+            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, tex_index, sampler_type_to_sokol_str(tex->sampler_type));
         }
     }
 }
@@ -427,7 +428,7 @@ errmsg_t output_sokolzig_t::gen(const args_t& args, const input_t& inp,
             if (!common_decls_written) {
                 common_decls_written = true;
                 write_vertex_attrs(inp, cross[i]);
-                write_image_bind_slots(inp, cross[i]);
+                write_texture_bind_slots(inp, cross[i]);
                 write_uniform_blocks(inp, cross[i], slang);
             }
             write_shader_sources_and_blobs(inp, cross[i], bytecode[i], slang);
