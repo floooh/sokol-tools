@@ -16,7 +16,7 @@ void main() {
 @end
 
 @fs fs
-@texture 2D tex
+@texture 2d float tex
 
 in vec4 uv;
 in vec4 color;

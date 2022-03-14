@@ -296,7 +296,7 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
 
 static bool validate_texture_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 4) {
-        inp.out_error = inp.error(line_index, "@texture must have exactly two args (@texture image_type sample_type name).");
+        inp.out_error = inp.error(line_index, "@texture must have exactly 3 args (@texture image_type sample_type name).");
         return false;
     }
     if (!in_snippet) {
@@ -496,7 +496,7 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
     return true;
 }
 
-static std::string to_glsl_texture(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type) {
+static std::string to_glsl_texture_or_sampler(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type, const std::string& texture_or_sampler) {
     std::string str;
     if (sampler_type == texture_t::SAMPLER_TYPE_SINT) {
         str += "i";
@@ -504,34 +504,23 @@ static std::string to_glsl_texture(texture_t::image_type_t image_type, texture_t
     else if (sampler_type == texture_t::SAMPLER_TYPE_UINT) {
         str += "u";
     }
-    str += "texture";
+    str += texture_or_sampler;
     switch (image_type) {
-        case texture_t::IMAGE_TYPE_2D:      str += "2D";
-        case texture_t::IMAGE_TYPE_CUBE:    str += "Cube";
-        case texture_t::IMAGE_TYPE_3D:      str += "3D";
-        case texture_t::IMAGE_TYPE_ARRAY:   str += "2DArray";
+        case texture_t::IMAGE_TYPE_2D:      str += "2D"; break;
+        case texture_t::IMAGE_TYPE_CUBE:    str += "Cube"; break;
+        case texture_t::IMAGE_TYPE_3D:      str += "3D"; break;
+        case texture_t::IMAGE_TYPE_ARRAY:   str += "2DArray"; break;
         default: break;
     }
     return str;
 }
 
+static std::string to_glsl_texture(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type) {
+    return to_glsl_texture_or_sampler(image_type, sampler_type, "texture");
+}
+
 static std::string to_glsl_sampler(texture_t::image_type_t image_type, texture_t::sampler_type_t sampler_type) {
-    std::string str;
-    if (sampler_type == texture_t::SAMPLER_TYPE_SINT) {
-        str += "i";
-    }
-    else if (sampler_type == texture_t::SAMPLER_TYPE_UINT) {
-        str += "u";
-    }
-    str += "sampler";
-    switch (image_type) {
-        case texture_t::IMAGE_TYPE_2D:      str += "2D";
-        case texture_t::IMAGE_TYPE_CUBE:    str += "Cube";
-        case texture_t::IMAGE_TYPE_3D:      str += "3D";
-        case texture_t::IMAGE_TYPE_ARRAY:   str += "2DArray";
-        default: break;
-    }
-    return str;
+    return to_glsl_texture_or_sampler(image_type, sampler_type, "sampler");
 }
 
 static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, input_t& inp, int parent_line_index) {
@@ -608,7 +597,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 inp.lines.push_back({line, filename_index, line_index});
                 // add macro magic for combined vs non-combined image samplers
                 inp.lines.push_back({std::string("#if SOKOL_WGSL"), filename_index, ++line_index});
-                inp.lines.push_back({fmt::format("uniform {} {};", to_glsl_texture(image_type, sampler_type)), filename_index, ++line_index});
+                inp.lines.push_back({fmt::format("uniform {} {};", to_glsl_texture(image_type, sampler_type), tex_name), filename_index, ++line_index});
                 inp.lines.push_back({fmt::format("uniform sampler {}_smp;", tex_name), filename_index, ++line_index});
                 inp.lines.push_back({fmt::format("#define {} {}({},{}_smp)", tex_name, to_glsl_sampler(image_type, sampler_type), tex_name, tex_name), filename_index, ++line_index});
                 inp.lines.push_back({std::string("#else"), filename_index, ++line_index});

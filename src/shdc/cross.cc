@@ -234,7 +234,7 @@ static texture_t::sampler_type_t spirtype_to_sampler_type(const SPIRType& type) 
     }
 }
 
-static cross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
+static cross_refl_t parse_reflection(const input_t& inp, int snippet_index, const Compiler& compiler, bool is_vulkan) {
     cross_refl_t refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
@@ -299,37 +299,37 @@ static cross_refl_t parse_reflection(const Compiler& compiler, bool is_vulkan) {
         }
         refl.uniform_blocks.push_back(refl_ub);
     }
-    if (is_vulkan) {
-        // separate textures/samplers
-        for (const Resource& tex_res: shd_resources.separate_images) {
-            texture_t refl_tex;
-            // In 'vulkan mode', textures and samplers are separate on consecutive bind slots,
-            // but since the sokol_gfx.h API has 'combined image-samplers' there's no
-            // separate slot for the samplers, thus the '/2'
+    const auto& tex_resources = is_vulkan ? shd_resources.separate_images : shd_resources.sampled_images;
+    for (const Resource& tex_res: tex_resources) {
+        texture_t refl_tex;
+        // In 'vulkan mode', textures and samplers are separate on consecutive bind slots,
+        // but since the sokol_gfx.h API has 'combined image-samplers' there's no
+        // separate slot for the samplers, thus the '/2'
+        if (is_vulkan) {
             refl_tex.slot = compiler.get_decoration(tex_res.id, spv::DecorationBinding) / 2;
-            refl_tex.name = tex_res.name;
-            const SPIRType& img_type = compiler.get_type(tex_res.type_id);
-            refl_tex.image_type = spirtype_to_image_type(img_type);
-            refl_tex.sampler_type = spirtype_to_sampler_type(compiler.get_type(img_type.image.type));
-            refl.textures.push_back(refl_tex);
         }
-    }
-    else {
-        // combined image samplers
-        for (const Resource& tex_res: shd_resources.sampled_images) {
-            texture_t refl_tex;
+        else {
             refl_tex.slot = compiler.get_decoration(tex_res.id, spv::DecorationBinding);
-            refl_tex.name = tex_res.name;
+        }
+        refl_tex.name = tex_res.name;
+        if (inp.snippets[snippet_index].textures.count(refl_tex.name) > 0) {
+            const texture_t& tex = inp.snippets[snippet_index].textures.at(refl_tex.name);
+            refl_tex.image_type = tex.image_type;
+            refl_tex.sampler_type = tex.sampler_type;
+        }
+        else {
+            // fallback if @texture isn't used, this is not an error
+            // FIXME: but should be a warning(?)
             const SPIRType& img_type = compiler.get_type(tex_res.type_id);
             refl_tex.image_type = spirtype_to_image_type(img_type);
             refl_tex.sampler_type = spirtype_to_sampler_type(compiler.get_type(img_type.image.type));
-            refl.textures.push_back(refl_tex);
         }
+        refl.textures.push_back(refl_tex);
     }
     return refl;
 }
 
-static cross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -352,24 +352,24 @@ static cross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool i
         res.valid = true;
         res.source_code = std::move(src);
         res.snippet_index = blob.snippet_index;
-        res.refl = parse_reflection(compiler, is_vulkan);
+        res.refl = parse_reflection(inp, blob.snippet_index, compiler, is_vulkan);
     }
     return res;
 }
 
-static cross_source_t to_glsl_330(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_glsl(blob, 330, false, false, opt_mask, type);
+static cross_source_t to_glsl_330(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(inp, blob, 330, false, false, opt_mask, type);
 }
 
-static cross_source_t to_glsl_100(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_glsl(blob, 100, true, false, opt_mask, type);
+static cross_source_t to_glsl_100(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(inp, blob, 100, true, false, opt_mask, type);
 }
 
-static cross_source_t to_glsl_300es(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_glsl(blob, 300, true, false, opt_mask, type);
+static cross_source_t to_glsl_300es(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_glsl(inp, blob, 300, true, false, opt_mask, type);
 }
 
-static cross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -388,20 +388,20 @@ static cross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, u
         res.valid = true;
         res.source_code = std::move(src);
         res.snippet_index = blob.snippet_index;
-        res.refl = parse_reflection(compiler, false);
+        res.refl = parse_reflection(inp, blob.snippet_index, compiler, false);
     }
     return res;
 }
 
-static cross_source_t to_hlsl_4(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_hlsl(blob, 40, opt_mask, type);
+static cross_source_t to_hlsl_4(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_hlsl(inp, blob, 40, opt_mask, type);
 }
 
-static cross_source_t to_hlsl_5(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_hlsl(blob, 50, opt_mask, type);
+static cross_source_t to_hlsl_5(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_hlsl(inp, blob, 50, opt_mask, type);
 }
 
-static cross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
+static cross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = true;
@@ -419,25 +419,25 @@ static cross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Pla
         res.valid = true;
         res.source_code = std::move(src);
         res.snippet_index = blob.snippet_index;
-        res.refl = parse_reflection(compiler, false);
+        res.refl = parse_reflection(inp, blob.snippet_index, compiler, false);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
     return res;
 }
 
-static cross_source_t to_msl_macos(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);
+static cross_source_t to_msl_macos(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_msl(inp, blob, CompilerMSL::Options::macOS, opt_mask, type);
 }
 
-static cross_source_t to_msl_ios(const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
-    return to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
+static cross_source_t to_msl_ios(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
+    return to_msl(inp, blob, CompilerMSL::Options::iOS, opt_mask, type);
 }
 
 static cross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, uint32_t opt_mask, snippet_t::type_t type) {
     cross_source_t res;
     // first compile the SPIRV back to GLSL
-    const cross_source_t glsl = to_glsl(blob, 450, false, true, opt_mask, type);
+    const cross_source_t glsl = to_glsl(inp, blob, 450, false, true, opt_mask, type);
     // next compile the GLSL back to SPIRV
     spirv_t spirv = spirv_t::compile_intermediate_glsl(inp, blob.snippet_index, glsl.source_code);
     assert(spirv.errors.size() == 0);
@@ -572,26 +572,26 @@ cross_t cross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::ty
         }
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl_330(blob, opt_mask, type);
+                src = to_glsl_330(inp, blob, opt_mask, type);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl_100(blob, opt_mask, type);
+                src = to_glsl_100(inp, blob, opt_mask, type);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl_300es(blob, opt_mask, type);
+                src = to_glsl_300es(inp, blob, opt_mask, type);
                 break;
             case slang_t::HLSL4:
-                src = to_hlsl_4(blob, opt_mask, type);
+                src = to_hlsl_4(inp, blob, opt_mask, type);
                 break;
             case slang_t::HLSL5:
-                src = to_hlsl_5(blob, opt_mask, type);
+                src = to_hlsl_5(inp, blob, opt_mask, type);
                 break;
             case slang_t::METAL_MACOS:
-                src = to_msl_macos(blob, opt_mask, type);
+                src = to_msl_macos(inp, blob, opt_mask, type);
                 break;
             case slang_t::METAL_IOS:
             case slang_t::METAL_SIM:
-                src = to_msl_ios(blob, opt_mask, type);
+                src = to_msl_ios(inp, blob, opt_mask, type);
                 break;
             case slang_t::WGSL:
                 src = to_wgsl(inp, blob, opt_mask, type);
