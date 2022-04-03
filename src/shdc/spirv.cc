@@ -130,10 +130,10 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
     optimizer.RegisterPass(spvtools::CreateLocalSingleBlockLoadStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateLocalSingleStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateSimplificationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));    // NOTE: call the "preserveInterface" version of CreateAggressiveDCEPass()
     optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
     optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateDeadBranchElimPass());
 // NOTE: it's the BlockMergePass which moves the init statement of a for-loop
 //       out of the for-statement, which makes it invalid for WebGL
@@ -142,11 +142,11 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 //    optimizer.RegisterPass(spvtools::CreateLocalMultiStoreElimPass());
     optimizer.RegisterPass(spvtools::CreateIfConversionPass());
     optimizer.RegisterPass(spvtools::CreateSimplificationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateVectorDCEPass());
     optimizer.RegisterPass(spvtools::CreateDeadInsertElimPass());
     optimizer.RegisterPass(spvtools::CreateRedundancyEliminationPass());
-    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass());
+    optimizer.RegisterPass(spvtools::CreateAggressiveDCEPass(true));
     optimizer.RegisterPass(spvtools::CreateCFGCleanupPass());
 
     spvtools::OptimizerOptions spvOptOptions;
