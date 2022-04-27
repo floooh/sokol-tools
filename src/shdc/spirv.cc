@@ -215,7 +215,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     if (!spirv_log.empty()) {
         // FIXME: need to parse string for errors and translate to errmsg_t objects?
         // haven't seen a case yet where this generates log messages
-        fmt::print(spirv_log);
+        fmt::print("{}", spirv_log);
     }
     // run optimizer passes
     spirv_optimize(slang, out_spirv.blobs.back().bytecode);
