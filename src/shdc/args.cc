@@ -91,7 +91,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
         "Options:\n\n");
     char buf[2048];
-    fmt::print(stderr, getopt_create_help_string(&ctx, buf, sizeof(buf)));
+    fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
 }
 
 /* parse string of format 'hlsl4|glsl100|...' args.slang bitmask */
