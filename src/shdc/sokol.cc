@@ -288,6 +288,14 @@ static void write_common_decls(slang_t::type_t slang, const args_t& args, const 
         for (const auto& item: inp.programs) {
             const program_t& prog = item.second;
             L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
+            if (args.reflection) {
+                L("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix(inp), prog.name);
+                L("int {}{}_image_slot(sg_shader_stage stage, const char* img_name);\n", mod_prefix(inp), prog.name);
+                L("int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix(inp), prog.name);
+                L("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix(inp), prog.name);
+                L("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix(inp), prog.name);
+                L("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix(inp), prog.name);
+            }
         }
     }
     write_vertex_attrs(inp, spirvcross);
