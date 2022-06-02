@@ -48,6 +48,7 @@ pub fn build_exe(b: *bld.Builder, target: std.zig.CrossTarget, mode: std.builtin
     const exe = b.addExecutable("sokol-shdc", null);
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    exe.strip = mode != .Debug;
     exe.linkSystemLibrary("c");
     exe.linkSystemLibrary("c++");
     exe.linkLibrary(lib_fmt(b, target, mode, prefix_path));
