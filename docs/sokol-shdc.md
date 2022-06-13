@@ -637,7 +637,7 @@ arguments:
     - MSL: In vertex shaders, rewrite [-w, w] depth (GL style) to [0, w] depth.
 - **flip_vert_y**: Inverts gl_Position.y or equivalent. (all shader languages)
 
-Currently, ```@glsl_option```, ```@hlsl_option``` and ```@msl_option``` are only
+Currently, ```@glsl_options```, ```@hlsl_options``` and ```@msl_options``` are only
 allowed inside ```@vs, @end``` blocks.
 
 Example from the [mrt-sapp sample](https://floooh.github.io/sokol-html5/wasm/mrt-sapp.html),
