@@ -97,7 +97,8 @@ static bool remove_comments(std::string& str) {
 }
 
 static const std::string module_tag = "@module";
-static const std::string type_tag = "@ctype";
+static const std::string ctype_tag = "@ctype";
+static const std::string cimport_tag = "@cimport";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
 static const std::string block_tag = "@block";
@@ -159,7 +160,7 @@ static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_
     return true;
 }
 
-static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 3) {
         inp.out_error = inp.error(line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
         return false;
@@ -170,6 +171,18 @@ static bool validate_type_tag(const std::vector<std::string>& tokens, bool in_sn
     }
     if (!((tokens[1]=="float")||(tokens[1]=="vec2")||(tokens[1]=="vec3")||(tokens[1]=="vec4")||(tokens[1] == "mat4"))) {
         inp.out_error = inp.error(line_index, "first arg of type tag must be 'float', 'vec2..3' or 'mat4'");
+        return false;
+    }
+    return true;
+}
+
+static bool validate_cimport_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+    if (tokens.size() < 2) {
+        inp.out_error = inp.error(line_index, "@cimport tag must have at least one arg (@cimport ...)");
+        return false;
+    }
+    if (in_snippet) {
+        inp.out_error = inp.error(line_index, "@cimport tag cannot be inside a tag block (missing @end?).");
         return false;
     }
     return true;
@@ -314,15 +327,23 @@ static bool parse(input_t& inp) {
                 }
                 inp.module = tokens[1];
             }
-            else if (tokens[0] == type_tag) {
-                if (!validate_type_tag(tokens, in_snippet, line_index, inp)) {
+            else if (tokens[0] == ctype_tag) {
+                if (!validate_ctype_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                if (inp.type_map.count(tokens[1]) > 0) {
+                if (inp.ctype_map.count(tokens[1]) > 0) {
                     inp.out_error = inp.error(line_index, fmt::format("type '{}' already defined!", tokens[1]));
                     return false;
                 }
-                inp.type_map[tokens[1]] = tokens[2];
+                inp.ctype_map[tokens[1]] = tokens[2];
+            }
+            else if (tokens[0] == cimport_tag) {
+                if (!validate_cimport_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                std::vector<std::string> skip_first_token = tokens;
+                skip_first_token.erase(skip_first_token.begin());
+                inp.cimports.push_back(pystring::join(" ", skip_first_token));
             }
             else if (tokens[0] == glsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
@@ -571,7 +592,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
         }
     }
     fmt::print(stderr, "  types:\n");
-    for (const auto& item: type_map) {
+    for (const auto& item: ctype_map) {
         fmt::print(stderr, "    {}: {}\n", item.first, item.second);
     }
     {

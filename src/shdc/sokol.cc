@@ -191,6 +191,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("#include <stdbool.h>\n");
     L("#include <string.h>\n");
     L("#include <stddef.h>\n");
+    for (const auto& cimport: inp.cimports) {
+        L("#include \"{}\"\n", cimport);
+    }
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
@@ -225,13 +228,13 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                 L("    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
                 cur_offset = next_offset;
             }
-            if (inp.type_map.count(uniform_type_str(uniform.type)) > 0) {
+            if (inp.ctype_map.count(uniform_type_str(uniform.type)) > 0) {
                 // user-provided type names
                 if (uniform.array_count == 1) {
-                    L("    {} {};\n", inp.type_map.at(uniform_type_str(uniform.type)), uniform.name);
+                    L("    {} {};\n", inp.ctype_map.at(uniform_type_str(uniform.type)), uniform.name);
                 }
                 else {
-                    L("    {} {}[{}];\n", inp.type_map.at(uniform_type_str(uniform.type)), uniform.name, uniform.array_count);
+                    L("    {} {}[{}];\n", inp.ctype_map.at(uniform_type_str(uniform.type)), uniform.name, uniform.array_count);
                 }
             }
             else {

@@ -11,7 +11,7 @@
 
 namespace shdc {
 
-/* the output shader languages to create */
+// the output shader languages to create
 struct slang_t {
     enum type_t {
         GLSL330 = 0,
@@ -100,13 +100,14 @@ struct slang_t {
     }
 };
 
-/* the output format */
+// the output format
 struct format_t	{
     enum type_t {
         SOKOL = 0,
         SOKOL_DECL,
         SOKOL_IMPL,
         SOKOL_ZIG,
+        SOKOL_NIM,
         BARE,
         NUM,
         INVALID,
@@ -118,6 +119,7 @@ struct format_t	{
             case SOKOL_DECL:    return "sokol_decl";
             case SOKOL_IMPL:    return "sokol_impl";
             case SOKOL_ZIG:     return "sokol_zig";
+            case SOKOL_NIM:     return "sokol_nim";
             case BARE:          return "bare";
             default:            return "<invalid>";
         }
@@ -135,6 +137,9 @@ struct format_t	{
         else if (str == "sokol_zig") {
             return SOKOL_ZIG;
         }
+        else if (str == "sokol_nim") {
+            return SOKOL_NIM;
+        }
         else if (str == "bare") {
             return BARE;
         }
@@ -144,7 +149,7 @@ struct format_t	{
     }
 };
 
-/* an error message object with filename, line number and message */
+// an error message object with filename, line number and message
 struct errmsg_t {
     enum type_t {
         ERROR,
@@ -202,7 +207,7 @@ struct errmsg_t {
     }
 };
 
-/* result of command-line-args parsing */
+// result of command-line-args parsing
 struct args_t {
     bool valid = false;
     std::string cmdline;
@@ -225,7 +230,7 @@ struct args_t {
     void dump_debug() const;
 };
 
-/* per-shader compile options */
+// per-shader compile options
 struct option_t {
     enum type_t {
         INVALID = 0,
@@ -248,7 +253,7 @@ struct option_t {
     }
 };
 
-/* a named code-snippet (@block, @vs or @fs) in the input source file */
+// a named code-snippet (@block, @vs or @fs) in the input source file
 struct snippet_t {
     enum type_t {
         INVALID,
@@ -274,7 +279,7 @@ struct snippet_t {
     }
 };
 
-/* a vertex-/fragment-shader pair (@program) */
+// a vertex-/fragment-shader pair (@program)
 struct program_t {
     std::string name;
     std::string vs_name;    // name of vertex shader snippet
@@ -285,7 +290,7 @@ struct program_t {
     program_t(const std::string& n, const std::string& vs, const std::string& fs, int l): name(n), vs_name(vs), fs_name(fs), line_index(l) { };
 };
 
-/* mapping each line to included filename and line index */
+// mapping each line to included filename and line index
 struct line_t {
     std::string line;       // line content
     int filename = 0;       // index into input_t filenames
@@ -295,7 +300,7 @@ struct line_t {
     line_t(const std::string& ln, int fn, int ix): line(ln), filename(fn), index(ix) { };
 };
 
-/* pre-parsed GLSL source file, with content split into snippets */
+// pre-parsed GLSL source file, with content split into snippets
 struct input_t {
     errmsg_t out_error;
     std::string base_path;              // path to base file
@@ -303,7 +308,8 @@ struct input_t {
     std::vector<std::string> filenames; // all source files, base is first entry
     std::vector<line_t> lines;          // input source files split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
-    std::map<std::string, std::string> type_map;    // @type uniform type definitions
+    std::map<std::string, std::string> ctype_map;    // @ctype uniform type definitions
+    std::vector<std::string> cimports;      // @cimport native language dependencies
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
@@ -334,7 +340,7 @@ struct input_t {
     };
 };
 
-/* a SPIRV-bytecode blob with "back-link" to input_t.snippets */
+// a SPIRV-bytecode blob with "back-link" to input_t.snippets
 struct spirv_blob_t {
     int snippet_index = -1;         // index into input_t.snippets
     std::string source;             // source code this blob was compiled from
@@ -343,7 +349,7 @@ struct spirv_blob_t {
     spirv_blob_t(int snippet_index): snippet_index(snippet_index) { };
 };
 
-/* glsl-to-spirv compiler wrapper */
+// glsl-to-spirv compiler wrapper
 struct spirvcross_t;
 struct spirv_t {
     std::vector<errmsg_t> errors;
@@ -356,7 +362,7 @@ struct spirv_t {
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 
-/* reflection info */
+// reflection info
 struct attr_t {
     static const int NUM = 16;      // must be identical with NUM_VERTEX_ATTRS
     int slot = -1;
@@ -511,7 +517,7 @@ struct spirvcross_refl_t {
     std::vector<image_t> images;
 };
 
-/* result of a spirv-cross compilation */
+// result of a spirv-cross compilation
 struct spirvcross_source_t {
     bool valid = false;
     int snippet_index = -1;
@@ -519,7 +525,7 @@ struct spirvcross_source_t {
     spirvcross_refl_t refl;
 };
 
-/* spirv-cross wrapper */
+// spirv-cross wrapper
 struct spirvcross_t {
     errmsg_t error;
     std::vector<spirvcross_source_t> sources;
@@ -531,7 +537,7 @@ struct spirvcross_t {
     void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 
-/* HLSL/Metal to bytecode compiler wrapper */
+// HLSL/Metal to bytecode compiler wrapper
 struct bytecode_blob_t {
     bool valid = false;
     int snippet_index = -1;
@@ -547,22 +553,27 @@ struct bytecode_t {
     void dump_debug() const;
 };
 
-/* C header-generator for sokol_gfx.h */
+// C header-generator for sokol_gfx.h
 struct sokol_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-/* Zig module-generator for sokol.gfx.zig */
+// Zig module-generator for sokol.gfx.zig
 struct sokolzig_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-/* bare format generator */
+// Zig module-generator for sokol.gfx.zig
+struct sokolnim_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+// bare format generator
 struct bare_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-/* utility functions for generators */
+// utility functions for generators
 namespace util {
     errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* uniform_type_str(uniform_t::type_t type);
@@ -573,6 +584,8 @@ namespace util {
     const image_t* find_image(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
+    std::string to_camel_case(const std::string& str);
+    std::string to_pascal_case(const std::string& str);
 };
 
 } // namespace shdc
