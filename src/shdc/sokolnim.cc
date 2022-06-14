@@ -259,7 +259,12 @@ static void write_shader_sources_and_blobs(const input_t& inp,
                 if ((i & 15) == 0) {
                     L("    ");
                 }
-                L("{:#04x},", blob->data[i]);
+                if (0 == i) {
+                    L("{:#04x}'u8,", blob->data[i]);
+                }
+                else {
+                    L("{:#04x},", blob->data[i]);
+                }
                 if ((i & 15) == 15) {
                     L("\n");
                 }
@@ -275,7 +280,12 @@ static void write_shader_sources_and_blobs(const input_t& inp,
                 if ((i & 15) == 0) {
                     L("    ");
                 }
-                L("{:#04x},", src.source_code[i]);
+                if (0 == i) {
+                    L("{:#04x}'u8,", src.source_code[i]);
+                }
+                else {
+                    L("{:#04x},", src.source_code[i]);
+                }
                 if ((i & 15) == 15) {
                     L("\n");
                 }
@@ -297,7 +307,7 @@ static void write_stage(const char* indent,
         L("{}result.{}.bytecode = {}\n", indent, stage_name, blob_name);
     }
     else {
-        L("{}result.{}.source = {}\n", indent, stage_name, src_name);
+        L("{}result.{}.source = cast[cstring](unsafeAddr({}))\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
         if (slang == slang_t::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
@@ -327,7 +337,7 @@ static void write_stage(const char* indent,
                         const uniform_t& u = ub->uniforms[u_index];
                         L("{}result.{}.uniformBlocks[{}].uniforms[{}].name = \"{}.{}\"\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
                         L("{}result.{}.uniformBlocks[{}].uniforms[{}].type = {}\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
-                        L("{}result.{}.uniformBlocks[{}].uniforms[{}].arrayCount = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
+                        L("{}result.{}.uniformBlocks[{}].uniforms[{}].arrayCount = {}\n", indent, stage_name, ub_index, u_index, u.array_count);
                     }
                 }
             }
@@ -380,7 +390,7 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
     write_stage(indent, "vs", vs_src, vs_src_name, vs_blob, vs_blob_name, slang);
     write_stage(indent, "fs", fs_src, fs_src_name, fs_blob, fs_blob_name, slang);
     const std::string shader_name = to_camel_case(fmt::format("{}_{}_shader", mod_prefix(inp), prog.name));
-    L("{}result.label = \"{}\";\n", indent, shader_name);
+    L("{}result.label = \"{}\"\n", indent, shader_name);
 }
 
 errmsg_t sokolnim_t::gen(const args_t& args, const input_t& inp,
@@ -417,7 +427,7 @@ errmsg_t sokolnim_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg.ShaderDesc structs
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("proc {}(backend: sg.Backend): sg.ShaderDesc =\n", to_camel_case(fmt::format("{}_{}_shader_desc", mod_prefix(inp), prog.name)));
+        L("proc {}*(backend: sg.Backend): sg.ShaderDesc =\n", to_camel_case(fmt::format("{}_{}_shader_desc", mod_prefix(inp), prog.name)));
         L("  case backend:\n");
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t) i;
@@ -426,6 +436,7 @@ errmsg_t sokolnim_t::gen(const args_t& args, const input_t& inp,
                 write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
             }
         }
+        L("    else: discard\n");
         L("\n");
     }
 
