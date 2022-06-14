@@ -14,6 +14,10 @@ Shader-code-generator for sokol_gfx.h
 
 ## Updates
 
+- **14-Jun-2022**:
+    - initial Nim support for use with the sokol-nim bindings
+    - new tag: ```@cimport``` to pull in C headers, or Zig and Nim modules
+
 - **07-Jan-2022**:
     - support for additional uniform types:
         - int => SG_UNIFORMTYPE_INT
@@ -583,6 +587,50 @@ Note that the mapped C/C++ types must have the following byte sizes:
 - ```float```: 4 bytes
 
 Explicit padding bytes will be included as needed by the code generator.
+
+### @cimport ...
+
+The ```@cimport``` tag allows to pull in additional language specific header or
+module dependencies into the generated source file. The details are language
+specific:
+
+For **C**, provide the header path:
+
+```glsl
+@cimport path/to/header.h
+```
+
+This will result in the following generated C code:
+
+```c
+#include "path/to/header.h"
+```
+
+For Zig, provide the complete import statement, without the final semicolon:
+
+```glsl
+@cimport const math = @import("path/to/math.zig")
+```
+
+This will result in the following generated Zig code:
+
+```zig
+const math = @import("path/to/math.zig");
+```
+
+In Nim there are two options:
+
+```nim
+@cimport math
+@cimport math as bla
+```
+
+This will result in the following generated Nim code:
+
+```nim
+import math
+import math as bla
+```
 
 ### @module [name]
 
