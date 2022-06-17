@@ -1,5 +1,5 @@
 /*
-    Generate output header in C for sokol_gfx.h
+    Generate sokol-zig module.
 */
 #include "shdc.h"
 #include "fmt/format.h"
@@ -84,18 +84,6 @@ static const char* sokol_backend(slang_t::type_t slang) {
     }
 }
 
-static std::string func_case_name(const std::string& prefix, const std::string& name) {
-    std::vector<std::string> splits;
-    std::vector<std::string> parts = { pystring::capitalize(prefix) };
-    pystring::split(name, splits, "_");
-    for (const auto& part: splits) {
-        parts.push_back(pystring::capitalize(part));
-    }
-    std::string all = pystring::join("", parts);
-    all[0] = tolower(all[0]);
-    return all;
-}
-
 static void write_header(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     L("//\n");
     L("//  #version:{}# (machine generated, don't edit!)\n", args.gen_version);
@@ -113,7 +101,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         assert(vs_src && fs_src);
         L("//      Shader program '{}':\n", prog.name);
-        L("//          Get shader desc: shd.{}ShaderDesc(sg.queryBackend());\n", func_case_name(mod_prefix(inp), prog.name));
+        L("//          Get shader desc: shd.{}ShaderDesc(sg.queryBackend());\n", to_camel_case(fmt::format("{}_{}", mod_prefix(inp), prog.name)));
         L("//          Vertex shader: {}\n", prog.vs_name);
         L("//              Attribute slots:\n");
         const snippet_t& vs_snippet = inp.snippets[vs_src->snippet_index];
@@ -148,6 +136,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("//\n");
     }
     L("//\n");
+    for (const auto& cimport: inp.cimports) {
+        L("{};\n", cimport);
+    }
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
@@ -169,22 +160,12 @@ static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirv
     }
 }
 
-static std::string struct_case_name(const std::string& prefix, const std::string& name) {
-    std::vector<std::string> splits;
-    std::vector<std::string> parts = { pystring::capitalize(prefix) };
-    pystring::split(name, splits, "_");
-    for (const auto& part: splits) {
-        parts.push_back(pystring::capitalize(part));
-    }
-    return pystring::join("", parts);
-}
-
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
-        L("pub const {} = extern struct {{\n", struct_case_name(mod_prefix(inp), ub.struct_name));
+        L("pub const {} = extern struct {{\n", to_pascal_case(fmt::format("{}_{}", mod_prefix(inp), ub.struct_name)));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
@@ -192,13 +173,13 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                 L("    _pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
                 cur_offset = next_offset;
             }
-            if (inp.type_map.count(uniform_type_str(uniform.type)) > 0) {
+            if (inp.ctype_map.count(uniform_type_str(uniform.type)) > 0) {
                 // user-provided type names
                 if (uniform.array_count == 1) {
-                    L("    {}: {}", uniform.name, inp.type_map.at(uniform_type_str(uniform.type)));
+                    L("    {}: {}", uniform.name, inp.ctype_map.at(uniform_type_str(uniform.type)));
                 }
                 else {
-                    L("    {}: [{}]{}", uniform.name, uniform.array_count, inp.type_map.at(uniform_type_str(uniform.type)));
+                    L("    {}: [{}]{}", uniform.name, uniform.array_count, inp.ctype_map.at(uniform_type_str(uniform.type)));
                 }
             }
             else {
@@ -212,7 +193,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                         case uniform_t::INT:     L("    {}: i32", uniform.name); break;
                         case uniform_t::INT2:    L("    {}: [2]i32", uniform.name); break;
                         case uniform_t::INT3:    L("    {}: [3]i32", uniform.name); break;
-                        case uniform_t::INT4:    L("    {}: [4]u32", uniform.name); break;
+                        case uniform_t::INT4:    L("    {}: [4]i32", uniform.name); break;
                         case uniform_t::MAT4:    L("    {}: [16]f32", uniform.name); break;
                         default:                 L("    INVALID_UNIFORM_TYPE"); break;
                     }
@@ -437,7 +418,7 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg.ShaderDesc structs
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", func_case_name(mod_prefix(inp), prog.name));
+        L("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", to_camel_case(fmt::format("{}_{}", mod_prefix(inp), prog.name)));
         L("    var desc: sg.ShaderDesc = .{{}};\n");
         L("    switch (backend) {{\n");
         for (int i = 0; i < slang_t::NUM; i++) {

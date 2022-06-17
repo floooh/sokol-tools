@@ -37,7 +37,7 @@ static const getopt_option_t option_list[] = {
     { "module",     'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection", 'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
     { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|bare]" },
+    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|bare]" },
     { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",       'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
     { "genver",     'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
@@ -60,6 +60,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - @module name: optional shader module name, will be used as prefix in generated code\n"
         "  - @ctype type ctype: a type-alias for generated uniform block structs\n"
         "    (where type is float, vec2, vec3, vec4 or mat4)\n"
+        "  - @cimport ...: define 'native' dependency import, languge specific (e.g. a C header path)\n"
         "  - @block name: a general reusable code block\n"
         "  - @vs name: a named vertex shader code block\n"
         "  - @fs name: a named fragment shader code block\n"
@@ -88,9 +89,10 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_decl:    C header with SOKOL_SHDC_DECL wrapped decl and inlined impl\n"
         "  - sokol_impl:    C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"
         "  - sokol_zig:     Zig module file\n"
+        "  - sokol_nim:     Nim module file\n"
         "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
         "Options:\n\n");
-    char buf[2048];
+    char buf[4096];
     fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
 }
 
@@ -214,7 +216,7 @@ args_t args_t::parse(int argc, const char** argv) {
                 case OPTION_FORMAT:
                     args.output_format = format_t::from_str(ctx.current_opt_arg);
                     if (args.output_format == format_t::INVALID) {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be 'sokol', 'sokol_impl', 'sokol_pair' or 'bare'\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|bare]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;

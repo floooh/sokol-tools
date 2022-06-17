@@ -2,6 +2,8 @@
     Utility functions shared by output generators
  */
 #include "shdc.h"
+#include "fmt/format.h"
+#include "pystring.h"
 
 namespace shdc {
 namespace util {
@@ -127,6 +129,22 @@ const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shad
     else {
         return nullptr;
     }
+}
+
+std::string to_pascal_case(const std::string& str) {
+    std::vector<std::string> splits;
+    pystring::split(str, splits, "_");
+    std::vector<std::string> parts;
+    for (const auto& part: splits) {
+        parts.push_back(pystring::capitalize(part));
+    }
+    return pystring::join("", parts);
+}
+
+std::string to_camel_case(const std::string& str) {
+    std::string res = to_pascal_case(str);
+    res[0] = tolower(res[0]);
+    return res;
 }
 
 } // namespace util
