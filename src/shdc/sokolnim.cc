@@ -20,15 +20,15 @@ static std::string file_content;
 
 static const char* uniform_type_to_sokol_type_str(uniform_t::type_t type) {
     switch (type) {
-        case uniform_t::FLOAT:  return "sg.UniformType.mat4";
-        case uniform_t::FLOAT2: return "sg.UniformType.float2";
-        case uniform_t::FLOAT3: return "sg.UniformType.float3";
-        case uniform_t::FLOAT4: return "sg.UniformType.float4";
-        case uniform_t::INT:    return "sg.UniformType.int";
-        case uniform_t::INT2:   return "sg.UniformType.int2";
-        case uniform_t::INT3:   return "sg.UniformType.int3";
-        case uniform_t::INT4:   return "sg.UniformType.int4";
-        case uniform_t::MAT4:   return "sg.UniformType.mat4";
+        case uniform_t::FLOAT:  return "uniformTypeFloat";
+        case uniform_t::FLOAT2: return "uniformTypeFloat2";
+        case uniform_t::FLOAT3: return "uniformTypeFloat3";
+        case uniform_t::FLOAT4: return "uniformTypeFloat4";
+        case uniform_t::INT:    return "uniformTypeInt";
+        case uniform_t::INT2:   return "uniformTypeInt2";
+        case uniform_t::INT3:   return "uniformTypeInt3";
+        case uniform_t::INT4:   return "uniformTypeInt4";
+        case uniform_t::MAT4:   return "uniformTypeMat4";
         default: return "FIXME";
     }
 }
@@ -40,48 +40,52 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
         case uniform_t::FLOAT3:
         case uniform_t::FLOAT4:
         case uniform_t::MAT4:
-             return "sg.UniformType.float4";
+             return "uniformTypeFloat4";
         case uniform_t::INT:
         case uniform_t::INT2:
         case uniform_t::INT3:
         case uniform_t::INT4:
-            return "sg.UniformType.int4";
+            return "uniformTypeInt4";
         default: return "FIXME";
     }
 }
 
 static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     switch (type) {
-        case image_t::IMAGE_TYPE_2D:    return "sg.ImageType.twoDee";
-        case image_t::IMAGE_TYPE_CUBE:  return "sg.ImageType.cube";
-        case image_t::IMAGE_TYPE_3D:    return "sg.ImageType.threeDee";
-        case image_t::IMAGE_TYPE_ARRAY: return "sg.ImageType.array";
+        case image_t::IMAGE_TYPE_2D:    return "imageType2d";
+        case image_t::IMAGE_TYPE_CUBE:  return "imageTypeCube";
+        case image_t::IMAGE_TYPE_3D:    return "imageType3d";
+        case image_t::IMAGE_TYPE_ARRAY: return "imageTypeArray";
         default: return "INVALID";
     }
 }
 
 static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
     switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return "sg.SamplerType.float";
-        case image_t::IMAGE_BASETYPE_SINT:  return "sg.SamplerType.sint";
-        case image_t::IMAGE_BASETYPE_UINT:  return "sg.SamplerType.uint";
+        case image_t::IMAGE_BASETYPE_FLOAT: return "samplerTypeFloat";
+        case image_t::IMAGE_BASETYPE_SINT:  return "samplerTypeSint";
+        case image_t::IMAGE_BASETYPE_UINT:  return "samplerTypeUint";
         default: return "INVALID";
     }
 }
 
 static const char* sokol_backend(slang_t::type_t slang) {
     switch (slang) {
-        case slang_t::GLSL330:      return "sg.Backend.glcore33";
-        case slang_t::GLSL100:      return "sg.Backend.gles2";
-        case slang_t::GLSL300ES:    return "sg.Backend.gles2";
-        case slang_t::HLSL4:        return "sg.Backend.d3d11";
-        case slang_t::HLSL5:        return "sg.Backend.d3d11";
-        case slang_t::METAL_MACOS:  return "sg.Backend.metalMacos";
-        case slang_t::METAL_IOS:    return "sg.Backend.metalIos";
-        case slang_t::METAL_SIM:    return "sg.Backend.metalSimulator";
-        case slang_t::WGPU:         return "sg.Backend.wgpu";
+        case slang_t::GLSL330:      return "backendGlcore33";
+        case slang_t::GLSL100:      return "backend.Gles2";
+        case slang_t::GLSL300ES:    return "backendGles2";
+        case slang_t::HLSL4:        return "backendD3d11";
+        case slang_t::HLSL5:        return "backendD3d11";
+        case slang_t::METAL_MACOS:  return "backendMetalMacos";
+        case slang_t::METAL_IOS:    return "backendMetalIos";
+        case slang_t::METAL_SIM:    return "backendMetalSimulator";
+        case slang_t::WGPU:         return "backendWgpu";
         default: return "<INVALID>";
     }
+}
+
+static std::string to_nim_struct_name(const std::string& prefix, const std::string& struct_name) {
+    return to_pascal_case(fmt::format("{}_{}", prefix, struct_name));
 }
 
 static void write_header(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
@@ -112,7 +116,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         }
         for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
             L("#               Uniform block '{}':\n", ub.struct_name);
-            L("#                   C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: vs_src->refl.images) {
@@ -124,7 +128,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("#           Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
             L("#               Uniform block '{}':\n", ub.struct_name);
-            L("#                   C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
+            L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
         for (const image_t& img: fs_src->refl.images) {
@@ -170,7 +174,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), ub.struct_name));
         L("const {}* = {}\n", slotName, ub.slot);
-        L("type {}* {{.packed.}} = object\n", to_pascal_case(fmt::format("{}_{}", mod_prefix(inp), ub.struct_name)));
+        L("type {}* {{.packed.}} = object\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             // align the first item
@@ -325,7 +329,7 @@ static void write_stage(const char* indent,
         const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
         if (ub) {
             L("{}result.{}.uniformBlocks[{}].size = {}\n", indent, stage_name, ub_index, roundup(ub->size, 16));
-            L("{}result.{}.uniformBlocks[{}].layout = sg.UniformLayout.std140\n", indent, stage_name, ub_index);
+            L("{}result.{}.uniformBlocks[{}].layout = uniformLayoutStd140\n", indent, stage_name, ub_index);
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
                     L("{}result.{}.uniformBlocks[{}].uniforms[0].name = \"{}\"\n", indent, stage_name, ub_index, ub->struct_name);
