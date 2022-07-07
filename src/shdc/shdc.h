@@ -580,6 +580,7 @@ namespace util {
     int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
+    std::string mod_prefix2(const input_t& inp);
     const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
     const image_t* find_image(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
