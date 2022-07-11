@@ -147,5 +147,15 @@ std::string to_camel_case(const std::string& str) {
     return res;
 }
 
+std::string replace_C_comment_tokens(const std::string& str) {
+    static const std::string comment_start_old = "/*";
+    static const std::string comment_start_new = "/_";
+    static const std::string comment_end_old = "*/";
+    static const std::string comment_end_new = "_/";
+    std::string s = pystring::replace(str, comment_start_old, comment_start_new);
+    s = pystring::replace(s, comment_end_old, comment_end_new);
+    return s;
+}
+
 } // namespace util
 } // namespace shdc

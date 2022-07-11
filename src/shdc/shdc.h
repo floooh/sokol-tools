@@ -586,6 +586,7 @@ namespace util {
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);
     std::string to_pascal_case(const std::string& str);
+    std::string replace_C_comment_tokens(const std::string& str);
 };
 
 } // namespace shdc

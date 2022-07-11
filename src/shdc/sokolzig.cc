@@ -248,7 +248,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         /* first write the source code in a comment block */
         L("//\n");
         for (const std::string& line: lines) {
-            L("// {}\n", line);
+            L("// {}\n", util::replace_C_comment_tokens(line));
         }
         L("//\n");
         if (blob) {
