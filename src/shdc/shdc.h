@@ -108,6 +108,7 @@ struct format_t	{
         SOKOL_IMPL,
         SOKOL_ZIG,
         SOKOL_NIM,
+        SOKOL_ODIN,
         BARE,
         NUM,
         INVALID,
@@ -120,6 +121,7 @@ struct format_t	{
             case SOKOL_IMPL:    return "sokol_impl";
             case SOKOL_ZIG:     return "sokol_zig";
             case SOKOL_NIM:     return "sokol_nim";
+            case SOKOL_ODIN:    return "sokol_odin";
             case BARE:          return "bare";
             default:            return "<invalid>";
         }
@@ -139,6 +141,9 @@ struct format_t	{
         }
         else if (str == "sokol_nim") {
             return SOKOL_NIM;
+        }
+        else if (str == "sokol_odin") {
+            return SOKOL_ODIN;
         }
         else if (str == "bare") {
             return BARE;
@@ -558,13 +563,18 @@ struct sokol_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-// Zig module-generator for sokol.gfx.zig
+// Zig module-generator for sokol-zig
 struct sokolzig_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-// Zig module-generator for sokol.gfx.zig
+// Nim module-generator for sokol-nim
 struct sokolnim_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+// Odin module-generator for sokol-odin
+struct sokolodin_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
