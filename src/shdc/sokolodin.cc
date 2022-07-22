@@ -136,8 +136,9 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("\n");
     }
     L("*/\n");
+    L("package shd\n");
     for (const auto& cimport: inp.cimports) {
-        L("{};\n", cimport);
+        L("import {};\n", cimport);
     }
 }
 
@@ -244,7 +245,8 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         L("*/\n");
         if (blob) {
             std::string c_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
-            L("{} :: [{}]u8 {{\n", c_name.c_str(), blob->data.size());
+            L("@(private)\n");
+            L("{} := [{}]u8 {{\n", c_name.c_str(), blob->data.size());
             const size_t len = blob->data.size();
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
@@ -261,7 +263,8 @@ static void write_shader_sources_and_blobs(const input_t& inp,
             // if no bytecode exists, write the source code, but also a byte array with a trailing 0
             std::string c_name = fmt::format("{}{}_source_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang));
             const size_t len = src.source_code.length() + 1;
-            L("{} :: [{}]u8 {{\n", c_name.c_str(), len);
+            L("@(private)\n");
+            L("{} := [{}]u8 {{\n", c_name.c_str(), len);
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
                     L("    ");
@@ -290,7 +293,7 @@ static void write_stage(const char* indent,
         L("{}desc.{}.bytecode.size = {};\n", indent, stage_name, blob->data.size());
     }
     else {
-        L("{}desc.{}.source = &{}\n", indent, stage_name, src_name);
+        L("{}desc.{}.source = transmute(cstring)&{}\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
         if (slang == slang_t::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
@@ -383,7 +386,6 @@ errmsg_t sokolodin_t::gen(const args_t& args, const input_t& inp,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
 
-    L("import sg \"sokol/gfx\"\n");
     bool comment_header_written = false;
     bool common_decls_written = false;
     for (int i = 0; i < slang_t::NUM; i++) {
@@ -410,7 +412,7 @@ errmsg_t sokolodin_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg.ShaderDesc structs
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("{}{}_shader_desc :: proc (backend: sg.Backend) sg.Shader_Desc {{\n", mod_prefix(inp), prog.name);
+        L("{}{}_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {{\n", mod_prefix(inp), prog.name);
         L("    desc: sg.Shader_Desc\n");
         L("    #partial switch backend {{\n");
         for (int i = 0; i < slang_t::NUM; i++) {
