@@ -163,7 +163,7 @@ static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirv
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         L("SLOT_{}{} :: {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
-        L("{} :: struct #align 16 #packed {{\n", to_pascal_case(fmt::format("{}_{}", mod_prefix(inp), ub.struct_name)));
+        L("{} :: struct {{\n", to_ada_case(fmt::format("{}{}", mod_prefix(inp), ub.struct_name)));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
             int next_offset = uniform.offset;
