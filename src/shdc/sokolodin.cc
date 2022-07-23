@@ -136,9 +136,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("\n");
     }
     L("*/\n");
-    L("package shd\n");
     for (const auto& cimport: inp.cimports) {
-        L("import {};\n", cimport);
+        L("{}\n", cimport);
     }
 }
 
