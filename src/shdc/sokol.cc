@@ -191,8 +191,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("#include <stdbool.h>\n");
     L("#include <string.h>\n");
     L("#include <stddef.h>\n");
-    for (const auto& cimport: inp.cimports) {
-        L("#include \"{}\"\n", cimport);
+    for (const auto& header: inp.headers) {
+        L("{}\n", header);
     }
 }
 

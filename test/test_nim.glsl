@@ -1,7 +1,7 @@
 /*
     this is a comment
 */
-@cimport glm as glm
+@header import glm as glm
 @ctype float float32
 @ctype vec2 glm.Vec2f
 @ctype vec3 glm.Vec3f

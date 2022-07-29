@@ -98,7 +98,7 @@ static bool remove_comments(std::string& str) {
 
 static const std::string module_tag = "@module";
 static const std::string ctype_tag = "@ctype";
-static const std::string cimport_tag = "@cimport";
+static const std::string header_tag = "@header";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
 static const std::string block_tag = "@block";
@@ -176,13 +176,13 @@ static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_s
     return true;
 }
 
-static bool validate_cimport_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 2) {
-        inp.out_error = inp.error(line_index, "@cimport tag must have at least one arg (@cimport ...)");
+        inp.out_error = inp.error(line_index, "@header tag must have at least one arg (@header ...)");
         return false;
     }
     if (in_snippet) {
-        inp.out_error = inp.error(line_index, "@cimport tag cannot be inside a tag block (missing @end?).");
+        inp.out_error = inp.error(line_index, "@header tag cannot be inside a tag block (missing @end?).");
         return false;
     }
     return true;
@@ -337,13 +337,13 @@ static bool parse(input_t& inp) {
                 }
                 inp.ctype_map[tokens[1]] = tokens[2];
             }
-            else if (tokens[0] == cimport_tag) {
-                if (!validate_cimport_tag(tokens, in_snippet, line_index, inp)) {
+            else if (tokens[0] == header_tag) {
+                if (!validate_header_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 std::vector<std::string> skip_first_token = tokens;
                 skip_first_token.erase(skip_first_token.begin());
-                inp.cimports.push_back(pystring::join(" ", skip_first_token));
+                inp.headers.push_back(pystring::join(" ", skip_first_token));
             }
             else if (tokens[0] == glsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {

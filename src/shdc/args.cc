@@ -60,7 +60,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - @module name: optional shader module name, will be used as prefix in generated code\n"
         "  - @ctype type ctype: a type-alias for generated uniform block structs\n"
         "    (where type is float, vec2, vec3, vec4 or mat4)\n"
-        "  - @cimport ...: define 'native' dependency import, languge specific (e.g. a C header path)\n"
+        "  - @header ...: target language statements to inject before generated code\n"
         "  - @block name: a general reusable code block\n"
         "  - @vs name: a named vertex shader code block\n"
         "  - @fs name: a named fragment shader code block\n"

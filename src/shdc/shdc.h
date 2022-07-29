@@ -314,7 +314,7 @@ struct input_t {
     std::vector<line_t> lines;          // input source files split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> ctype_map;    // @ctype uniform type definitions
-    std::vector<std::string> cimports;      // @cimport native language dependencies
+    std::vector<std::string> headers;       // @header statements
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
