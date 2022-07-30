@@ -108,6 +108,7 @@ struct format_t	{
         SOKOL_IMPL,
         SOKOL_ZIG,
         SOKOL_NIM,
+        SOKOL_ODIN,
         BARE,
         NUM,
         INVALID,
@@ -120,6 +121,7 @@ struct format_t	{
             case SOKOL_IMPL:    return "sokol_impl";
             case SOKOL_ZIG:     return "sokol_zig";
             case SOKOL_NIM:     return "sokol_nim";
+            case SOKOL_ODIN:    return "sokol_odin";
             case BARE:          return "bare";
             default:            return "<invalid>";
         }
@@ -139,6 +141,9 @@ struct format_t	{
         }
         else if (str == "sokol_nim") {
             return SOKOL_NIM;
+        }
+        else if (str == "sokol_odin") {
+            return SOKOL_ODIN;
         }
         else if (str == "bare") {
             return BARE;
@@ -309,7 +314,7 @@ struct input_t {
     std::vector<line_t> lines;          // input source files split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> ctype_map;    // @ctype uniform type definitions
-    std::vector<std::string> cimports;      // @cimport native language dependencies
+    std::vector<std::string> headers;       // @header statements
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
@@ -558,13 +563,18 @@ struct sokol_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-// Zig module-generator for sokol.gfx.zig
+// Zig module-generator for sokol-zig
 struct sokolzig_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
-// Zig module-generator for sokol.gfx.zig
+// Nim module-generator for sokol-nim
 struct sokolnim_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+// Odin module-generator for sokol-odin
+struct sokolodin_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
@@ -586,6 +596,7 @@ namespace util {
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);
     std::string to_pascal_case(const std::string& str);
+    std::string to_ada_case(const std::string& str);
     std::string replace_C_comment_tokens(const std::string& str);
 };
 

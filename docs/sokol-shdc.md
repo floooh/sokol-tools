@@ -14,6 +14,12 @@ Shader-code-generator for sokol_gfx.h
 
 ## Updates
 
+- **30-Jul-2022**:
+    - BREAKING CHANGE: renamed the ```@cimport``` tag to ```@header```, and change behaviour so that
+      literally inserts the text after @header before the generated code (no more
+      target-language specific behaviour)
+    - Added an Odin code generator for the official Odin bindings (https://github.com/floooh/sokol-odin)
+
 - **14-Jun-2022**:
     - initial Nim support for use with the sokol-nim bindings
     - new tag: ```@cimport``` to pull in C headers, or Zig and Nim modules
@@ -24,7 +30,7 @@ Shader-code-generator for sokol_gfx.h
         - ivec2 => SG_UNIFORMTYPE_INT2
         - ivec3 => SG_UNIFORMTYPE_INT3
         - ivec4 => SG_UNIFORMTYPE_INT4
-    - add support for mixed-type uniform blocks, those will not be flattened 
+    - add support for mixed-type uniform blocks, those will not be flattened
       for the output GLSL dialects
     - stricter checks for allowed types in uniform blocks (e.g. arrays
       are only allowed for vec4, ivec4 and mat4)
@@ -357,6 +363,8 @@ follows:
         - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
     - **sokol_zig**: This generates a Zig source file that's compatible with the
       [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
+    - **sokol_odin**: Generates an Odin source file that's compatible with the
+      [sokol-odin bindings](https://github.com/floooh/sokol-odin)
 
   Note that some options and features of sokol-shdc can be contradictory to (and thus, ignored by) backends. For example, the **bare** backend only writes shader code, and disregards all other information.
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
@@ -588,48 +596,24 @@ Note that the mapped C/C++ types must have the following byte sizes:
 
 Explicit padding bytes will be included as needed by the code generator.
 
-### @cimport ...
+### @header ...
 
-The ```@cimport``` tag allows to pull in additional language specific header or
-module dependencies into the generated source file. The details are language
-specific:
+The ```@header``` tag allows to inject target-language specific statements
+before the generated code. This is for instance useful to include any
+required dependencies.
 
-For **C**, provide the header path:
+For instance to add a **C** header include:
 
 ```glsl
-@cimport path/to/header.h
+@header #include "path/to/header.h"
+@header #include "path/to/other_header.h"
 ```
 
 This will result in the following generated C code:
 
 ```c
 #include "path/to/header.h"
-```
-
-For Zig, provide the complete import statement, without the final semicolon:
-
-```glsl
-@cimport const math = @import("path/to/math.zig")
-```
-
-This will result in the following generated Zig code:
-
-```zig
-const math = @import("path/to/math.zig");
-```
-
-In Nim there are two options:
-
-```nim
-@cimport math
-@cimport math as bla
-```
-
-This will result in the following generated Nim code:
-
-```nim
-import math
-import math as bla
+#include "path/to/other_header.h"
 ```
 
 ### @module [name]
@@ -920,16 +904,16 @@ There are a few caveats with uniform blocks:
     - ivec3
     - ivec4
     - mat4
-    
+
     This restriction exists so that the uniform data is compatible
     with all sokol_gfx.h backends down to GLES2 and WebGL.
-    
+
 - Arrays are only allowed for the following types:
     - vec4
     - int4
     - mat4
 
-    This restriction exists because the element stride must 
+    This restriction exists because the element stride must
     be the same as the element width so that the uniform data
     is compatible both with the std140 layout and glUniformNfv() calls.
 
@@ -948,8 +932,8 @@ There are a few caveats with uniform blocks:
   'base type' (float or int):
     - 'float' base type: float, vec2, vec3, vec4, mat4
     - 'int' base type: int, ivec2, ivec3, ivec4
-  
-  The advantage of flattened uniform blocks is that they can be updated 
+
+  The advantage of flattened uniform blocks is that they can be updated
   with a single glUniform4fv() call.
 
   Mixed-base-type uniform blocks are allowed, but will not be flattened, this

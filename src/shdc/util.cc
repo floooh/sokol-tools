@@ -141,6 +141,16 @@ std::string to_pascal_case(const std::string& str) {
     return pystring::join("", parts);
 }
 
+std::string to_ada_case(const std::string& str) {
+    std::vector<std::string> splits;
+    pystring::split(str, splits, "_");
+    std::vector<std::string> parts;
+    for (const auto& part: splits) {
+        parts.push_back(pystring::capitalize(part));
+    }
+    return pystring::join("_", parts);
+}
+
 std::string to_camel_case(const std::string& str) {
     std::string res = to_pascal_case(str);
     res[0] = tolower(res[0]);

@@ -141,8 +141,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     }
     L("#\n");
     L("import sokol/gfx as sg\n");
-    for (const auto& cimport: inp.cimports) {
-        L("import {}\n", cimport);
+    for (const auto& header: inp.headers) {
+        L("{}\n", header);
     }
     L("\n");
 }

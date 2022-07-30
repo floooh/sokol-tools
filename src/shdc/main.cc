@@ -111,6 +111,9 @@ int main(int argc, const char** argv) {
         case format_t::SOKOL_NIM:
             output_err = sokolnim_t::gen(args, inp, spirvcross, bytecode);
             break;
+        case format_t::SOKOL_ODIN:
+            output_err = sokolodin_t::gen(args, inp, spirvcross, bytecode);
+            break;
         default:
             output_err = sokol_t::gen(args, inp, spirvcross, bytecode);
             break;
@@ -124,4 +127,3 @@ int main(int argc, const char** argv) {
     spirv_t::finalize_spirv_tools();
     return 0;
 }
-
