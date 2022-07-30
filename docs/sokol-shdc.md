@@ -14,10 +14,11 @@ Shader-code-generator for sokol_gfx.h
 
 ## Updates
 
-- **29-Jul-2022**:
+- **30-Jul-2022**:
     - BREAKING CHANGE: renamed the ```@cimport``` tag to ```@header```, and change behaviour so that
       literally inserts the text after @header before the generated code (no more
       target-language specific behaviour)
+    - Added an Odin code generator for the official Odin bindings (https://github.com/floooh/sokol-odin)
 
 - **14-Jun-2022**:
     - initial Nim support for use with the sokol-nim bindings
@@ -362,6 +363,8 @@ follows:
         - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
     - **sokol_zig**: This generates a Zig source file that's compatible with the
       [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
+    - **sokol_odin**: Generates an Odin source file that's compatible with the
+      [sokol-odin bindings](https://github.com/floooh/sokol-odin)
 
   Note that some options and features of sokol-shdc can be contradictory to (and thus, ignored by) backends. For example, the **bare** backend only writes shader code, and disregards all other information.
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
