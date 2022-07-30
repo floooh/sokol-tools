@@ -16,7 +16,7 @@ Shader-code-generator for sokol_gfx.h
 
 - **30-Jul-2022**:
     - BREAKING CHANGE: renamed the ```@cimport``` tag to ```@header```, and change behaviour so that
-      literally inserts the text after @header before the generated code (no more
+      it inserts the literal text after ```@header``` before the generated code (e.g. no more
       target-language specific behaviour)
     - Added an Odin code generator for the official Odin bindings (https://github.com/floooh/sokol-odin)
 
