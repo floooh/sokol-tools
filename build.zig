@@ -32,6 +32,8 @@ pub fn build_exe(
         "input.cc",
         "main.cc",
         "sokol.cc",
+        "sokolnim.cc",
+        "sokolodin.cc",
         "sokolzig.cc",
         "spirv.cc",
         "spirvcross.cc",
@@ -63,7 +65,7 @@ pub fn build_exe(
     exe.linkLibrary(lib_spirvtools(b, target, mode, prefix_path));
     exe.linkLibrary(lib_glslang(b, target, mode, prefix_path));
     inline for (incl_dirs) |incl_dir| {
-        exe.addIncludeDir(prefix_path ++ incl_dir);
+        exe.addIncludePath(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         exe.addCSourceFile(dir ++ src, &flags);
@@ -82,7 +84,7 @@ fn lib_getopt(
     lib.setTarget(target);
     lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
-    lib.addIncludeDir(prefix_path ++ "ext/getopt/include");
+    lib.addIncludePath(prefix_path ++ "ext/getopt/include");
     const flags = common_c_flags;
     lib.addCSourceFile(prefix_path ++ "ext/getopt/src/getopt.c", &flags);
     return lib;
@@ -117,7 +119,7 @@ fn lib_fmt(
     lib.setTarget(target);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
-    lib.addIncludeDir(prefix_path ++ "ext/fmt/include");
+    lib.addIncludePath(prefix_path ++ "ext/fmt/include");
     const flags = common_cpp_flags;
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
@@ -150,7 +152,7 @@ fn lib_spirvcross(
     lib.setBuildMode(mode);
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
-    lib.addIncludeDir("ext/SPIRV-Cross");
+    lib.addIncludePath("ext/SPIRV-Cross");
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
     }
@@ -230,7 +232,7 @@ fn lib_glslang(
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludeDir(prefix_path ++ incl_dir);
+        lib.addIncludePath(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
@@ -442,7 +444,7 @@ fn lib_spirvtools(
     lib.linkSystemLibrary("c");
     lib.linkSystemLibrary("c++");
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludeDir(prefix_path ++ incl_dir);
+        lib.addIncludePath(prefix_path ++ incl_dir);
     }
     inline for (sources) |src| {
         lib.addCSourceFile(dir ++ src, &flags);
