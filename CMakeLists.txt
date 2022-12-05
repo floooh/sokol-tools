@@ -19,9 +19,6 @@ if (FIPS_GCC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
 endif()
 fips_ide_group(ext)
-fips_add_subdirectory(ext)
+add_subdirectory(ext)
 fips_ide_group("")
-fips_add_subdirectory(src)
-fips_finish()
-
-
+add_subdirectory(src)

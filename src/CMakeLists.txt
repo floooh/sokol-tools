@@ -1,2 +1,1 @@
-fips_add_subdirectory(shdc)
-
+add_subdirectory(shdc)

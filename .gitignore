@@ -4,6 +4,7 @@
 *.pyc
 .vscode/
 .idea/
+CMakeUserPresets.json
 #<fips
 sokol-shdc
 zig-*/
