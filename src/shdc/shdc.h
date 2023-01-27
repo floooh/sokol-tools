@@ -109,6 +109,7 @@ struct format_t	{
         SOKOL_ZIG,
         SOKOL_NIM,
         BARE,
+        BARE_YAML,
         NUM,
         INVALID,
     };
@@ -121,6 +122,7 @@ struct format_t	{
             case SOKOL_ZIG:     return "sokol_zig";
             case SOKOL_NIM:     return "sokol_nim";
             case BARE:          return "bare";
+            case BARE_YAML:     return "bare_yaml";
             default:            return "<invalid>";
         }
     }
@@ -142,6 +144,9 @@ struct format_t	{
         }
         else if (str == "bare") {
             return BARE;
+        }
+        else if (str == "bare_yaml") {
+            return BARE_YAML;
         }
         else {
             return INVALID;
@@ -570,6 +575,12 @@ struct sokolnim_t {
 
 // bare format generator
 struct bare_t {
+    static const char* slang_file_extension(slang_t::type_t c, bool binary);
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+// yaml reflection format generator
+struct yaml_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
