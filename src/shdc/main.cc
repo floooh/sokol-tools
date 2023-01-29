@@ -107,8 +107,9 @@ int main(int argc, const char** argv) {
             break;
         case format_t::BARE_YAML:
             output_err = bare_t::gen(args, inp, spirvcross, bytecode);
-            if (output_err.valid)
+            if (output_err.valid) {
                 break;
+            }
 
             output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
             break;

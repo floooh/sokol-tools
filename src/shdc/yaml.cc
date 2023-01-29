@@ -19,8 +19,7 @@ static std::string file_content;
 #endif
 
 
-static void write_attribute(const attr_t& att)
-{
+static void write_attribute(const attr_t& att) {
     L("            -\n");
     L("              slot: {}\n", att.slot);
     L("              name: {}\n", att.name);
@@ -28,15 +27,13 @@ static void write_attribute(const attr_t& att)
     L("              sem_index: {}\n", att.sem_index);
 }
 
-static void write_uniform(const uniform_block_t& uniform_block)
-{
+static void write_uniform(const uniform_block_t& uniform_block) {
     L("            -\n");
     L("              slot: {}\n", uniform_block.slot);
     L("              size: {}\n", uniform_block.size);
     L("              struct_name: {}\n", uniform_block.struct_name);
     L("              uniforms:\n");
-    for (const auto& uniform: uniform_block.uniforms)
-    {
+    for (const auto& uniform: uniform_block.uniforms) {
         L("                -\n");
         L("                  name: {}\n", uniform.name);
         L("                  type: {}\n", uniform_t::type_to_str(uniform.type));
@@ -45,8 +42,7 @@ static void write_uniform(const uniform_block_t& uniform_block)
     }
 }
 
-static void write_image(const image_t& image)
-{
+static void write_image(const image_t& image) {
     L("            -\n");
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);
@@ -54,36 +50,45 @@ static void write_image(const image_t& image)
     L("              base_type: {}\n", image_t::basetype_to_str(image.base_type));
 }
 
-static void write_source_reflection(const spirvcross_source_t* src)
-{
+static void write_source_reflection(const spirvcross_source_t* src) {
     L("          entry_point: {}\n", src->refl.entry_point);
+
     L("          inputs:\n");
-    for (const auto& input : src->refl.inputs)
-    {
-        if (input.slot == -1) break;
+    for (const auto& input : src->refl.inputs) {
+        if (input.slot == -1) { 
+            break; 
+        }
+
         write_attribute(input);
     }
+
     L("          outputs:\n");
-    for (const auto& output : src->refl.outputs)
-    {
-        if (output.slot == -1) break;
+    for (const auto& output : src->refl.outputs) {
+        if (output.slot == -1) {
+            break;
+        }
+
         write_attribute(output);
     }
-    if (src->refl.uniform_blocks.size() > 0)
-    {
+
+    if (src->refl.uniform_blocks.size() > 0) {
         L("          uniform_blocks:\n");
-        for (const auto& uniform : src->refl.uniform_blocks)
-        {
-            if (uniform.slot == -1) break;
+        for (const auto& uniform : src->refl.uniform_blocks) {
+            if (uniform.slot == -1) {
+                break;
+            }
+
             write_uniform(uniform);
         }
     }
-    if (src->refl.images.size() > 0)
-    {
+
+    if (src->refl.images.size() > 0) {
         L("          images:\n");
-        for (const auto& image : src->refl.images)
-        {
-            if (image.slot == -1) break;
+        for (const auto& image : src->refl.images) {
+            if (image.slot == -1) {
+                break;
+            }
+
             write_image(image);
         }
     }
@@ -110,6 +115,7 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         L("        vs:\n");
         L("          path: {}\n", file_path_vs);
         write_source_reflection(vs_src);
+
         L("        fs:\n");
         L("          path: {}\n", file_path_fs);
         write_source_reflection(fs_src);
@@ -133,6 +139,7 @@ errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<sp
             if (err.valid) {
                 return err;
             }
+
             L("  -\n");
             L("    slang: {}\n", slang_t::to_str(slang));
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
