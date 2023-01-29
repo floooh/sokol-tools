@@ -107,8 +107,10 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
-        std::string file_path_vs = fmt::format("{}_{}{}_{}_vs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), bare_t::slang_file_extension(slang, vs_blob));
-        std::string file_path_fs = fmt::format("{}_{}{}_{}_fs{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang), bare_t::slang_file_extension(slang, fs_blob));
+
+        const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang));
+        const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, bare_t::slang_file_extension(slang, vs_blob));
+        const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, bare_t::slang_file_extension(slang, fs_blob));
 
         L("      -\n");
         L("        name: {}\n", prog.name);
@@ -150,7 +152,8 @@ errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<sp
     }
 
     // write result into output file
-    FILE* f = fopen(fmt::format("{}{}.yaml", args.output, mod_prefix2(inp)).c_str(), "w");
+    const std::string file_path = fmt::format("{}_{}reflection.yaml", args.output, mod_prefix(inp));
+    FILE* f = fopen(file_path.c_str(), "w");
     if (!f) {
         return errmsg_t::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
     }

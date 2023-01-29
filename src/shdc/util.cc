@@ -89,16 +89,6 @@ std::string mod_prefix(const input_t& inp) {
     }
 }
 
-std::string mod_prefix2(const input_t& inp) {
-    if (inp.module.empty()) {
-        return "";
-    }
-    else {
-        return fmt::format("_{}", inp.module);
-    }
-}
-
-
 const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot) {
     for (const uniform_block_t& ub: refl.uniform_blocks) {
         if (ub.slot == slot) {
