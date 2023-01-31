@@ -18,6 +18,36 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
+static uniform_t as_flattened_uniform(const uniform_block_t& block) {
+    assert(block.flattened);
+    assert(!block.uniforms.empty());
+
+    const uniform_t::type_t type = [&block](){
+        switch (block.uniforms[0].type) {
+            case uniform_t::FLOAT:
+            case uniform_t::FLOAT2:
+            case uniform_t::FLOAT3:
+            case uniform_t::FLOAT4:
+            case uniform_t::MAT4:
+                return uniform_t::FLOAT4;
+            case uniform_t::INT:
+            case uniform_t::INT2:
+            case uniform_t::INT3:
+            case uniform_t::INT4:
+                return uniform_t::INT4;
+            default:
+                assert(false);
+                return uniform_t::INVALID;
+        }
+    }();
+
+
+    uniform_t uniform;
+    uniform.name = block.struct_name;
+    uniform.type = type;
+    uniform.array_count = roundup(block.size, 16) / 16;
+    return uniform;
+}
 
 static void write_attribute(const attr_t& att) {
     L("            -\n");
@@ -27,19 +57,32 @@ static void write_attribute(const attr_t& att) {
     L("              sem_index: {}\n", att.sem_index);
 }
 
-static void write_uniform(const uniform_block_t& uniform_block) {
+static void write_uniform(const uniform_t& uniform);
+static void write_uniform_block(const uniform_block_t& uniform_block) {
     L("            -\n");
     L("              slot: {}\n", uniform_block.slot);
     L("              size: {}\n", uniform_block.size);
     L("              struct_name: {}\n", uniform_block.struct_name);
+    L("              inst_name: {}\n", uniform_block.inst_name);
     L("              uniforms:\n");
-    for (const auto& uniform: uniform_block.uniforms) {
-        L("                -\n");
-        L("                  name: {}\n", uniform.name);
-        L("                  type: {}\n", uniform_t::type_to_str(uniform.type));
-        L("                  array_count: {}\n", uniform.array_count);
-        L("                  offset: {}\n", uniform.offset);
+
+
+    if (uniform_block.flattened && !uniform_block.uniforms.empty()) {
+        write_uniform(as_flattened_uniform(uniform_block));
+        return;
     }
+
+    for (const auto& uniform: uniform_block.uniforms) {
+        write_uniform(uniform);
+    }
+}
+
+static void write_uniform(const uniform_t& uniform) {
+    L("                -\n");
+    L("                  name: {}\n", uniform.name);
+    L("                  type: {}\n", uniform_t::type_to_str(uniform.type));
+    L("                  array_count: {}\n", uniform.array_count);
+    L("                  offset: {}\n", uniform.offset);
 }
 
 static void write_image(const image_t& image) {
@@ -73,12 +116,12 @@ static void write_source_reflection(const spirvcross_source_t* src) {
 
     if (src->refl.uniform_blocks.size() > 0) {
         L("          uniform_blocks:\n");
-        for (const auto& uniform : src->refl.uniform_blocks) {
-            if (uniform.slot == -1) {
+        for (const auto& uniform_block : src->refl.uniform_blocks) {
+            if (uniform_block.slot == -1) {
                 break;
             }
 
-            write_uniform(uniform);
+            write_uniform_block(uniform_block);
         }
     }
 
@@ -116,10 +159,12 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         L("        name: {}\n", prog.name);
         L("        vs:\n");
         L("          path: {}\n", file_path_vs);
+        L("          is_binary: {}\n", vs_blob != nullptr);
         write_source_reflection(vs_src);
 
         L("        fs:\n");
         L("          path: {}\n", file_path_fs);
+        L("          is_binary: {}\n", fs_blob != nullptr);
         write_source_reflection(fs_src);
     }
 
