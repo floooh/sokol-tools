@@ -15,7 +15,7 @@ static std::string load_file_into_str(const std::string& path) {
         return std::string();
     }
     fseek(f, 0, SEEK_END);
-    const int file_size = ftell(f);
+    const size_t file_size = ftell(f);
     fseek(f, 0, SEEK_SET);
     char* buf = (char*) malloc(file_size + 1);
     fread((void*)buf, file_size, 1, f);
@@ -34,8 +34,8 @@ static bool remove_comments(std::string& str) {
     bool in_block_comment = false;
     bool maybe_start = false;
     bool maybe_end = false;
-    const int len = str.length();
-    for (int pos = 0; pos < len; pos++) {
+    const size_t len = str.length();
+    for (size_t pos = 0; pos < len; pos++) {
         const char c = str[pos];
         if (!(in_winged_comment || in_block_comment)) {
             // not currently in a comment
@@ -418,16 +418,16 @@ static bool parse(input_t& inp) {
                 if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.snippet_map[cur_snippet.name] = inp.snippets.size();
+                inp.snippet_map[cur_snippet.name] = (int)inp.snippets.size();
                 switch (cur_snippet.type) {
                     case snippet_t::BLOCK:
-                        inp.block_map[cur_snippet.name] = inp.snippets.size();
+                        inp.block_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
                     case snippet_t::VS:
-                        inp.vs_map[cur_snippet.name] = inp.snippets.size();
+                        inp.vs_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
                     case snippet_t::FS:
-                        inp.fs_map[cur_snippet.name] = inp.snippets.size();
+                        inp.fs_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
                     default: break;
                 }
@@ -501,7 +501,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         }
     }
     // add to filenames
-    int filename_index = inp.filenames.size();
+    int filename_index = (int)inp.filenames.size();
     inp.filenames.push_back(path_used);
 
     // remove comments before splitting into lines
