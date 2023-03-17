@@ -110,10 +110,8 @@ int main(int argc, const char** argv) {
             if (output_err.valid) {
                 break;
             }
-
             output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
             break;
-
         case format_t::SOKOL_ZIG:
             output_err = sokolzig_t::gen(args, inp, spirvcross, bytecode);
             break;
