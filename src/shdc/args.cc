@@ -37,7 +37,7 @@ static const getopt_option_t option_list[] = {
     { "module",     'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection", 'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
     { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]" },
+    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare|bare_yaml]" },
     { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",       'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
     { "genver",     'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
@@ -91,7 +91,8 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_zig:     Zig module file\n"
         "  - sokol_nim:     Nim module file\n"
         "  - sokol_odin:    Odin module file\n"
-        "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n\n"
+        "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n"
+        "  - bare_yaml:     like bare, but with reflection file in YAML format\n"
         "Options:\n\n");
     char buf[4096];
     fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
