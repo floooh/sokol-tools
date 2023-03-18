@@ -157,6 +157,10 @@ std::string to_camel_case(const std::string& str) {
     return res;
 }
 
+std::string to_upper_case(const std::string& str) {
+    return pystring::upper(str);
+}
+
 std::string replace_C_comment_tokens(const std::string& str) {
     static const std::string comment_start_old = "/*";
     static const std::string comment_start_new = "/_";

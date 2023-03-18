@@ -109,6 +109,7 @@ struct format_t	{
         SOKOL_ZIG,
         SOKOL_NIM,
         SOKOL_ODIN,
+        SOKOL_RUST,
         BARE,
         BARE_YAML,
         NUM,
@@ -123,6 +124,7 @@ struct format_t	{
             case SOKOL_ZIG:     return "sokol_zig";
             case SOKOL_NIM:     return "sokol_nim";
             case SOKOL_ODIN:    return "sokol_odin";
+            case SOKOL_RUST:    return "sokol_rust";
             case BARE:          return "bare";
             case BARE_YAML:     return "bare_yaml";
             default:            return "<invalid>";
@@ -146,6 +148,9 @@ struct format_t	{
         }
         else if (str == "sokol_odin") {
             return SOKOL_ODIN;
+        }
+        else if (str == "sokol_rust") {
+            return SOKOL_RUST;
         }
         else if (str == "bare") {
             return BARE;
@@ -583,6 +588,11 @@ struct sokolodin_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
+// Rust module-generator for sokol-rust
+struct sokolrust_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
 // bare format generator
 struct bare_t {
     static const char* slang_file_extension(slang_t::type_t c, bool binary);
@@ -608,6 +618,7 @@ namespace util {
     std::string to_camel_case(const std::string& str);
     std::string to_pascal_case(const std::string& str);
     std::string to_ada_case(const std::string& str);
+    std::string to_upper_case(const std::string& str);
     std::string replace_C_comment_tokens(const std::string& str);
 };
 
