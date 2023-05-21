@@ -31,3 +31,7 @@
 {30, "SpvGenTwo community", "SpvGenTwo SPIR-V IR Tools", "SpvGenTwo community SpvGenTwo SPIR-V IR Tools"},
 {31, "Google", "Skia SkSL", "Google Skia SkSL"},
 {32, "TornadoVM", "SPIRV Beehive Toolkit", "TornadoVM SPIRV Beehive Toolkit"},
+{33, "DragonJoker", "ShaderWriter", "DragonJoker ShaderWriter"},
+{34, "Rayan Hatout", "SPIRVSmith", "Rayan Hatout SPIRVSmith"},
+{35, "Saarland University", "Shady", "Saarland University Shady"},
+{36, "Taichi Graphics", "Taichi", "Taichi Graphics Taichi"},
