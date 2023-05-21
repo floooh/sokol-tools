@@ -6,7 +6,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: build
@@ -14,7 +14,7 @@ jobs:
         python fips set local on
         python fips build win64-vstudio-release
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: win64-vstudio-release
         path: fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
@@ -22,7 +22,7 @@ jobs:
   mac_intel:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - uses: seanmiddleditch/gha-setup-ninja@master
@@ -31,7 +31,7 @@ jobs:
         python fips set local on
         python fips build osx-x64-ninja-release
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: osx-x64-ninja-release
         path: fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
@@ -39,7 +39,7 @@ jobs:
   mac_arm:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - uses: seanmiddleditch/gha-setup-ninja@master
@@ -48,7 +48,7 @@ jobs:
         python fips set local on
         python fips build osx-arm64-ninja-release
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: osx-arm64-ninja-release
         path: fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
@@ -56,13 +56,13 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: build
       run: ./build_docker.sh
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: linux-ninja-release
         path: sokol-shdc
@@ -71,23 +71,23 @@ jobs:
     needs: [windows, mac_intel, mac_arm, linux]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         repository: floooh/sokol-tools-bin
         ssh-key: ${{ secrets.GHACTIONS_PUSH }}
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: win64-vstudio-release
         path: bin/win32
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: osx-x64-ninja-release
         path: bin/osx
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: osx-arm64-ninja-release
         path: bin/osx_arm64
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: linux-ninja-release
         path: bin/linux

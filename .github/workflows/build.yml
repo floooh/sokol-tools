@@ -6,7 +6,7 @@ jobs:
     windows:
         runs-on: windows-latest
         steps:
-        - uses: actions/checkout@v1
+        - uses: actions/checkout@v3
           with:
             submodules: true
         - name: win64-vstudio-debug
@@ -16,7 +16,7 @@ jobs:
     mac:
         runs-on: macos-latest
         steps:
-        - uses: actions/checkout@v1
+        - uses: actions/checkout@v3
           with:
             submodules: true
         - name: osx-make-debug
@@ -26,11 +26,10 @@ jobs:
     linux:
         runs-on: ubuntu-latest
         steps:
-        - uses: actions/checkout@v1
+        - uses: actions/checkout@v3
           with:
             submodules: true
         - name: linux-make-debug
           run:  python fips build linux-make-debug
         - name: linux-make-release
           run:  python fips build linux-make-release
-
