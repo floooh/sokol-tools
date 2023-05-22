@@ -257,10 +257,10 @@ static void d3d_parse_errors(const std::string& output, const input_t& inp, int 
             line[1] = '_';
         }
         // split by colons
+        bool ok = false;
+        std::string msg;
         pystring::split(line, tokens, colon);
         if ((tokens.size() > 1) && (pystring::startswith(tokens[1], " error") || pystring::startswith(tokens[1], " warning"))) {
-            bool ok = false;
-            std::string msg;
             if (tokens.size() > 2) {
                 for (int i = 2; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
@@ -272,18 +272,18 @@ static void d3d_parse_errors(const std::string& output, const input_t& inp, int 
                 }
                 ok = true;
             }
-            if (ok) {
-                if (pystring::startswith(tokens[1], " error")) {
-                    out_errors.push_back(errmsg_t::error(inp.base_path, 0, msg));
-                }
-                else {
-                    out_errors.push_back(errmsg_t::warning(inp.base_path, 0, msg));
-                }
-            }
-            else {
-                // some error during parsing, output the original line so it isn't lost
+        }
+        if (ok) {
+            if (pystring::startswith(tokens[1], " error")) {
                 out_errors.push_back(errmsg_t::error(inp.base_path, 0, msg));
             }
+            else {
+                out_errors.push_back(errmsg_t::warning(inp.base_path, 0, msg));
+            }
+        }
+        else {
+            // some error during parsing, output the original line so it isn't lost
+            out_errors.push_back(errmsg_t::error(inp.base_path, 0, line));
         }
     }
 }
