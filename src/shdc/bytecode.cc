@@ -323,7 +323,7 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
             NULL,                           // pInclude
             src.refl.entry_point.c_str(),   // entryPoint
             compile_target,                 // pTarget
-            D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_AVOID_FLOW_CONTROL, // Flags1
+            D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR | D3DCOMPILE_OPTIMIZATION_LEVEL3, // Flags1
             0,                              // Flags2
             &output,                        // ppCode
             &errors);                       // ppErrorMsgs
