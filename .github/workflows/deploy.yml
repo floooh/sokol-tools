@@ -6,13 +6,14 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
+    - uses: lukka/get-cmake@latest
     - uses: actions/checkout@v3
       with:
         submodules: true
     - name: build
       run: |
-        python fips set local on
-        python fips build win64-vstudio-release
+        python3 fips set local on
+        python3 fips build win64-vstudio-release
     - name: upload
       uses: actions/upload-artifact@v3
       with:
@@ -22,14 +23,14 @@ jobs:
   mac_intel:
     runs-on: macos-latest
     steps:
+    - uses: lukka/get-cmake@latest
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - uses: seanmiddleditch/gha-setup-ninja@master
     - name: build
       run: |
-        python fips set local on
-        python fips build osx-x64-ninja-release
+        python3 fips set local on
+        python3 fips build osx-x64-ninja-release
     - name: upload
       uses: actions/upload-artifact@v3
       with:
@@ -39,14 +40,14 @@ jobs:
   mac_arm:
     runs-on: macos-latest
     steps:
+    - uses: lukka/get-cmake@latest
     - uses: actions/checkout@v3
       with:
         submodules: true
-    - uses: seanmiddleditch/gha-setup-ninja@master
     - name: build
       run: |
-        python fips set local on
-        python fips build osx-arm64-ninja-release
+        python3 fips set local on
+        python3 fips build osx-arm64-ninja-release
     - name: upload
       uses: actions/upload-artifact@v3
       with:

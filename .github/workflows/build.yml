@@ -6,6 +6,7 @@ jobs:
     windows:
         runs-on: windows-latest
         steps:
+        - uses: lukka/get-cmake@latest
         - uses: actions/checkout@v3
           with:
             submodules: true
@@ -18,24 +19,26 @@ jobs:
     mac:
         runs-on: macos-latest
         steps:
+        - uses: lukka/get-cmake@latest
         - uses: actions/checkout@v3
           with:
             submodules: true
         - name: osx-make-debug
-          run:  python3 fips build osx-make-debug
+          run:  python3 fips build osx-ninja-debug
         - name: osx-make-release
-          run:  python3 fips build osx-make-release
+          run:  python3 fips build osx-ninja-release
         - name: test
-          run:  python3 fips run_tests osx-make-release
+          run:  python3 fips run_tests osx-ninja-release
     linux:
         runs-on: ubuntu-latest
         steps:
+        - uses: lukka/get-cmake@latest
         - uses: actions/checkout@v3
           with:
             submodules: true
         - name: linux-make-debug
-          run:  python fips build linux-make-debug
+          run:  python fips build linux-ninja-debug
         - name: linux-make-release
-          run:  python fips build linux-make-release
+          run:  python fips build linux-ninja-release
         - name: test
-          run:  python3 fips run_tests linux-make-release
+          run:  python3 fips run_tests linux-ninja-release
