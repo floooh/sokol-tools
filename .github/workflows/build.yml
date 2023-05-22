@@ -10,9 +10,11 @@ jobs:
           with:
             submodules: true
         - name: win64-vstudio-debug
-          run:  python fips build win64-vstudio-debug
+          run:  python3 fips build win64-vstudio-debug
         - name: win64-vstudio-release
-          run:  python fips build win64-vstudio-release
+          run:  python3 fips build win64-vstudio-release
+        - name: test
+          run:  python3 fips run_tests win64-vstudio-release
     mac:
         runs-on: macos-latest
         steps:
@@ -20,9 +22,11 @@ jobs:
           with:
             submodules: true
         - name: osx-make-debug
-          run:  python fips build osx-make-debug
+          run:  python3 fips build osx-make-debug
         - name: osx-make-release
-          run:  python fips build osx-make-release
+          run:  python3 fips build osx-make-release
+        - name: test
+          run:  python3 fips run_tests osx-make-release
     linux:
         runs-on: ubuntu-latest
         steps:
@@ -33,3 +37,5 @@ jobs:
           run:  python fips build linux-make-debug
         - name: linux-make-release
           run:  python fips build linux-make-release
+        - name: test
+          run:  python3 fips run_tests linux-make-release
