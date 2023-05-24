@@ -315,7 +315,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
 static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type, bool emit_line_directives) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
-    commonOptions.emit_line_directives = emit_line_directives;
+    commonOptions.emit_line_directives = false;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
