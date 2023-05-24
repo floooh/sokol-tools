@@ -58,7 +58,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
+            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang, !args.no_line_directives);
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }

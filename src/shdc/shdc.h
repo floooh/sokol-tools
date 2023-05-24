@@ -238,6 +238,7 @@ struct args_t {
     format_t::type_t output_format = format_t::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
     bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
+    bool no_line_directives = false;    // if true, do not output #line directives
     int gen_version = 1;                // generator-version stamp
     errmsg_t::msg_format_t error_format = errmsg_t::GCC;  // format for error messages
 
@@ -547,7 +548,7 @@ struct spirvcross_t {
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<image_t> unique_images;
 
-    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
+    static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang, bool emit_line_directives);
     int find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };

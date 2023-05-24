@@ -285,10 +285,10 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, bool is_vulk
     return refl;
 }
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, bool is_gles, bool is_vulkan, uint32_t opt_mask, snippet_t::type_t type, bool emit_line_directives) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
-    options.emit_line_directives = false;
+    options.emit_line_directives = emit_line_directives;
     options.version = glsl_version;
     options.es = is_gles;
     options.vulkan_semantics = is_vulkan;
@@ -312,10 +312,10 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, int glsl_version, b
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_model, uint32_t opt_mask, snippet_t::type_t type, bool emit_line_directives) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
-    commonOptions.emit_line_directives = true;
+    commonOptions.emit_line_directives = emit_line_directives;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
@@ -335,10 +335,10 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, uint32_t shader_mod
     return res;
 }
 
-static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_msl(const spirv_blob_t& blob, CompilerMSL::Options::Platform plat, uint32_t opt_mask, snippet_t::type_t type, bool emit_line_directives) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
-    commonOptions.emit_line_directives = true;
+    commonOptions.emit_line_directives = emit_line_directives;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
@@ -454,7 +454,7 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     return errmsg_t();
 }
 
-spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
+spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang, bool emit_line_directives) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
@@ -467,32 +467,32 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         }
         switch (slang) {
             case slang_t::GLSL330:
-                src = to_glsl(blob, 330, false, false, opt_mask, type);
+                src = to_glsl(blob, 330, false, false, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::GLSL100:
-                src = to_glsl(blob, 100, true, false, opt_mask, type);
+                src = to_glsl(blob, 100, true, false, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, 300, true, false, opt_mask, type);
+                src = to_glsl(blob, 300, true, false, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::HLSL4:
-                src = to_hlsl(blob, 40, opt_mask, type);
+                src = to_hlsl(blob, 40, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::HLSL5:
-                src = to_hlsl(blob, 50, opt_mask, type);
+                src = to_hlsl(blob, 50, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::METAL_MACOS:
-                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type);
+                src = to_msl(blob, CompilerMSL::Options::macOS, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::METAL_IOS:
             case slang_t::METAL_SIM:
-                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type);
+                src = to_msl(blob, CompilerMSL::Options::iOS, opt_mask, type, emit_line_directives);
                 break;
             case slang_t::WGPU:
                 // hackety hack, just compile to GLSL even for SPIRV output
                 // so that we can use the same SPIRV-Cross's reflection API
                 // calls as for the other output types
-                src = to_glsl(blob, 450, false, true, opt_mask, type);
+                src = to_glsl(blob, 450, false, true, opt_mask, type, emit_line_directives);
                 break;
             default: break;
         }
@@ -574,4 +574,3 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
 }
 
 } // namespace shdc
-

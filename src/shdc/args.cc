@@ -26,24 +26,26 @@ typedef enum {
     OPTION_IFDEF,
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
+    OPTION_NOLINEDIRECTIVES,
 } arg_option_t;
 
 static const getopt_option_t option_list[] = {
-    { "help",       'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,         "print this help text", 0},
-    { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
-    { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "C header" },
-    { "slang",      'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl330:glsl100..." },
-    { "defines",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEFINES,      "optional preprocessor defines", "define1:define2..." },
-    { "module",     'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
-    { "reflection", 'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
-    { "bytecode",   'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",     'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
-    { "errfmt",     'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
-    { "dump",       'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
-    { "genver",     'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
-    { "tmpdir",     't', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_TMPDIR,       "directory for temporary files (use output dir if not specified)", "[dir]"},
-    { "ifdef",      0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,        "wrap backend-specific generated code in #ifdef/#endif"},
-    { "noifdef",    'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
+    { "help",               'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,         "print this help text", 0},
+    { "input",              'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
+    { "output",             'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "C header" },
+    { "slang",              'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl330:glsl100..." },
+    { "defines",            0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEFINES,      "optional preprocessor defines", "define1:define2..." },
+    { "module",             'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
+    { "reflection",         'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
+    { "bytecode",           'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
+    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
+    { "errfmt",             'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
+    { "dump",               'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
+    { "genver",             'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
+    { "tmpdir",             't', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_TMPDIR,       "directory for temporary files (use output dir if not specified)", "[dir]"},
+    { "ifdef",              0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,        "wrap backend-specific generated code in #ifdef/#endif"},
+    { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
+    { "nolinedirectives",   0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOLINEDIRECTIVES, "do not output #line directives"},
     GETOPT_OPTIONS_END
 };
 
@@ -257,6 +259,9 @@ args_t args_t::parse(int argc, const char** argv) {
                 case OPTION_NOIFDEF:
                     // obsolete, but keep for backwards compatibility
                     args.ifdef = false;
+                    break;
+                case OPTION_NOLINEDIRECTIVES:
+                    args.no_line_directives = true;
                     break;
                 case OPTION_HELP:
                     print_help_string(ctx);
