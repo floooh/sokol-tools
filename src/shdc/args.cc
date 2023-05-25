@@ -26,7 +26,6 @@ typedef enum {
     OPTION_IFDEF,
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
-    OPTION_NOLINEDIRECTIVES,
 } arg_option_t;
 
 static const getopt_option_t option_list[] = {
@@ -45,7 +44,6 @@ static const getopt_option_t option_list[] = {
     { "tmpdir",             't', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_TMPDIR,       "directory for temporary files (use output dir if not specified)", "[dir]"},
     { "ifdef",              0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,        "wrap backend-specific generated code in #ifdef/#endif"},
     { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
-    { "nolinedirectives",   0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOLINEDIRECTIVES, "do not output #line directives"},
     GETOPT_OPTIONS_END
 };
 
@@ -259,9 +257,6 @@ args_t args_t::parse(int argc, const char** argv) {
                 case OPTION_NOIFDEF:
                     // obsolete, but keep for backwards compatibility
                     args.ifdef = false;
-                    break;
-                case OPTION_NOLINEDIRECTIVES:
-                    args.no_line_directives = true;
                     break;
                 case OPTION_HELP:
                     print_help_string(ctx);
