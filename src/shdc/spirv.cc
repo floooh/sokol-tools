@@ -164,9 +164,8 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     // compile GLSL vertex- or fragment-shader
     glslang::TShader shader(stage);
     // FIXME: add custom defines here: compiler.addProcess(...)
-    //shader.setStrings(sources, 1);
     shader.setStringsWithLengthsAndNames(sources, sourcesLen, sourcesNames, 1);
-    shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientOpenGL, 100/*???*/);
+    shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
     // NOTE: where using AutoMapBinding here, but this will just throw all bindings
