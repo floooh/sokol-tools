@@ -508,6 +508,22 @@ struct image_t {
     }
 };
 
+struct sampler_t {
+    static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
+    int slot = -1;
+    std::string name;
+    int unique_index = -1;          // index into spirvcross_t.unique_samplers
+};
+
+// special combined-image-samplers for GLSL output with GL semantics
+struct image_sampler_t {
+    static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_IMAGES
+    int slot = -1;
+    std::string name;
+    std::string image_name;
+    std::string sampler_name;
+};
+
 struct stage_t {
     enum type_t {
         INVALID,
@@ -530,6 +546,8 @@ struct spirvcross_refl_t {
     std::array<attr_t, attr_t::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
+    std::vector<sampler_t> samplers;
+    std::vector<image_sampler_t> image_samplers;
 };
 
 // result of a spirv-cross compilation

@@ -203,11 +203,15 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     assert(im);
     spv::SpvBuildLogger spv_logger;
     glslang::SpvOptions spv_options;
-    // generateDebugInfo emits SPIRV OpLine statements
-    spv_options.generateDebugInfo = true;
     // disable the optimizer passes, we'll run our own after the translation
+    spv_options.generateDebugInfo = false;
+    spv_options.stripDebugInfo = false; // NOTE: don't set this to true as the info is needed for reflection!
     spv_options.disableOptimizer = true;
-    spv_options.optimizeSize = false;
+    spv_options.optimizeSize = true;
+    spv_options.disassemble = false;
+    spv_options.validate = false;
+    spv_options.emitNonSemanticShaderDebugInfo = false;
+    spv_options.emitNonSemanticShaderDebugSource = false;
     out_spirv.blobs.push_back(spirv_blob_t(snippet_index));
     out_spirv.blobs.back().source = src;
     glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
