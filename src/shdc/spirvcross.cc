@@ -88,7 +88,7 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::type_t type, slang_t::type_t slang) {
+static void patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::type_t slang, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // uniform buffers
@@ -97,12 +97,12 @@ static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::
             uint32_t out_offset = 0;
             uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                blob.bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = 0;
             } else {
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                blob.bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = slot++;
             } else {
                 // FIXME: handle error
             }
@@ -115,12 +115,12 @@ static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::
             uint32_t out_offset = 0;
             uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                blob.bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = 0;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                blob.bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = slot++;
             } else {
                 // FIMXE: handle error
             }
@@ -133,12 +133,12 @@ static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::
             uint32_t out_offset = 0;
             uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                blob.bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = 0;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                blob.bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = slot++;
             } else {
                 // FIXME: handle error
             }
@@ -151,12 +151,12 @@ static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::
             uint32_t out_offset = 0;
             uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                blob.bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = 0;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                blob.bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = slot++;
             } else {
                 // FIXME: handle error
             }
@@ -490,6 +490,14 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     return res;
 }
 
+static spirvcross_source_t to_wgsl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
+    std::vector<uint32_t> bytecode = blob.bytecode;
+    Compiler compiler(blob.bytecode);
+    patch_bind_slots(compiler, type, slang, bytecode);
+    spirvcross_source_t res;
+    return res;
+}
+
 static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
         if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
@@ -611,12 +619,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::METAL_SIM:
                 src = to_msl(blob, slang, opt_mask, type);
                 break;
-            case slang_t::WGPU:
-                // hackety hack, just compile to GLSL even for SPIRV output
-                // so that we can use the same SPIRV-Cross's reflection API
-                // calls as for the other output types
-                // FIXME
-                // src = to_glsl(blob, 450, false, true, opt_mask, type);
+            case slang_t::WGSL:
+                src = to_wgsl(blob, slang, opt_mask, type);
                 break;
             default: break;
         }

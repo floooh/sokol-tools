@@ -30,7 +30,7 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
     src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_WGPU ({})\n", slang_t::is_wgpu(slang) ? 1 : 0);
+    src += fmt::format("#define SOKOL_WGSL ({})\n", slang_t::is_wgsl(slang) ? 1 : 0);
     for (const std::string& define : defines) {
         src += fmt::format("#define {} (1)\n", define);
     }
@@ -109,7 +109,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     ("for (;;) { }") to WebGL
 */
 static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    if (slang == slang_t::WGPU) {
+    if (slang == slang_t::WGSL) {
         return;
     }
     spv_target_env target_env;

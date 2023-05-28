@@ -22,7 +22,7 @@ struct slang_t {
         METAL_MACOS,
         METAL_IOS,
         METAL_SIM,
-        WGPU,
+        WGSL,
         NUM
     };
 
@@ -39,7 +39,7 @@ struct slang_t {
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
             case METAL_SIM:     return "metal_sim";
-            case WGPU:          return "wgpu";
+            case WGSL:          return "wgsl";
             default:            return "<invalid>";
         }
     }
@@ -86,8 +86,8 @@ struct slang_t {
                 return false;
         }
     }
-    static bool is_wgpu(type_t c) {
-        return WGPU == c;
+    static bool is_wgsl(type_t c) {
+        return WGSL == c;
     }
     static slang_t::type_t first_valid(uint32_t mask) {
         int i = 0;

@@ -325,7 +325,7 @@ shader language names are:
     - **metal_macos**: Metal on macOS
     - **metal_ios**: Metal on iOS device
     - **metal_sim**: Metal on iOS simulator
-    - **wgpu**: WebGPU
+    - **wgsl**: WebGPU
 
   For instance, to generate header with support for all supported GLSL dialects:
 

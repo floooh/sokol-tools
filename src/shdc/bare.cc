@@ -23,6 +23,8 @@ const char* bare_t::slang_file_extension(slang_t::type_t c, bool binary) {
         case slang_t::METAL_IOS:
         case slang_t::METAL_SIM:
             return binary ? ".metallib" : ".metal";
+        case slang_t::WGSL:
+            return ".wgsl";
         default:
             return "";
     }

@@ -79,7 +79,7 @@ static const char* sokol_backend(slang_t::type_t slang) {
         case slang_t::METAL_MACOS:  return ".METAL_MACOS";
         case slang_t::METAL_IOS:    return ".METAL_IOS";
         case slang_t::METAL_SIM:    return ".METAL_SIMULATOR";
-        case slang_t::WGPU:         return ".WGPU";
+        case slang_t::WGSL:         return ".WGPU";
         default: return "<INVALID>";
     }
 }
