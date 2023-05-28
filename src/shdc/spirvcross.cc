@@ -85,6 +85,85 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
     }
 }
 
+// This directly patches the descriptor set and bindslot decorators in the input SPIRV
+// via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
+// for the SPIRV-to-WGSL translation.
+static void patch_bind_slots(Compiler& compiler, spirv_blob_t& blob, snippet_t::type_t type, slang_t::type_t slang) {
+    ShaderResources shader_resources = compiler.get_shader_resources();
+
+    // uniform buffers
+    {
+        for (const Resource& res: shader_resources.uniform_buffers) {
+            uint32_t out_offset = 0;
+            uint32_t slot = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                blob.bytecode[out_offset] = 0;
+            } else {
+                // FIXME handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                blob.bytecode[out_offset] = slot++;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+
+    // combined image samplers
+    {
+        for (const Resource& res: shader_resources.sampled_images) {
+            uint32_t out_offset = 0;
+            uint32_t slot = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                blob.bytecode[out_offset] = 0;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                blob.bytecode[out_offset] = slot++;
+            } else {
+                // FIMXE: handle error
+            }
+        }
+    }
+
+    // separate images
+    {
+        for (const Resource& res: shader_resources.separate_images) {
+            uint32_t out_offset = 0;
+            uint32_t slot = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                blob.bytecode[out_offset] = 0;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                blob.bytecode[out_offset] = slot++;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+
+    // separate samplers
+    {
+        for (const Resource& res: shader_resources.separate_samplers) {
+            uint32_t out_offset = 0;
+            uint32_t slot = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                blob.bytecode[out_offset] = 0;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                blob.bytecode[out_offset] = slot++;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+}
+
 static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
