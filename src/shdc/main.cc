@@ -27,14 +27,12 @@ int main(int argc, const char** argv) {
         return 10;
     }
 
-    // compile source snippets to SPIRV blobs, this also assigns
-    // descriptor sets and bind slots decorations to uniform buffers
-    // and images
+    // compile source snippets to SPIRV blobs
     std::array<spirv_t,slang_t::NUM> spirv;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t)i;
         if (args.slang & slang_t::bit(slang)) {
-            spirv[i] = spirv_t::compile_input_glsl(inp, slang, args.defines);
+            spirv[i] = spirv_t::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
@@ -70,12 +68,8 @@ int main(int argc, const char** argv) {
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    //  for SPIRV output (e.g. WebGPU), translate the GLSL shader output
-    //  from SPIRV-Cross by running through glslang a second time
-    //  (so it's GLSL => SPIRV => GLSL => SPIRV). The reason for this
-    //  double-compile is assignment of binding decorations in SPIRV-Cross
     std::array<bytecode_t, slang_t::NUM> bytecode;
-    if (args.byte_code || (args.slang & slang_t::bit(slang_t::WGPU))) {
+    if (args.byte_code) {
         for (int i = 0; i < slang_t::NUM; i++) {
             slang_t::type_t slang = (slang_t::type_t)i;
             if (args.slang & slang_t::bit(slang)) {

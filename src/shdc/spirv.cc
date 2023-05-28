@@ -226,8 +226,8 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     return true;
 }
 
-/* compile all shader-snippets into SPIRV bytecode */
-spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
+// compile all shader-snippets into SPIRV bytecode
+spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
@@ -241,8 +241,7 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
                 // spirv.errors contains error list
                 return out_spirv;
             }
-        }
-        else if (snippet.type == snippet_t::FS) {
+        } else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangFragment, slang, src, inp, snippet_index, auto_map, out_spirv)) {
@@ -255,30 +254,6 @@ spirv_t spirv_t::compile_input_glsl(const input_t& inp, slang_t::type_t slang, c
     // when arriving here, no compile errors occurred
     // spirv.bytecodes array contains the SPIRV-bytecode
     // for each shader snippet
-    return out_spirv;
-}
-
-/* compile the GLSL output of spirvcross back to SPIRV */
-spirv_t spirv_t::compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross) {
-    assert(spirvcross);
-    spirv_t out_spirv;
-    const bool auto_map = false;
-    for (const spirvcross_source_t& src : spirvcross->sources) {
-        const snippet_t& snippet = inp.snippets[src.snippet_index];
-        assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
-        if (snippet.type == snippet_t::VS) {
-            if (!compile(EShLangVertex, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
-                // spirv.errors contains error list
-                break;
-            }
-        }
-        else if (snippet.type == snippet_t::FS) {
-            if (!compile(EShLangFragment, slang, src.source_code, inp, src.snippet_index, auto_map, out_spirv)) {
-                // spirv.errors contains error list
-                break;
-            }
-        }
-    }
     return out_spirv;
 }
 

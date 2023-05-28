@@ -351,23 +351,6 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
 }
 #endif
 
-static bytecode_t wgpu_compile(const input_t& inp, const spirvcross_t& spirvcross) {
-    spirv_t spirv = spirv_t::compile_spirvcross_glsl(inp, slang_t::WGPU, &spirvcross);
-    bytecode_t bytecode;
-    bytecode.errors = spirv.errors;
-    for (const spirv_blob_t& spirv_blob: spirv.blobs) {
-        int byte_size = (int) spirv_blob.bytecode.size() * sizeof(spirv_blob.bytecode[0]);
-        std::vector<uint8_t> data(byte_size);
-        memcpy(data.data(), spirv_blob.bytecode.data(), byte_size);
-        bytecode_blob_t blob;
-        blob.valid = true;
-        blob.snippet_index = spirv_blob.snippet_index;
-        blob.data = std::move(data);
-        bytecode.blobs.push_back(std::move(blob));
-    }
-    return bytecode;
-}
-
 bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
     bytecode_t bytecode;
     #if defined(__APPLE__)
@@ -381,9 +364,6 @@ bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spi
         bytecode = d3d_compile(inp, spirvcross, slang);
     }
     #endif
-    if (slang == slang_t::WGPU) {
-        bytecode = wgpu_compile(inp, spirvcross);
-    }
     return bytecode;
 }
 
