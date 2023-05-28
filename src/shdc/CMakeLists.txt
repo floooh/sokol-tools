@@ -1,6 +1,6 @@
 fips_begin_app(sokol-shdc cmdline)
     fips_src(.)
-    fips_deps(fmt getopt pystring glslang SPIRV-Cross)
+    fips_deps(fmt getopt pystring glslang SPIRV-Cross tint)
 fips_end_app()
 if (FIPS_GCC OR FIPS_CLANG)
     target_compile_options(sokol-shdc PRIVATE -Wno-unused-result -Wno-unused-parameter)
