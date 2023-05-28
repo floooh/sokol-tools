@@ -9,6 +9,7 @@
 #include "spirv_glsl.hpp"
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
+#include "tint/tint.h"
 
 using namespace spirv_cross;
 
@@ -421,6 +422,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, slang_t::type_t sla
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
+    res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -451,6 +453,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t sla
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
+    res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -480,6 +483,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     fix_bind_slots(compiler, type, slang);
     std::string src = compiler.compile();
     spirvcross_source_t res;
+    res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
@@ -490,11 +494,28 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     return res;
 }
 
-static spirvcross_source_t to_wgsl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
     std::vector<uint32_t> bytecode = blob.bytecode;
     Compiler compiler(blob.bytecode);
     patch_bind_slots(compiler, type, slang, bytecode);
     spirvcross_source_t res;
+    res.snippet_index = blob.snippet_index;
+    tint::reader::spirv::Options spirv_options;
+    spirv_options.allow_non_uniform_derivatives = false; // FIXME?
+    tint::Program program = tint::reader::spirv::Parse(bytecode, spirv_options);
+    if (!program.Diagnostics().contains_errors()) {
+        const tint::writer::wgsl::Options wgsl_options;
+        tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
+        if (result.success) {
+            res.valid = true;
+            res.source_code = result.wgsl;
+            // FIXME: res.refl = ...
+        } else {
+            res.error = inp.error(blob.snippet_index, result.error);
+        }
+    } else {
+        res.error = inp.error(blob.snippet_index, program.Diagnostics().str());
+    }
     return res;
 }
 
@@ -620,17 +641,22 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
                 src = to_msl(blob, slang, opt_mask, type);
                 break;
             case slang_t::WGSL:
-                src = to_wgsl(blob, slang, opt_mask, type);
+                src = to_wgsl(inp, blob, slang, opt_mask, type);
                 break;
             default: break;
         }
         if (src.valid) {
-            src.snippet_index = blob.snippet_index;
+            assert(src.snippet_index == blob.snippet_index);
             spv_cross.sources.push_back(std::move(src));
         }
         else {
             const int line_index = inp.snippets[blob.snippet_index].lines[0];
-            std::string err_msg = fmt::format("Failed to cross-compile to {}.", slang_t::to_str((slang_t::type_t)slang));
+            std::string err_msg;
+            if (src.error.valid) {
+                err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", slang_t::to_str(slang), src.error.msg);
+            } else {
+                err_msg = fmt::format("Failed to cross-compile to {}\n", slang_t::to_str(slang));
+            }
             spv_cross.error = inp.error(line_index, err_msg);
             return spv_cross;
         }
