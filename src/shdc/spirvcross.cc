@@ -46,33 +46,28 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 
     // uniform buffers
     {
-        uint32_t slot = 0;
-        /* FIXME
-        if (is_vulkan) {
-            slot = (type == snippet_t::type_t::VS) ? 0 : vk_fs_ub_binding_offset;
-        }
-        */
+        uint32_t binding = 0;
         for (const Resource& res: shader_resources.uniform_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, slot++);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 
     // combined image samplers
     {
-        uint32_t slot = 0;
+        uint32_t binding = 0;
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, slot++);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 
     // separate images
     {
-        uint32_t slot = 0;
+        uint32_t binding = 0;
         for (const Resource& res: shader_resources.separate_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, slot++);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 
@@ -89,41 +84,34 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::type_t slang, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::type_t slang, std::vector<uint32_t>& inout_bytecode) {
+    assert(slang == slang_t::WGSL);
     ShaderResources shader_resources = compiler.get_shader_resources();
+
+    // WGPU bindgroups are hardwired:
+    //  - bindgroup 0 for uniform buffer bindings
+    //  - bindgroup 1 for vertex shader image/sampler bindings
+    //  - bindgroup 2 for fragment shader image/sampler bindings
+    const uint32_t ub_bindgroup = 0;
+    const uint32_t vs_bindgroup = 1;
+    const uint32_t fs_bindgroup = 2;
+    const uint32_t resource_bindgroup = (type == snippet_t::VS) ? vs_bindgroup : fs_bindgroup;
+    uint32_t cur_ub_binding = 0;
+    uint32_t cur_resource_binding = 0;
 
     // uniform buffers
     {
         for (const Resource& res: shader_resources.uniform_buffers) {
             uint32_t out_offset = 0;
-            uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = ub_bindgroup;
             } else {
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = cur_ub_binding++;
             } else {
                 // FIXME: handle error
-            }
-        }
-    }
-
-    // combined image samplers
-    {
-        for (const Resource& res: shader_resources.sampled_images) {
-            uint32_t out_offset = 0;
-            uint32_t slot = 0;
-            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = 0;
-            } else {
-                // FIXME: handle error
-            }
-            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = slot++;
-            } else {
-                // FIMXE: handle error
             }
         }
     }
@@ -132,14 +120,13 @@ static void patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t
     {
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
-            uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = resource_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = cur_resource_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -150,14 +137,13 @@ static void patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t
     {
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;
-            uint32_t slot = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = 0;
+                inout_bytecode[out_offset] = resource_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = slot++;
+                inout_bytecode[out_offset] = cur_resource_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -497,7 +483,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
 static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
     std::vector<uint32_t> bytecode = blob.bytecode;
     Compiler compiler(blob.bytecode);
-    patch_bind_slots(compiler, type, slang, bytecode);
+    wgsl_patch_bind_slots(compiler, type, slang, bytecode);
     spirvcross_source_t res;
     res.snippet_index = blob.snippet_index;
     tint::reader::spirv::Options spirv_options;
