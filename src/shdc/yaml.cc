@@ -90,7 +90,7 @@ static void write_image(const image_t& image) {
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);
     L("              type: {}\n", image_t::type_to_str(image.type));
-    L("              base_type: {}\n", image_t::basetype_to_str(image.base_type));
+    L("              sample_type: {}\n", image_t::sampletype_to_str(image.sample_type));
 }
 
 static void write_source_reflection(const spirvcross_source_t* src) {
@@ -98,8 +98,8 @@ static void write_source_reflection(const spirvcross_source_t* src) {
 
     L("          inputs:\n");
     for (const auto& input : src->refl.inputs) {
-        if (input.slot == -1) { 
-            break; 
+        if (input.slot == -1) {
+            break;
         }
 
         write_attribute(input);

@@ -60,11 +60,11 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     }
 }
 
-static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
-    switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return "sg::SamplerType::Float";
-        case image_t::IMAGE_BASETYPE_SINT:  return "sg::SamplerType::Sint";
-        case image_t::IMAGE_BASETYPE_UINT:  return "sg::SamplerType::Uint";
+static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sampletype) {
+    switch (sampletype) {
+        case image_t::IMAGE_SAMPLETYPE_FLOAT: return "sg::ImageSampleType::Float";
+        case image_t::IMAGE_SAMPLETYPE_SINT:  return "sg::ImageSampleType::Sint";
+        case image_t::IMAGE_SAMPLETYPE_UINT:  return "sg::ImageSampleType::Uint";
         default: return "INVALID";
     }
 }
@@ -118,7 +118,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         for (const image_t& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
+            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
@@ -130,7 +130,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         for (const image_t& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
+            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
         }
         L("  \n");
@@ -345,7 +345,7 @@ static void write_stage(const char* indent,
         if (img) {
             L("{}desc.{}.images[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_index, img->name);
             L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
-            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
+            L("{}desc.{}.images[{}].image_sample_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_sampletype_str(img->sample_type));
         }
     }
 }

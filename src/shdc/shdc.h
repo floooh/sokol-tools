@@ -472,16 +472,16 @@ struct image_t {
         IMAGE_TYPE_3D,
         IMAGE_TYPE_ARRAY
     };
-    enum basetype_t {
-        IMAGE_BASETYPE_INVALID,
-        IMAGE_BASETYPE_FLOAT,
-        IMAGE_BASETYPE_SINT,
-        IMAGE_BASETYPE_UINT
+    enum sampletype_t {
+        IMAGE_SAMPLETYPE_INVALID,
+        IMAGE_SAMPLETYPE_FLOAT,
+        IMAGE_SAMPLETYPE_SINT,
+        IMAGE_SAMPLETYPE_UINT
     };
     int slot = -1;
     std::string name;
     type_t type = IMAGE_TYPE_INVALID;
-    basetype_t base_type = IMAGE_BASETYPE_INVALID;
+    sampletype_t sample_type = IMAGE_SAMPLETYPE_INVALID;
     int unique_index = -1;      // index into spirvcross_t.unique_images
 
     static const char* type_to_str(type_t t) {
@@ -493,24 +493,30 @@ struct image_t {
             default:                return "IMAGE_TYPE_INVALID";
         }
     }
-    static const char* basetype_to_str(basetype_t t) {
+    static const char* sampletype_to_str(sampletype_t t) {
         switch (t) {
-            case IMAGE_BASETYPE_FLOAT:  return "IMAGE_BASETYPE_FLOAT";
-            case IMAGE_BASETYPE_SINT:   return "IMAGE_BASETYPE_SINT";
-            case IMAGE_BASETYPE_UINT:   return "IMAGE_BASETYPE_UINT";
+            case IMAGE_SAMPLETYPE_FLOAT:  return "IMAGE_SAMPLETYPE_FLOAT";
+            case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
+            case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
             default:                    return "IMAGE_BASETYPE_INVALID";
         }
     }
 
     bool equals(const image_t& other) {
-        return (slot == other.slot) && (name == other.name) && (type == other.type) && (base_type == other.base_type);
+        return (slot == other.slot) && (name == other.name) && (type == other.type) && (sample_type == other.sample_type);
     }
 };
 
 struct sampler_t {
     static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
+    enum type_t {
+        SAMPLER_TYPE_INVALID,
+        SAMPLER_TYPE_SAMPLER,
+        SAMPLER_TYPE_COMPARISON,
+    };
     int slot = -1;
     std::string name;
+    type_t type = SAMPLER_TYPE_INVALID;
     int unique_index = -1;          // index into spirvcross_t.unique_samplers
 };
 
@@ -547,6 +553,16 @@ struct spirvcross_refl_t {
     std::vector<image_t> images;
     std::vector<sampler_t> samplers;
     std::vector<image_sampler_t> image_samplers;
+};
+
+// a helper struct to transfer symbol names from SPIRVCross to Tint
+struct spirvcross_wgsl_symbol_table_t {
+    std::map<uint32_t, std::string> input_names;
+    std::map<uint32_t, std::string> output_names;
+    std::map<uint32_t, std::string> uniform_block_struct_names;
+    std::map<uint32_t, std::string> uniform_block_inst_names;
+    std::map<uint32_t, std::string> image_names;
+    std::map<uint32_t, std::string> sampler_names;
 };
 
 // result of a spirv-cross compilation

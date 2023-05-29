@@ -84,9 +84,22 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::type_t slang, std::vector<uint32_t>& inout_bytecode) {
-    assert(slang == slang_t::WGSL);
+static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
+
+    // while at it, also create a name lookup table by bindings, because
+    // Tint's inspector doesn't provide this information
+    spirvcross_wgsl_symbol_table_t symbols;
+
+    // first add input and output names to symbol table
+    for (const Resource& input: shader_resources.stage_inputs) {
+        const uint32_t slot = compiler.get_decoration(input.id, spv::DecorationLocation);
+        symbols.input_names[slot] = input.name;
+    }
+    for (const Resource& output: shader_resources.stage_outputs) {
+        const uint32_t slot = compiler.get_decoration(output.id, spv::DecorationLocation);
+        symbols.output_names[slot] = output.name;
+    }
 
     // WGPU bindgroups are hardwired:
     //  - bindgroup 0 for uniform buffer bindings
@@ -102,6 +115,12 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, sl
     // uniform buffers
     {
         for (const Resource& res: shader_resources.uniform_buffers) {
+            symbols.uniform_block_struct_names[cur_ub_binding] = res.name;
+            std::string inst_name = compiler.get_name(res.id);
+            if (inst_name.empty()) {
+                inst_name = compiler.get_fallback_name(res.id);
+            }
+            symbols.uniform_block_inst_names[cur_ub_binding] = inst_name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = ub_bindgroup;
@@ -119,6 +138,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, sl
     // separate images
     {
         for (const Resource& res: shader_resources.separate_images) {
+            symbols.image_names[cur_resource_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = resource_bindgroup;
@@ -136,6 +156,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, sl
     // separate samplers
     {
         for (const Resource& res: shader_resources.separate_samplers) {
+            symbols.sampler_names[cur_resource_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = resource_bindgroup;
@@ -149,6 +170,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, sl
             }
         }
     }
+    return symbols;
 }
 
 static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& blob) {
@@ -267,22 +289,23 @@ static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
     return image_t::IMAGE_TYPE_INVALID;
 }
 
-static image_t::basetype_t spirtype_to_image_basetype(const SPIRType& type) {
+static image_t::sampletype_t spirtype_to_image_sampletype(const SPIRType& type) {
     switch (type.basetype) {
         case SPIRType::Int:
         case SPIRType::Short:
         case SPIRType::SByte:
-            return image_t::IMAGE_BASETYPE_SINT;
+            return image_t::IMAGE_SAMPLETYPE_SINT;
         case SPIRType::UInt:
         case SPIRType::UShort:
         case SPIRType::UByte:
-            return image_t::IMAGE_BASETYPE_UINT;
+            return image_t::IMAGE_SAMPLETYPE_UINT;
         default:
-            return image_t::IMAGE_BASETYPE_FLOAT;
+            return image_t::IMAGE_SAMPLETYPE_FLOAT;
     }
 }
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::type_t slang) {
+    assert(slang != slang_t::WGSL);
     spirvcross_refl_t refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
@@ -323,12 +346,6 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
-        // shift fragment shader uniform blocks binding back to
-        /* FIXME
-        if (is_vulkan && (refl_ub.slot >= (int)vk_fs_ub_binding_offset)) {
-            refl_ub.slot -= 4;
-        }
-        */
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.struct_name = ub_res.name;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
@@ -356,14 +373,16 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
-        refl_img.base_type = spirtype_to_image_basetype(compiler.get_type(img_type.image.type));
+        refl_img.sample_type = spirtype_to_image_sampletype(compiler.get_type(img_type.image.type));
         refl.images.push_back(refl_img);
     }
     // (separate) samplers
+    // FIXME: comparison samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
         sampler_t refl_smp;
         refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
         refl_smp.name = smp_res.name;
+        refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLER;
         refl.samplers.push_back(refl_smp);
     }
     // combined image samplers
@@ -374,6 +393,101 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
         refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);
         refl.image_samplers.push_back(refl_img_smp);
+    }
+    return refl;
+}
+
+static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spirvcross_wgsl_symbol_table_t& symbols) {
+    spirvcross_refl_t refl;
+
+    auto inspector = tint::inspector::Inspector(program);
+    const auto entry_points = inspector.GetEntryPoints();
+    assert(entry_points.size() == 1);
+    const auto& entry_point = entry_points[0];
+
+    switch (entry_point.stage) {
+        case tint::inspector::PipelineStage::kVertex:
+            refl.stage = stage_t::VS;
+            break;
+        case tint::inspector::PipelineStage::kFragment:
+            refl.stage = stage_t::FS;
+            break;
+        default:
+            break;
+    }
+    refl.entry_point = entry_point.name;
+
+    for (const auto& input: entry_point.input_variables) {
+        assert(input.has_location_attribute);
+        attr_t refl_attr;
+        refl_attr.name = symbols.input_names[input.location_attribute];
+        refl_attr.slot = (int)input.location_attribute;
+        refl.inputs[refl_attr.slot] = refl_attr;
+    }
+    for (const auto& output: entry_point.output_variables) {
+        assert(output.has_location_attribute);
+        attr_t refl_attr;
+        refl_attr.name = symbols.output_names[output.location_attribute];
+        refl_attr.slot = (int)output.location_attribute;
+        refl.outputs[refl_attr.slot] = refl_attr;
+    }
+
+    // uniform blocks
+    for (const auto& ub: inspector.GetUniformBufferResourceBindings(entry_point.name)) {
+        uniform_block_t refl_ub;
+        refl_ub.slot = ub.binding;
+        refl_ub.size = ub.size;
+        refl_ub.struct_name = symbols.uniform_block_struct_names[ub.binding];
+        refl_ub.inst_name = symbols.uniform_block_inst_names[ub.binding];
+        refl.uniform_blocks.push_back(refl_ub);
+    }
+
+    // image bindings
+    // FIXME: sampled vs multisampled vs depth
+    for (const auto& img: inspector.GetSampledTextureResourceBindings(entry_point.name)) {
+        image_t refl_img;
+        refl_img.slot = img.binding;
+        refl_img.name = symbols.image_names[img.binding];
+        switch (img.dim) {
+            case tint::inspector::ResourceBinding::TextureDimension::k2d:
+                refl_img.type = image_t::IMAGE_TYPE_2D;
+                break;
+            case tint::inspector::ResourceBinding::TextureDimension::kCube:
+                refl_img.type = image_t::IMAGE_TYPE_CUBE;
+                break;
+            case tint::inspector::ResourceBinding::TextureDimension::k3d:
+                refl_img.type = image_t::IMAGE_TYPE_3D;
+                break;
+            case tint::inspector::ResourceBinding::TextureDimension::k2dArray:
+                refl_img.type = image_t::IMAGE_TYPE_ARRAY;
+                break;
+            default:
+                break;
+        }
+        switch (img.sampled_kind) {
+            case tint::inspector::ResourceBinding::SampledKind::kFloat:
+                refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_FLOAT;
+                break;
+            case tint::inspector::ResourceBinding::SampledKind::kUInt:
+                refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_UINT;
+                break;
+            case tint::inspector::ResourceBinding::SampledKind::kSInt:
+                refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_SINT;
+                break;
+            default:
+                break;
+        }
+        refl.images.push_back(refl_img);
+    }
+
+    // sampler bindings
+    // FIXME: comparison sampler bindings
+    for (const auto& smp: inspector.GetSamplerResourceBindings(entry_point.name)) {
+        sampler_t refl_smp;
+        refl_smp.slot = smp.binding;
+        refl_smp.name = symbols.sampler_names[smp.binding];
+        refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLER;
+        refl.samplers.push_back(refl_smp);
     }
     return refl;
 }
@@ -483,7 +597,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
 static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
     std::vector<uint32_t> bytecode = blob.bytecode;
     Compiler compiler(blob.bytecode);
-    wgsl_patch_bind_slots(compiler, type, slang, bytecode);
+    spirvcross_wgsl_symbol_table_t symbols = wgsl_patch_bind_slots(compiler, type, bytecode);
     spirvcross_source_t res;
     res.snippet_index = blob.snippet_index;
     tint::reader::spirv::Options spirv_options;
@@ -495,7 +609,7 @@ static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob,
         if (result.success) {
             res.valid = true;
             res.source_code = result.wgsl;
-            // FIXME: res.refl = ...
+            res.refl = wgsl_parse_reflection(&program, symbols);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }
@@ -654,6 +768,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             // error has been set in spv_cross.error
             return spv_cross;
         }
+        // FIXME: gather unique samplers
+        // FIXME: gather unique combined-image-samplers
     }
     // check that vertex-shader outputs match their fragment shader inputs
     errmsg_t err = validate_linking(inp, spv_cross);
@@ -705,8 +821,8 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
             }
         }
         for (const image_t& img: source.refl.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}, basetype: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type), image_t::basetype_to_str(img.base_type));
+            fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
+                img.name, img.slot, image_t::type_to_str(img.type), image_t::sampletype_to_str(img.sample_type));
         }
         for (const sampler_t& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);
