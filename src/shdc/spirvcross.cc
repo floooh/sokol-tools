@@ -191,7 +191,7 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     return symbols;
 }
 
-static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& blob) {
+static errmsg_t validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const spirv_blob_t& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
@@ -210,6 +210,9 @@ static errmsg_t validate_uniform_blocks(const input_t& inp, const spirv_blob_t& 
                 }
             }
         }
+    }
+    if (res.sampled_images.size() > 0) {
+        return errmsg_t::error(inp.base_path, 0, fmt::format("combined image sampler '{}' detected, please use separate textures and samplers", res.sampled_images[0].name));
     }
     return errmsg_t();
 }
@@ -790,7 +793,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
         assert((type == snippet_t::VS) || (type == snippet_t::FS));
-        spv_cross.error = validate_uniform_blocks(inp, blob);
+        spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
         if (spv_cross.error.valid) {
             return spv_cross;
         }
