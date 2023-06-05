@@ -6,10 +6,28 @@
 #include "shdc.h"
 #include "fmt/format.h"
 #include "pystring.h"
-#include "spirv_glsl.hpp"
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
 #include "tint/tint.h"
+
+#include "spirv_glsl.hpp"
+
+// workaround for Compiler.comparison_ids being protected
+class UnprotectedCompiler: spirv_cross::Compiler {
+public:
+    bool is_comparison_sampler(const spirv_cross::SPIRType &type, uint32_t id) {
+        if (type.basetype == spirv_cross::SPIRType::Sampler) {
+            return comparison_ids.count(id) > 0;
+        }
+        return 0;
+    }
+    bool is_used_as_depth_texture(const spirv_cross::SPIRType &type, uint32_t id) {
+        if (type.basetype == spirv_cross::SPIRType::Image) {
+            return comparison_ids.count(id) > 0;
+        }
+        return 0;
+    }
+};
 
 using namespace spirv_cross;
 
@@ -276,8 +294,7 @@ static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
         if (type.image.dim == spv::Dim2D) {
             return image_t::IMAGE_TYPE_ARRAY;
         }
-    }
-    else {
+    } else {
         switch (type.image.dim) {
             case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
             case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
@@ -290,18 +307,26 @@ static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
 }
 
 static image_t::sampletype_t spirtype_to_image_sampletype(const SPIRType& type) {
-    switch (type.basetype) {
-        case SPIRType::Int:
-        case SPIRType::Short:
-        case SPIRType::SByte:
-            return image_t::IMAGE_SAMPLETYPE_SINT;
-        case SPIRType::UInt:
-        case SPIRType::UShort:
-        case SPIRType::UByte:
-            return image_t::IMAGE_SAMPLETYPE_UINT;
-        default:
-            return image_t::IMAGE_SAMPLETYPE_FLOAT;
+    if (type.image.depth) {
+        return image_t::IMAGE_SAMPLETYPE_DEPTH;
+    } else {
+        switch (type.basetype) {
+            case SPIRType::Int:
+            case SPIRType::Short:
+            case SPIRType::SByte:
+                return image_t::IMAGE_SAMPLETYPE_SINT;
+            case SPIRType::UInt:
+            case SPIRType::UShort:
+            case SPIRType::UByte:
+                return image_t::IMAGE_SAMPLETYPE_UINT;
+            default:
+                return image_t::IMAGE_SAMPLETYPE_FLOAT;
+        }
     }
+}
+
+static bool spirvtype_to_image_multisampled(const SPIRType& type) {
+    return type.image.ms;
 }
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::type_t slang) {
@@ -373,16 +398,26 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
-        refl_img.sample_type = spirtype_to_image_sampletype(compiler.get_type(img_type.image.type));
+        if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
+            refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_DEPTH;
+        } else {
+            refl_img.sample_type = spirtype_to_image_sampletype(compiler.get_type(img_type.image.type));
+        }
+        refl_img.multisampled = spirvtype_to_image_multisampled(img_type);
         refl.images.push_back(refl_img);
     }
     // (separate) samplers
-    // FIXME: comparison samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
+        const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         sampler_t refl_smp;
         refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
         refl_smp.name = smp_res.name;
-        refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLER;
+        // HACK ALERT!
+        if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
+            refl_smp.type = sampler_t::SAMPLER_TYPE_COMPARE;
+        } else {
+            refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLE;
+        }
         refl.samplers.push_back(refl_smp);
     }
     // combined image samplers
@@ -436,7 +471,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     for (const auto& ub: inspector.GetUniformBufferResourceBindings(entry_point.name)) {
         uniform_block_t refl_ub;
         refl_ub.slot = ub.binding;
-        refl_ub.size = ub.size;
+        refl_ub.size = (int)ub.size;
         refl_ub.struct_name = symbols.uniform_block_struct_names[ub.binding];
         refl_ub.inst_name = symbols.uniform_block_inst_names[ub.binding];
         refl.uniform_blocks.push_back(refl_ub);
@@ -481,12 +516,12 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     }
 
     // sampler bindings
-    // FIXME: comparison sampler bindings
     for (const auto& smp: inspector.GetSamplerResourceBindings(entry_point.name)) {
         sampler_t refl_smp;
         refl_smp.slot = smp.binding;
         refl_smp.name = symbols.sampler_names[smp.binding];
-        refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLER;
+        // FIXME!
+        refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLE;
         refl.samplers.push_back(refl_smp);
     }
     return refl;
@@ -637,6 +672,15 @@ static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::s
     return -1;
 }
 
+static int find_unique_sampler_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+    for (int i = 0; i < (int)spv_cross.unique_samplers.size(); i++) {
+        if (spv_cross.unique_samplers[i].name == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // find all identical uniform blocks across all shaders, and check for collisions
 static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
     for (spirvcross_source_t& src: spv_cross.sources) {
@@ -681,6 +725,31 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                 // new unique image
                 img.unique_index = (int) spv_cross.unique_images.size();
                 spv_cross.unique_images.push_back(img);
+            }
+        }
+    }
+    return true;
+}
+
+// find all identical samplers across all shaders, and check for collisions
+static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) {
+    for (spirvcross_source_t& src: spv_cross.sources) {
+        for (sampler_t& smp: src.refl.samplers) {
+            int other_smp_index = find_unique_sampler_by_name(spv_cross, smp.name);
+            if (other_smp_index >= 0) {
+                if (smp.equals(spv_cross.unique_samplers[other_smp_index])) {
+                    // identical sampler already exists, take note of the index
+                    smp.unique_index = other_smp_index;
+                }
+                else {
+                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
+                    return false;
+                }
+            }
+            else {
+                // new unique sampler
+                smp.unique_index = (int) spv_cross.unique_samplers.size();
+                spv_cross.unique_samplers.push_back(smp);
             }
         }
     }
@@ -768,7 +837,10 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             // error has been set in spv_cross.error
             return spv_cross;
         }
-        // FIXME: gather unique samplers
+        if (!gather_unique_samplers(inp, spv_cross)) {
+            // error has been set in spv_cross.error
+            return spv_cross;
+        }
         // FIXME: gather unique combined-image-samplers
     }
     // check that vertex-shader outputs match their fragment shader inputs

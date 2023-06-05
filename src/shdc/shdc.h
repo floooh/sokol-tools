@@ -476,12 +476,14 @@ struct image_t {
         IMAGE_SAMPLETYPE_INVALID,
         IMAGE_SAMPLETYPE_FLOAT,
         IMAGE_SAMPLETYPE_SINT,
-        IMAGE_SAMPLETYPE_UINT
+        IMAGE_SAMPLETYPE_UINT,
+        IMAGE_SAMPLETYPE_DEPTH,
     };
     int slot = -1;
     std::string name;
     type_t type = IMAGE_TYPE_INVALID;
     sampletype_t sample_type = IMAGE_SAMPLETYPE_INVALID;
+    bool multisampled = false;
     int unique_index = -1;      // index into spirvcross_t.unique_images
 
     static const char* type_to_str(type_t t) {
@@ -498,12 +500,17 @@ struct image_t {
             case IMAGE_SAMPLETYPE_FLOAT:  return "IMAGE_SAMPLETYPE_FLOAT";
             case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
             case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
+            case IMAGE_SAMPLETYPE_DEPTH:  return "IMAGE_SAMPLETYPE_DEPTH";
             default:                    return "IMAGE_BASETYPE_INVALID";
         }
     }
 
     bool equals(const image_t& other) {
-        return (slot == other.slot) && (name == other.name) && (type == other.type) && (sample_type == other.sample_type);
+        return (slot == other.slot)
+            && (name == other.name)
+            && (type == other.type)
+            && (sample_type == other.sample_type)
+            && (multisampled == other.multisampled);
     }
 };
 
@@ -511,13 +518,19 @@ struct sampler_t {
     static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
     enum type_t {
         SAMPLER_TYPE_INVALID,
-        SAMPLER_TYPE_SAMPLER,
-        SAMPLER_TYPE_COMPARISON,
+        SAMPLER_TYPE_SAMPLE,
+        SAMPLER_TYPE_COMPARE,
     };
     int slot = -1;
     std::string name;
     type_t type = SAMPLER_TYPE_INVALID;
     int unique_index = -1;          // index into spirvcross_t.unique_samplers
+
+    bool equals(const sampler_t& other) {
+        return (slot == other.slot)
+            && (name == other.name)
+            && (type == other.type);
+    }
 };
 
 // special combined-image-samplers for GLSL output with GL semantics
@@ -580,6 +593,7 @@ struct spirvcross_t {
     std::vector<spirvcross_source_t> sources;
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<image_t> unique_images;
+    std::vector<sampler_t> unique_samplers;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
@@ -645,8 +659,9 @@ namespace util {
     int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
-    const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
-    const image_t* find_image(const spirvcross_refl_t& refl, int slot);
+    const uniform_block_t* find_uniform_block_by_slot(const spirvcross_refl_t& refl, int slot);
+    const image_t* find_image_by_slot(const spirvcross_refl_t& refl, int slot);
+    const sampler_t* find_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);

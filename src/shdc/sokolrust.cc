@@ -319,7 +319,7 @@ static void write_stage(const char* indent,
     assert(src);
     L("{}desc.{}.entry = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
+        const uniform_block_t* ub = find_uniform_block_by_slot(src->refl, ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = sg::UniformLayout::Std140;\n", indent, stage_name, ub_index);
@@ -341,7 +341,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image(src->refl, img_index);
+        const image_t* img = find_image_by_slot(src->refl, img_index);
         if (img) {
             L("{}desc.{}.images[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_index, img->name);
             L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));

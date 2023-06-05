@@ -326,7 +326,7 @@ static void write_stage(const char* indent,
     assert(src);
     L("{}result.{}.entry = \"{}\"\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
+        const uniform_block_t* ub = find_uniform_block_by_slot(src->refl, ub_index);
         if (ub) {
             L("{}result.{}.uniformBlocks[{}].size = {}\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}result.{}.uniformBlocks[{}].layout = uniformLayoutStd140\n", indent, stage_name, ub_index);
@@ -348,7 +348,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image(src->refl, img_index);
+        const image_t* img = find_image_by_slot(src->refl, img_index);
         if (img) {
             L("{}result.{}.images[{}].name = \"{}\"\n", indent, stage_name, img_index, img->name);
             L("{}result.{}.images[{}].imageType = {}\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
