@@ -26,6 +26,7 @@ typedef enum {
     OPTION_IFDEF,
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
+    OPTION_SAVE_INTERMEDIATE_SPIRV,
 } arg_option_t;
 
 static const getopt_option_t option_list[] = {
@@ -44,6 +45,7 @@ static const getopt_option_t option_list[] = {
     { "tmpdir",             't', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_TMPDIR,       "directory for temporary files (use output dir if not specified)", "[dir]"},
     { "ifdef",              0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_IFDEF,        "wrap backend-specific generated code in #ifdef/#endif"},
     { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
+    { "save-intermediate-spirv", 0, GETOPT_OPTION_TYPE_NO_ARG,  0, OPTION_SAVE_INTERMEDIATE_SPIRV, "save intermediate SPIRV bytecode (for debug inspection)"},
     GETOPT_OPTIONS_END
 };
 
@@ -227,6 +229,9 @@ args_t args_t::parse(int argc, const char** argv) {
                     break;
                 case OPTION_DUMP:
                     args.debug_dump = true;
+                    break;
+                case OPTION_SAVE_INTERMEDIATE_SPIRV:
+                    args.save_intermediate_spirv = true;
                     break;
                 case OPTION_SLANG:
                     if (!parse_slang(args, ctx.current_opt_arg)) {

@@ -50,6 +50,11 @@ int main(int argc, const char** argv) {
                     return 10;
                 }
             }
+            if (args.save_intermediate_spirv) {
+                if (!spirv[i].write_to_file(args, inp, slang)) {
+                    return 10;
+                }
+            }
         }
     }
 
