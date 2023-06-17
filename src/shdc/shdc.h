@@ -540,6 +540,14 @@ struct image_sampler_t {
     std::string name;
     std::string image_name;
     std::string sampler_name;
+    int unique_index = -1;
+
+    bool equals(const image_sampler_t& other) {
+        return (slot == other.slot)
+            && (name == other.name)
+            && (image_name == other.image_name)
+            && (sampler_name == other.sampler_name);
+    }
 };
 
 struct stage_t {
@@ -661,7 +669,10 @@ namespace util {
     std::string mod_prefix(const input_t& inp);
     const uniform_block_t* find_uniform_block_by_slot(const spirvcross_refl_t& refl, int slot);
     const image_t* find_image_by_slot(const spirvcross_refl_t& refl, int slot);
+    const image_t* find_image_by_name(const spirvcross_refl_t& refl, const std::string& name);
     const sampler_t* find_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
+    const sampler_t* find_sampler_by_name(const spirvcross_refl_t& refl, const std::string& name);
+    const image_sampler_t* find_image_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);

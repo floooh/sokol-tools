@@ -63,9 +63,9 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
 static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sampletype) {
     switch (sampletype) {
         case image_t::IMAGE_SAMPLETYPE_FLOAT: return "SG_IMAGESAMPLETYPE_FLOAT";
+        case image_t::IMAGE_SAMPLETYPE_DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
         case image_t::IMAGE_SAMPLETYPE_SINT:  return "SG_IMAGESAMPLETYPE_SINT";
         case image_t::IMAGE_SAMPLETYPE_UINT:  return "SG_IMAGESAMPLETYPE_UINT";
-        case image_t::IMAGE_SAMPLETYPE_DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
         default: return "INVALID";
     }
 }
@@ -147,6 +147,11 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
+        for (const image_sampler_t& img_smp: vs_src->refl.image_samplers) {
+            L("                Image Sampler Pair '{}':\n", img_smp.name);
+            L("                    Image: {}\n", img_smp.image_name);
+            L("                    Sampler: {}\n", img_smp.sampler_name);
+        }
         L("            Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
             L("                Uniform block '{}':\n", ub.struct_name);
@@ -163,6 +168,11 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                Sampler '{}':\n", smp.name);
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
+        }
+        for (const image_sampler_t& img_smp: fs_src->refl.image_samplers) {
+            L("                Image Sampler Pair '{}':\n", img_smp.name);
+            L("                    Image: {}\n", img_smp.image_name);
+            L("                    Sampler: {}\n", img_smp.sampler_name);
         }
         L("\n");
     }
@@ -451,18 +461,30 @@ static void write_stage(const char* indent,
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
         const image_t* img = find_image_by_slot(src.refl, img_index);
         if (img) {
+            L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
+            L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
             L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
             L("{}desc.{}.images[{}].sample_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_sampletype_str(img->sample_type));
-            L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
         }
     }
     for (int smp_index = 0; smp_index < sampler_t::NUM; smp_index++) {
         const sampler_t* smp = find_sampler_by_slot(src.refl, smp_index);
         if (smp) {
-            L("{}desc.{}.samplers[{}].type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
+            L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
+            L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
-    // FIXME: combined image samplers
+    for (int img_smp_index = 0; img_smp_index < image_sampler_t::NUM; img_smp_index++) {
+        const image_sampler_t* img_smp = find_image_sampler_by_slot(src.refl, img_smp_index);
+        if (img_smp) {
+            L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, find_image_by_name(src.refl, img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, find_sampler_by_name(src.refl, img_smp->sampler_name)->slot);
+            if (slang_t::is_glsl(slang)) {
+                L("{}desc.{}.image_sampler_pairs[{}].glsl_name = \"{}\";\n", indent, stage_name, img_smp_index, img_smp->name);
+            }
+        }
+    }
 }
 
 static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {

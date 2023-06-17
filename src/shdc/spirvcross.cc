@@ -250,10 +250,12 @@ static void flatten_uniform_blocks(CompilerGLSL& compiler) {
 static void to_combined_image_samplers(CompilerGLSL& compiler) {
     compiler.build_combined_image_samplers();
     // give the combined samplers new names
+    uint32_t binding = 0;
     for (auto& remap: compiler.get_combined_image_samplers()) {
         const std::string img_name = compiler.get_name(remap.image_id);
         const std::string smp_name = compiler.get_name(remap.sampler_id);
         compiler.set_name(remap.combined_id, pystring::join("_", { img_name, smp_name }));
+        compiler.set_decoration(remap.combined_id, spv::DecorationBinding, binding++);
     }
 }
 
@@ -527,6 +529,9 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
         refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLE;
         refl.samplers.push_back(refl_smp);
     }
+
+    // FIXME: image-samplers
+
     return refl;
 }
 
@@ -595,6 +600,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t sla
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        to_combined_image_samplers(compiler);
         res.refl = parse_reflection(compiler, slang);
     }
     return res;
@@ -625,6 +631,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        to_combined_image_samplers(compiler);
         res.refl = parse_reflection(compiler, slang);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
@@ -718,13 +725,11 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                 if (img.equals(spv_cross.unique_images[other_img_index])) {
                     // identical image already exists, take note of the index
                     img.unique_index = other_img_index;
-                }
-                else {
+                } else {
                     spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return false;
                 }
-            }
-            else {
+            } else {
                 // new unique image
                 img.unique_index = (int) spv_cross.unique_images.size();
                 spv_cross.unique_images.push_back(img);
@@ -743,13 +748,11 @@ static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) 
                 if (smp.equals(spv_cross.unique_samplers[other_smp_index])) {
                     // identical sampler already exists, take note of the index
                     smp.unique_index = other_smp_index;
-                }
-                else {
+                } else {
                     spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
                     return false;
                 }
-            }
-            else {
+            } else {
                 // new unique sampler
                 smp.unique_index = (int) spv_cross.unique_samplers.size();
                 spv_cross.unique_samplers.push_back(smp);
@@ -844,7 +847,6 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             // error has been set in spv_cross.error
             return spv_cross;
         }
-        // FIXME: gather unique combined-image-samplers
     }
     // check that vertex-shader outputs match their fragment shader inputs
     errmsg_t err = validate_linking(inp, spv_cross);
