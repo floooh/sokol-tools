@@ -639,7 +639,7 @@ static void write_sampler_slot_func(const program_t& prog, const args_t& args, c
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
 
-    L("{}int {}{}_sample_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
+    L("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)smp_name;\n");
     if (!vs_src->refl.samplers.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
