@@ -350,7 +350,7 @@ static void write_stage(const char* indent,
         L("{}result.{}.bytecode = {}\n", indent, stage_name, blob_name);
     }
     else {
-        L("{}result.{}.source = cast[cstring](unsafeAddr({}))\n", indent, stage_name, src_name);
+        L("{}result.{}.source = cast[cstring](addr({}))\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
         if (slang == slang_t::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
