@@ -600,6 +600,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t sla
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        compiler.build_dummy_sampler_for_combined_images();
         to_combined_image_samplers(compiler);
         res.refl = parse_reflection(compiler, slang);
     }
@@ -631,6 +632,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
+        compiler.build_dummy_sampler_for_combined_images();
         to_combined_image_samplers(compiler);
         res.refl = parse_reflection(compiler, slang);
         // Metal's entry point function are called main0() because main() is reserved
