@@ -18,8 +18,9 @@ layout(binding=1) uniform params2 {
 #pragma sokol @end
 
 #pragma sokol @block textures
-layout(binding=0) uniform sampler2D tex0;
-layout(binding=1) uniform sampler2D tex1;
+layout(binding=0) uniform texture2D tex0;
+layout(binding=1) uniform texture2D tex1;
+layout(binding=2) uniform sampler smp;
 #pragma sokol @end
 
 #pragma sokol @vs vs1
@@ -50,7 +51,7 @@ in vec4 color;
 out vec4 fragColor;
 
 void main() {
-    fragColor = texture(tex0, uv) * texture(tex1, uv*2.0) * color;
+    fragColor = texture(sampler2D(tex0, smp), uv) * texture(sampler2D(tex1, smp), uv*2.0) * color;
 }
 #pragma sokol @end
 
@@ -80,9 +81,8 @@ layout(location=0) in vec2 uv;
 layout(location=0) out vec4 fragColor;
 
 void main() {
-    fragColor = texture(tex0, uv) + texture(tex1, uv);
+    fragColor = texture(sampler2D(tex0, smp), uv) + texture(sampler2D(tex1, smp), uv);
 }
 #pragma sokol @end
 
 #pragma sokol @program prog2 vs2 fs2
-

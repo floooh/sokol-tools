@@ -21,19 +21,19 @@ void main() {
 @end
 
 @fs fs
-uniform sampler2D tex1;
-uniform sampler2D tex0;
+uniform texture2D tex0;
+uniform texture2D tex1;
+uniform sampler smp;
 
 in vec4 color;
 in vec2 uv;
 out vec4 frag_color;
 
 void main() {
-    vec4 color0 = texture(tex0, uv);
-    vec4 color1 = texture(tex1, uv);
+    vec4 color0 = texture(sampler2D(tex0, smp), uv);
+    vec4 color1 = texture(sampler2D(tex1, smp), uv);
     frag_color = (color0 + color1) * color;
 }
 @end
 
 @program texcube vs fs
-

@@ -16,14 +16,14 @@ void main() {
 @end
 
 @fs fs
-uniform sampler2D tex;
+uniform texture2D tex;
+uniform sampler smp;
 in vec4 uv;
 in vec4 color;
 out vec4 frag_color;
 void main() {
-    frag_color = vec4(1.0, 1.0, 1.0, texture(tex, uv.xy).r) * color;
+    frag_color = vec4(1.0, 1.0, 1.0, texture(sampler2D(tex, smp), uv.xy).r) * color;
 }
 @end
 
 @program fontstash vs fs
-
