@@ -412,7 +412,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
 
 static void write_stage(const char* indent,
                         const char* stage_name,
-                        const spirvcross_source_t& src,
+                        const spirvcross_source_t* src,
                         const std::string& src_name,
                         const bytecode_blob_t* blob,
                         const std::string& blob_name,
@@ -435,9 +435,9 @@ static void write_stage(const char* indent,
             L("{}desc.{}.d3d11_target = \"{}\";\n", indent, stage_name, d3d11_tgt);
         }
     }
-    L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src.refl.entry_point);
+    L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block_by_slot(src.refl, ub_index);
+        const uniform_block_t* ub = find_uniform_block_by_slot(src->refl, ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = SG_UNIFORMLAYOUT_STD140;\n", indent, stage_name, ub_index);
@@ -459,7 +459,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image_by_slot(src.refl, img_index);
+        const image_t* img = find_image_by_slot(src->refl, img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
@@ -468,18 +468,18 @@ static void write_stage(const char* indent,
         }
     }
     for (int smp_index = 0; smp_index < sampler_t::NUM; smp_index++) {
-        const sampler_t* smp = find_sampler_by_slot(src.refl, smp_index);
+        const sampler_t* smp = find_sampler_by_slot(src->refl, smp_index);
         if (smp) {
             L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
             L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
     for (int img_smp_index = 0; img_smp_index < image_sampler_t::NUM; img_smp_index++) {
-        const image_sampler_t* img_smp = find_image_sampler_by_slot(src.refl, img_smp_index);
+        const image_sampler_t* img_smp = find_image_sampler_by_slot(src->refl, img_smp_index);
         if (img_smp) {
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
-            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, find_image_by_name(src.refl, img_smp->image_name)->slot);
-            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, find_sampler_by_name(src.refl, img_smp->sampler_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, find_image_by_name(src->refl, img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, find_sampler_by_name(src->refl, img_smp->sampler_name)->slot);
             if (slang_t::is_glsl(slang)) {
                 L("{}desc.{}.image_sampler_pairs[{}].glsl_name = \"{}\";\n", indent, stage_name, img_smp_index, img_smp->name);
             }
@@ -488,32 +488,20 @@ static void write_stage(const char* indent,
 }
 
 static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
-    int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
-    int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-    int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-    int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-    assert((vs_src_index >= 0) && (fs_src_index >= 0));
-    const spirvcross_source_t& vs_src = spirvcross.sources[vs_src_index];
-    const spirvcross_source_t& fs_src = spirvcross.sources[fs_src_index];
-    int vs_blob_index = bytecode.find_blob_by_snippet_index(vs_snippet_index);
-    int fs_blob_index = bytecode.find_blob_by_snippet_index(fs_snippet_index);
-    const bytecode_blob_t* vs_blob = 0;
-    const bytecode_blob_t* fs_blob = 0;
-    if (vs_blob_index != -1) {
-        vs_blob = &bytecode.blobs[vs_blob_index];
-    }
-    if (fs_blob_index != -1) {
-        fs_blob = &bytecode.blobs[fs_blob_index];
-    }
+    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+    assert(vs_src && fs_src);
+    const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
+    const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
     std::string vs_src_name, fs_src_name;
     std::string vs_blob_name, fs_blob_name;
-    if (vs_blob_index != -1) {
+    if (vs_blob) {
         vs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
     }
     else {
         vs_src_name = fmt::format("{}{}_source_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang));
     }
-    if (fs_blob_index != -1) {
+    if (fs_blob) {
         fs_blob_name = fmt::format("{}{}_bytecode_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang));
     }
     else {
@@ -522,7 +510,7 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
 
     /* write shader desc */
     for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
-        const attr_t& attr = vs_src.refl.inputs[attr_index];
+        const attr_t& attr = vs_src->refl.inputs[attr_index];
         if (attr.slot >= 0) {
             if (slang_t::is_glsl(slang)) {
                 L("{}desc.attrs[{}].name = \"{}\";\n", indent, attr_index, attr.name);
