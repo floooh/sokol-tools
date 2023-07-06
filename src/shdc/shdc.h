@@ -501,7 +501,7 @@ struct image_t {
             case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
             case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
             case IMAGE_SAMPLETYPE_DEPTH:  return "IMAGE_SAMPLETYPE_DEPTH";
-            default:                    return "IMAGE_BASETYPE_INVALID";
+            default:                      return "IMAGE_BASETYPE_INVALID";
         }
     }
 
@@ -525,6 +525,14 @@ struct sampler_t {
     std::string name;
     type_t type = SAMPLER_TYPE_INVALID;
     int unique_index = -1;          // index into spirvcross_t.unique_samplers
+
+    static const char* type_to_str(type_t t) {
+        switch (t) {
+            case SAMPLER_TYPE_SAMPLE:   return "SAMPLER_TYPE_SAMPLE";
+            case SAMPLER_TYPE_COMPARE:  return "SAMPLER_TYPE_COMPARE";
+            default:                    return "SAMPLER_TYPE_INVALID";
+        }
+    }
 
     bool equals(const sampler_t& other) {
         return (slot == other.slot)
