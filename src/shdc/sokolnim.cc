@@ -72,8 +72,8 @@ static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t bas
 static const char* sokol_backend(slang_t::type_t slang) {
     switch (slang) {
         case slang_t::GLSL330:      return "backendGlcore33";
-        case slang_t::GLSL100:      return "backend.Gles2";
-        case slang_t::GLSL300ES:    return "backendGles2";
+        case slang_t::GLSL100:      return "backendGles3";
+        case slang_t::GLSL300ES:    return "backendGles3";
         case slang_t::HLSL4:        return "backendD3d11";
         case slang_t::HLSL5:        return "backendD3d11";
         case slang_t::METAL_MACOS:  return "backendMetalMacos";
