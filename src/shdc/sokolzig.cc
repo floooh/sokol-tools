@@ -81,7 +81,7 @@ static const char* smp_type_to_sokol_type_str(sampler_t::type_t type) {
 static const char* sokol_backend(slang_t::type_t slang) {
     switch (slang) {
         case slang_t::GLSL330:      return ".GLCORE33";
-        case slang_t::GLSL100:      return ".GLES2";
+        case slang_t::GLSL100:      return ".GLES3";
         case slang_t::GLSL300ES:    return ".GLES3";
         case slang_t::HLSL4:        return ".D3D11";
         case slang_t::HLSL5:        return ".D3D11";
@@ -135,6 +135,11 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("//              Sampler '{}':\n", smp.name);
             L("//                  Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
+        }
+        for (const image_sampler_t& img_smp: vs_src->refl.image_samplers) {
+            L("//              Image Sampler Pair '{}':\n", img_smp.name);
+            L("//                  Image: {}\n", img_smp.image_name);
+            L("//                  Sampler: {}\n", img_smp.sampler_name);
         }
         L("//          Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
