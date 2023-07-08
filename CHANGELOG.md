@@ -1,6 +1,9 @@
 CHANGELOG
 =========
 
+- **09-Jul-2023**:
+    - set CMAKE_OSX_DEPLOYMENT_TARGET to allow running sokol-shdc on older macOS versions
+
 - **01-Jul-2023**:
     - Nim backend: write addr() instead of deprecated unsafeAddr()
 
