@@ -18,23 +18,32 @@ sokol-shdc is a shader-cross-compiler and -code-generator command line tool
 which translates an 'annotated GLSL' source file into a C header (or other
 output formats) for use with sokol-gfx.
 
-Shaders are written in 'modern GLSL' (v450) and translated into the following
-shader dialects:
+Shaders are written in 'modern Vulkan GLSL' (version 450 with separate texture and sampler
+uniforms) and translated into the following shader dialects:
 
-- GLSL v100 (for GLES2 and WebGL)
 - GLSL v300es (for GLES3 and WebGL2)
 - GLSL v330 (for desktop GL)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
-- WebGPU (initially SPIRV, later WGSL)
+- WGSL (for WebGPU)
 
-This cross-compilation happens via existing Khronos open source projects:
+This cross-compilation happens via existing Khronos and Google open source projects:
 
 - [glslang](https://github.com/KhronosGroup/glslang): for compiling GLSL to SPIR-V
 - [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools): the SPIR-V optimizer is used
 to run optimization passes on the intermediate SPIRV (mainly for dead-code elimination)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross): for translating the SPIRV
 bytecode to GLSL dialects, HLSL and Metal
+- [Tint](https://dawn.googlesource.com/tint): for translating the SPIRV byte code to WGSL
+
+sokol-shdc supports the following output formats:
+
+- C headers for direct integration with [sokol_gfx.h](https://github.com/floooh/sokol)
+- Zig source files for integration with [sokol-zig](https://github.com/floooh/sokol-zig)
+- Rust source files for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
+- Odin source files for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
+- Nim source files for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
+- 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
 
 Error messages from ```glslang``` are mapped back to the original annotated
 source file and converted into GCC or MSVC error formats for integration with
@@ -50,39 +59,50 @@ additional information for the C code-generation (note the ```@vs```,
 
 ```glsl
 @vs vs
-in vec4 position;
-in vec4 color0;
+uniform vs_params {
+    mat4 mvp;
+};
+
+in vec4 pos;
+in vec2 texcoord0;
+
 out vec4 color;
+out vec2 uv;
+
 void main() {
-    gl_Position = position;
-    color = color0;
+    gl_Position = mvp * pos;
+    uv = texcoord0;
 }
 @end
 
 @fs fs
-in vec4 color;
+uniform texture2D tex;
+uniform sampler smp;
+
+in vec2 uv;
 out vec4 frag_color;
+
 void main() {
-    frag_color = color;
+    frag_color = texture(sampler2D(tex,smp), uv);
 }
 @end
 
-@program triangle vs fs
+@program texcube vs fs
 ```
+
 Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may be used to prefix the tags. For example, the final line above could have also been written as:
 
 ```glsl
 #pragma sokol @program triangle vs fs
 ```
 
-The generated C header contains:
+A generated C header contains (similar for the other language )
 
-- human-readable reflection info in a comment block, as well as
-copy-pastable example code
-- complete ```sg_shader_desc``` structs for each shader dialect
-- for each shader program, a C function which returns a pointer to the right
-```sg_shader_desc``` for the current sokol-gfx backend (including a runtime
-fallback from GLES3/WebGL2 to GLES2/WebGL)
+- human-readable reflection info in a comment block, as well as copy-pastable example code
+- a C struct for each shader uniform block
+- for each shader program, a C function which returns a pointer to a
+```sg_shader_desc``` for a specific sokol-gfx backend which can be passed
+directly into `sg_make_shader()`
 - constants for vertex attribute locations, uniform-block- and image-bind-slots
 - optionally a set of C functions for runtime inspection of the generated vertex
 attributes, image bind slots and uniform-block structs
