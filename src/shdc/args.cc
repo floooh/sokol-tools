@@ -78,7 +78,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "and one @program declaration.\n\n"
         "Target shader languages (used with -l --slang):\n"
         "  - glsl330:       desktop OpenGL backend (SOKOL_GLCORE33)\n"
-        "  - glsl100:       OpenGLES2 and WebGL (SOKOL_GLES2)\n"
+        "  - glsl100:       OpenGLES2 and WebGL (SOKOL_GLES3)\n"
         "  - glsl300es:     OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
         "  - hlsl4:         Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
         "  - hlsl5:         Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
