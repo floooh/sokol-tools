@@ -257,6 +257,39 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const s
     return out_spirv;
 }
 
+bool spirv_t::write_to_file(const args_t& args, const input_t& inp, slang_t::type_t slang) {
+    std::string base_dir;
+    std::string base_filename;
+    pystring::os::path::split(base_dir, base_filename, inp.base_path);
+    std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, slang_t::to_str(slang));
+    for (const spirv_blob_t& blob: blobs) {
+        const snippet_t& snippet = inp.snippets[blob.snippet_index];
+        {
+            const std::string path = fmt::format("{}{}.spv", base_path, snippet.name);
+            FILE* fp = fopen(path.c_str(), "wb");
+            if (fp) {
+                fwrite(blob.bytecode.data(), sizeof(uint32_t), blob.bytecode.size(), fp);
+                fclose(fp);
+            } else {
+                fmt::print("Failed to open '{}' for writing!\n", path);
+                return false;
+            }
+        }
+        {
+            const std::string path = fmt::format("{}{}.glsl", base_path, snippet.name);
+            FILE* fp = fopen(path.c_str(), "w");
+            if (fp) {
+                fwrite(blob.source.c_str(), 1, blob.source.length(), fp);
+                fclose(fp);
+            } else {
+                fmt::print("Failed to open '{}' for writing!\n", path);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "spirv_t:\n");
     if (errors.size() > 0) {

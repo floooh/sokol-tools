@@ -3,6 +3,7 @@
 #
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "")
 project(sokol-tools)
 
 # include the fips main cmake file

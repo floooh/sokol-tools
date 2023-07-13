@@ -238,6 +238,7 @@ struct args_t {
     format_t::type_t output_format = format_t::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
     bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
+    bool save_intermediate_spirv = false;   // save intermediate SPIRV bytecode (glslangvalidator output)
     int gen_version = 1;                // generator-version stamp
     errmsg_t::msg_format_t error_format = errmsg_t::GCC;  // format for error messages
 
@@ -373,6 +374,7 @@ struct spirv_t {
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
     static spirv_t compile_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
+    bool write_to_file(const args_t& args, const input_t& inp, slang_t::type_t slang);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
 
