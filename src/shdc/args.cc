@@ -54,9 +54,9 @@ static void print_help_string(getopt_context_t& ctx) {
         "Shader compiler / code generator for sokol_gfx.h based on GLslang + SPIRV-Cross\n"
         "https://github.com/floooh/sokol-tools\n\n"
         "Usage: sokol-shdc -i input [-o output] [options]\n\n"
-        "Where [input] is exactly one .glsl file, and [output] is a C header\n"
-        "with embedded shader source code and/or byte code and code-generated\n"
-        "uniform-block and shader-description C structs ready for use with sokol_gfx.h\n\n"
+        "Where [input] is exactly one .glsl file in Vulkan syntax (separate texture and sampler uniforms),\n"
+        "and [output] is a C header with embedded shader source code and/or byte code and\n"
+        "code-generated uniform-block and shader-description C structs ready for use with sokol_gfx.h\n\n"
         "The input source file contains custom '@-tags' to group the\n"
         "source code for several shaders and shared code blocks into one file:\n\n"
         "  - @module name: optional shader module name, will be used as prefix in generated code\n"
@@ -95,7 +95,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_odin:    Odin module file\n"
         "  - sokol_rust:    Rust module file\n"
         "  - bare:          raw output of SPIRV-Cross compiler, in text or binary format\n"
-        "  - bare_yaml:     like bare, but with reflection file in YAML format\n"
+        "  - bare_yaml:     like bare, but with reflection file in YAML format\n\n"
         "Options:\n\n");
     char buf[4096];
     fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
