@@ -156,7 +156,7 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, bool auto_map, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -171,10 +171,8 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     // NOTE: where using AutoMapBinding here, but this will just throw all bindings
     // into descriptor set null, which is not what we actually want.
     // We'll fix up the bindings later before calling SPIRVCross.
-    if (auto_map) {
-        shader.setAutoMapLocations(true);
-        shader.setAutoMapBindings(true);
-    }
+    shader.setAutoMapLocations(true);
+    shader.setAutoMapBindings(true);
     bool parse_success = shader.parse(GetDefaultResources(), 100, false, EShMsgDefault);
     infolog_to_errors(shader.getInfoLog(), inp, snippet_index, out_spirv.errors);
     infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
@@ -232,19 +230,18 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const s
 
     // compile shader-snippets
     int snippet_index = 0;
-    const bool auto_map = true;
     for (const snippet_t& snippet: inp.snippets) {
         if (snippet.type == snippet_t::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangVertex, slang, src, inp, snippet_index, auto_map, out_spirv)) {
+            if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
         } else if (snippet.type == snippet_t::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangFragment, slang, src, inp, snippet_index, auto_map, out_spirv)) {
+            if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
