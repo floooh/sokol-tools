@@ -1,29 +1,61 @@
 CHANGELOG
 =========
 
-- **09-Jul-2023**:
-    - set CMAKE_OSX_DEPLOYMENT_TARGET to allow running sokol-shdc on older macOS versions
+#### **16-Jul-2023**
+- input shader source code must now be written in Vulkan-GLSL-style with separate
+  texture and sampler uniforms, this means that old code like this:
 
-- **01-Jul-2023**:
-    - Nim backend: write addr() instead of deprecated unsafeAddr()
+    ```glsl
+    sampler2D tex;
 
-- **08-Jun-2023**:
-    - add a --save-intermediate-spirv cmdline option
+    void main() {
+        frag_color = texture(tex, uv);
+    }
+    ```
+  ...needs to be rewritten to look like this:
 
-- **25-May-2023**:
-    - update all Khronos dependencies to 1.3.246.1
-    - disable line directives for good
+    ```glsl
+    texture2D tex;
+    sampler smp;
 
-- **24-May-2023**:
-    - add a --nolinedirectives cmdline option which omits the #line debug mapping statements
+    void main() {
+        frag_color = texture(sampler2D(tex, smp), uv);
+    }
+    ```
 
-- **22-May-2023**:
-    - update external dependencies to latest versions
-    - bump ios-metal version to 1.1 (1.0 is deprecated and doesn't fma() which
-      is now emitted by SPIRVCross)
+- the code-generation has been updated for the new 'separate image and sampler objects'
+  sokol-gfx update
+- sokol-shdc will now emit an error if it encounters 'old' OpenGL-GLSL-style code
+  with combined image samplers
+- the Google Tint library has been integrated to convert the SPIRV output from
+  `glslang` to WGSL source code
+- the output language option `wgpu` has been renamed to `wgsl`
+- preliminary support for WGSL output has been added
+- output for GLSL100 (GLES2) is still supported but has been deprecated
 
-- **18-Mar-2023**:
-    - added a Rust backend (many thank to @ErikWDev!)
+#### **09-Jul-2023**
+- set CMAKE_OSX_DEPLOYMENT_TARGET to allow running sokol-shdc on older macOS versions
+
+#### **01-Jul-2023**
+- Nim backend: write addr() instead of deprecated unsafeAddr()
+
+#### **08-Jun-2023**
+- add a --save-intermediate-spirv cmdline option
+
+#### **25-May-2023**
+- update all Khronos dependencies to 1.3.246.1
+- disable line directives for good
+
+#### **24-May-2023**
+- add a --nolinedirectives cmdline option which omits the #line debug mapping statements
+
+#### **22-May-2023**
+- update external dependencies to latest versions
+- bump ios-metal version to 1.1 (1.0 is deprecated and doesn't fma() which
+  is now emitted by SPIRVCross)
+
+#### **18-Mar-2023**
+- added a Rust backend (many thank to @ErikWDev!)
 
 ...
 
