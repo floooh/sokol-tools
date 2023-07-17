@@ -60,11 +60,20 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
     }
 }
 
-static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t basetype) {
-    switch (basetype) {
-        case image_t::IMAGE_BASETYPE_FLOAT: return "sg::SamplerType::Float";
-        case image_t::IMAGE_BASETYPE_SINT:  return "sg::SamplerType::Sint";
-        case image_t::IMAGE_BASETYPE_UINT:  return "sg::SamplerType::Uint";
+static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sampletype) {
+    switch (sampletype) {
+        case image_t::IMAGE_SAMPLETYPE_FLOAT: return "sg::ImageSampleType::Float";
+        case image_t::IMAGE_SAMPLETYPE_DEPTH: return "sg::ImageSampleType::Depth";
+        case image_t::IMAGE_SAMPLETYPE_SINT:  return "sg::ImageSampleType::Sint";
+        case image_t::IMAGE_SAMPLETYPE_UINT:  return "sg::ImageSampleType::Uint";
+        default: return "INVALID";
+    }
+}
+
+static const char* smp_type_to_sokol_type_str(sampler_t::type_t type) {
+    switch (type) {
+        case sampler_t::SAMPLER_TYPE_SAMPLE: return "sg::SamplerType::Sample";
+        case sampler_t::SAMPLER_TYPE_COMPARE: return "sg::SamplerType::Compare";
         default: return "INVALID";
     }
 }
@@ -72,14 +81,14 @@ static const char* img_basetype_to_sokol_samplertype_str(image_t::basetype_t bas
 static const char* sokol_backend(slang_t::type_t slang) {
     switch (slang) {
         case slang_t::GLSL330:      return "sg::Backend::Glcore33";
-        case slang_t::GLSL100:      return "sg::Backend::Gles2";
+        case slang_t::GLSL100:      return "sg::Backend::Gles3";
         case slang_t::GLSL300ES:    return "sg::Backend::Gles3";
         case slang_t::HLSL4:        return "sg::Backend::D3d11";
         case slang_t::HLSL5:        return "sg::Backend::D3d11";
         case slang_t::METAL_MACOS:  return "sg::Backend::MetalMacos";
         case slang_t::METAL_IOS:    return "sg::Backend::MetalIos";
         case slang_t::METAL_SIM:    return "sg::Backend::MetalSimulator";
-        case slang_t::WGPU:         return "sg::Backend::Wgpu";
+        case slang_t::WGSL:         return "sg::Backend::Wgpu";
         default: return "<INVALID>";
     }
 }
@@ -117,9 +126,20 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         }
         for (const image_t& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
-            L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
+            L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
+            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
+            L("                    Multisampled: {}\n", img.multisampled);
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        }
+        for (const sampler_t& smp: vs_src->refl.samplers) {
+            L("                Sampler '{}':\n", smp.name);
+            L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
+        }
+        for (const image_sampler_t& img_smp: vs_src->refl.image_samplers) {
+            L("                Image Sampler Pair '{}':\n", img_smp.name);
+            L("                    Image: {}\n", img_smp.image_name);
+            L("                    Sampler: {}\n", img_smp.sampler_name);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
         for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
@@ -130,8 +150,25 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         for (const image_t& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Component Type: {}\n", img_basetype_to_sokol_samplertype_str(img.base_type));
+            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
+        }
+        for (const image_t& img: fs_src->refl.images) {
+            L("                Image '{}':\n", img.name);
+            L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
+            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
+            L("                    Multisampled: {}\n", img.multisampled);
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
+        }
+        for (const sampler_t& smp: fs_src->refl.samplers) {
+            L("                Sampler '{}':\n", smp.name);
+            L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
+            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
+        }
+        for (const image_sampler_t& img_smp: fs_src->refl.image_samplers) {
+            L("                Image Sampler Pair '{}':\n", img_smp.name);
+            L("                    Image: {}\n", img_smp.image_name);
+            L("                    Sampler: {}\n", img_smp.sampler_name);
         }
         L("  \n");
     }
@@ -157,6 +194,12 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const image_t& img: spirvcross.unique_images) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
+    }
+}
+
+static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
+    for (const sampler_t& smp: spirvcross.unique_samplers) {
+        L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(smp.name), smp.slot);
     }
 }
 
@@ -211,6 +254,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
                     }
                 }
             }
+            // FIXME?
             // if (0 == cur_offset) {
             //     // align the first item
             //     L(" align(16),\n");
@@ -319,7 +363,7 @@ static void write_stage(const char* indent,
     assert(src);
     L("{}desc.{}.entry = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block(src->refl, ub_index);
+        const uniform_block_t* ub = find_uniform_block_by_slot(src->refl, ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = sg::UniformLayout::Std140;\n", indent, stage_name, ub_index);
@@ -341,11 +385,30 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image(src->refl, img_index);
+        const image_t* img = find_image_by_slot(src->refl, img_index);
         if (img) {
-            L("{}desc.{}.images[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_index, img->name);
+            L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
+            L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
             L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
-            L("{}desc.{}.images[{}].sampler_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_samplertype_str(img->base_type));
+            L("{}desc.{}.images[{}].sample_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_sampletype_str(img->sample_type));
+        }
+    }
+    for (int smp_index = 0; smp_index < sampler_t::NUM; smp_index++) {
+        const sampler_t* smp = find_sampler_by_slot(src->refl, smp_index);
+        if (smp) {
+            L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
+            L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
+        }
+    }
+    for (int img_smp_index = 0; img_smp_index < image_sampler_t::NUM; img_smp_index++) {
+        const image_sampler_t* img_smp = find_image_sampler_by_slot(src->refl, img_smp_index);
+        if (img_smp) {
+            L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, find_image_by_name(src->refl, img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, find_sampler_by_name(src->refl, img_smp->sampler_name)->slot);
+            if (slang_t::is_glsl(slang)) {
+                L("{}desc.{}.image_sampler_pairs[{}].glsl_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_smp_index, img_smp->name);
+            }
         }
     }
 }
@@ -416,6 +479,7 @@ errmsg_t sokolrust_t::gen(const args_t& args, const input_t& inp,
                 common_decls_written = true;
                 write_vertex_attrs(inp, spirvcross[i]);
                 write_image_bind_slots(inp, spirvcross[i]);
+                write_sampler_bind_slots(inp, spirvcross[i]);
                 write_uniform_blocks(inp, spirvcross[i], slang);
             }
             write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);

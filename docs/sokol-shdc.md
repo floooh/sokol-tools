@@ -18,25 +18,34 @@ sokol-shdc is a shader-cross-compiler and -code-generator command line tool
 which translates an 'annotated GLSL' source file into a C header (or other
 output formats) for use with sokol-gfx.
 
-Shaders are written in 'modern GLSL' (v450) and translated into the following
-shader dialects:
+Shaders are written in 'Vulkan-style GLSL' (version 450 with separate texture and sampler
+uniforms) and translated into the following shader dialects:
 
-- GLSL v100 (for GLES2 and WebGL)
 - GLSL v300es (for GLES3 and WebGL2)
 - GLSL v330 (for desktop GL)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
-- WebGPU (initially SPIRV, later WGSL)
+- WGSL (for WebGPU)
 
-This cross-compilation happens via existing Khronos open source projects:
+This cross-compilation happens via existing Khronos and Google open source projects:
 
 - [glslang](https://github.com/KhronosGroup/glslang): for compiling GLSL to SPIR-V
 - [SPIRV-Tools](https://github.com/KhronosGroup/SPIRV-Tools): the SPIR-V optimizer is used
 to run optimization passes on the intermediate SPIRV (mainly for dead-code elimination)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross): for translating the SPIRV
 bytecode to GLSL dialects, HLSL and Metal
+- [Tint](https://dawn.googlesource.com/tint): for translating SPIR-V to WGSL
 
-Error messages from ```glslang``` are mapped back to the original annotated
+sokol-shdc supports the following output formats:
+
+- C for integration with [sokol_gfx.h](https://github.com/floooh/sokol)
+- Zig for integration with [sokol-zig](https://github.com/floooh/sokol-zig)
+- Rust for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
+- Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
+- Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
+- 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
+
+Error messages from `glslang` are mapped back to the original annotated
 source file and converted into GCC or MSVC error formats for integration with
 IDEs like Visual Studio, Xcode or VSCode:
 
@@ -45,54 +54,65 @@ IDEs like Visual Studio, Xcode or VSCode:
 Shader files are 'annotated' with custom **@-tags** which add meta-information to
 the GLSL source files. This is used for packing vertex- and fragment-shaders
 into the same source file, mark and include reusable code blocks, and provide
-additional information for the C code-generation (note the ```@vs```,
-```@fs```, ```@end``` and ```@program``` tags):
+additional information for the C code-generation (note the `@vs`,
+`@fs`, `@end` and `@program` tags):
 
 ```glsl
 @vs vs
+uniform vs_params {
+    mat4 mvp;
+};
+
 in vec4 position;
-in vec4 color0;
+in vec2 texcoord0;
+
 out vec4 color;
+out vec2 uv;
+
 void main() {
-    gl_Position = position;
-    color = color0;
+    gl_Position = mvp * position;
+    uv = texcoord0;
 }
 @end
 
 @fs fs
-in vec4 color;
+uniform texture2D tex;
+uniform sampler smp;
+
+in vec2 uv;
 out vec4 frag_color;
+
 void main() {
-    frag_color = color;
+    frag_color = texture(sampler2D(tex,smp), uv);
 }
 @end
 
-@program triangle vs fs
+@program texcube vs fs
 ```
+
 Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may be used to prefix the tags. For example, the final line above could have also been written as:
 
 ```glsl
-#pragma sokol @program triangle vs fs
+#pragma sokol @program texcube vs fs
 ```
 
-The generated C header contains:
+A generated C header contains (similar information is generated for the other output languages):
 
-- human-readable reflection info in a comment block, as well as
-copy-pastable example code
-- complete ```sg_shader_desc``` structs for each shader dialect
-- for each shader program, a C function which returns a pointer to the right
-```sg_shader_desc``` for the current sokol-gfx backend (including a runtime
-fallback from GLES3/WebGL2 to GLES2/WebGL)
+- human-readable reflection info in a comment block, as well as copy-pastable example code
+- a C struct for each shader uniform block
+- for each shader program, a C function which returns a pointer to a
+```sg_shader_desc``` for a specific sokol-gfx backend which can be passed
+directly into `sg_make_shader()`
 - constants for vertex attribute locations, uniform-block- and image-bind-slots
 - optionally a set of C functions for runtime inspection of the generated vertex
 attributes, image bind slots and uniform-block structs
 
-For instance, creating a shader and pipeline object for the above simple *triangle*
+For instance, creating a shader and pipeline object for the above simple *texcube*
 shader program looks like this:
 
 ```c
 // create a shader object from generated sg_shader_desc:
-sg_shader shd = sg_make_shader(triangle_shader_desc(sg_query_backend()));
+sg_shader shd = sg_make_shader(texcube_shader_desc(sg_query_backend()));
 
 // create a pipeline object with this shader, and
 // code-generated vertex attribute location constants
@@ -102,7 +122,7 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
     .layout = {
         .attrs = {
             [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-            [ATTR_vs_color0].format = SG_VERTEXFORMAT_FLOAT4
+            [ATTR_vs_texcoord0].format = SG_VERTEXFORMAT_FLOAT2,
         }
     }
 });
@@ -175,10 +195,7 @@ block in their CMakeLists.txt file:
 ```cmake
 if (FIPS_EMSCRIPTEN)
     add_definitions(-DSOKOL_GLES3)
-    set(slang "glsl300es:glsl100")
-elseif (FIPS_RASPBERRYPI)
-    add_definitions(-DSOKOL_GLES2)
-    set(slang "glsl100")
+    set(slang "glsl300es")
 elseif (FIPS_ANDROID)
     add_definitions(-DSOKOL_GLES3)
     set(slang "glsl300es")
@@ -254,32 +271,33 @@ void main() {
 ### Command Line Reference
 
 - **-h --help**: Print usage information and exit
-- **-i --input=[GLSL file]**: The path to the input GLSL file, this must be either
-relative to the current working directory, or an absolute path.
-- **-o --output=[C header]**: The path to the generated C header, either relative
-to the current working directory, or as absolute path. The target directory must
-exist.
-- **-t --tmpdir=[path]**: Optional path to a directory used for storing intermediate files
-when generating Metal bytecode. If no separate temporary directory is provided,
-intermediate files will be written to the same directory as the generated
-C header defined via *--output*. In both cases, the target directory must exist.
-- **-l --slang=[shader languages]**: One or multiple output shader languages. If
-multiple languages are provided, they must be separated by a **colon**. Valid
-shader language names are:
+- **-i --input=[GLSL file]**: The path to the input shader file in 'tagged
+  GLSL' format, this must be either relative to the current working directory,
+  or an absolute path.
+- **-o --output=[C header]**: The path to the generated ouput source file, either
+  relative to the current working directory, or as absolute path. The target
+  directory must exist.
+- **-t --tmpdir=[path]**: Optional path to a directory used for storing
+  intermediate files when generating Metal bytecode. If no separate temporary
+  directory is provided, intermediate files will be written to the same
+  directory as the generated C header defined via *--output*. In both cases,
+  the target directory must exist.
+- **-l --slang=[shader languages]**: One or multiple output shader languages.
+  If multiple languages are provided, they must be separated by a **colon**.
+  Valid shader language names are:
     - **glsl330**: desktop GL
-    - **glsl100**: GLES2 / WebGL
     - **glsl300es**: GLES3 / WebGL2
     - **hlsl4**: D3D11
     - **hlsl5**: D3D11
     - **metal_macos**: Metal on macOS
     - **metal_ios**: Metal on iOS device
     - **metal_sim**: Metal on iOS simulator
-    - **wgpu**: WebGPU
+    - **wgsl**: WebGPU
 
   For instance, to generate header with support for all supported GLSL dialects:
 
   ```
-  --slang glsl330:glsl100:glsl300es
+  --slang glsl330:glsl300es
   ```
 
 - **-b --bytecode**: If possible, compile shaders to bytecode instead of
@@ -294,7 +312,7 @@ follows:
   shader source code without returning an error. Note that the **metal_sim**
   target for the iOS simulator doesn't support generating bytecode, this
   will always emit Metal source code.
-- **-f --format=[sokol,sokol_impl,sokol_decl,bare,sokol_zig]**: set output backend (default: **sokol**)
+- **-f --format=[sokol,sokol_impl,...]**: set output backend (default: **sokol**)
     - **sokol**: Generate a C header where data is declared as ```static``` and
       functions are declared as ```static inline```. If this header is included
       multiple times, you should be aware that the executable may contain duplicate data.
@@ -306,16 +324,21 @@ follows:
       be used. In this mode, data is declared ```static``` and functions are
       declared ```static inline```, and the implementation is included when
       the ```SOKOL_SHDC_DECL``` is *not* defined
-    - In **bare** format, compiled shader code is written as plain text or binary files. For each combination of shader program and target language, a file name based on *--output* is constructed as follows:
+    - **bare**: compiled shader code is written as plain text or
+      binary files. For each combination of shader program and target language,
+      a file name based on *--output* is constructed as follows:
         - **glsl**: *.frag.glsl and *.vert.glsl
         - **hlsl**: *.frag.hlsl and *.vert.hlsl, or *.fxc for bytecode
         - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
-    - **sokol_zig**: This generates a Zig source file that's compatible with the
-      [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
-    - **sokol_odin**: Generates an Odin source file that's compatible with the
-      [sokol-odin bindings](https://github.com/floooh/sokol-odin)
+    - **bare_yaml**: like bare, but also creates a YAML file with shader reflection information.
+    - **sokol_zig**: generates output for the [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
+    - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
+    - **sokol_nim**: generates output for the [sokol-nim bindings](https://github.com/floooh/sokol-nim)
+    - **sokol_rust**: generates output for the [sokol-rust bindings](https://github.com/floooh/sokol-rust)
 
-  Note that some options and features of sokol-shdc can be contradictory to (and thus, ignored by) backends. For example, the **bare** backend only writes shader code, and disregards all other information.
+  Note that some options and features of sokol-shdc can be contradictory to
+  (and thus, ignored by) backends. For example, the **bare** backend only
+  writes shader code, and disregards all other information.
 - **-e --errfmt=[gcc,msvc]**: set the error message format to be either GCC-compatible
 or Visual-Studio-compatible, the default is **gcc**
 - **-g --genver=[integer]**: set a version number to embed in the generated header,
@@ -325,7 +348,6 @@ done in the build-system-integration)
 - **--ifdef**: this tells the code generator to wrap 3D-backend-specific
 code into **#ifdef/#endif** pairs using the sokol-gfx backend-selection defines:
     - SOKOL_GLCORE33
-    - SOKOL_GLES2
     - SOKOL_GLES3
     - SOKOL_D3D11
     - SOKOL_METAL
@@ -471,11 +493,12 @@ quotes. The ```@include``` tag can appear inside or outside a code block:
 
 ### @ctype [glsl_type] [c_type]
 
-The ```@ctype``` tag defines a type-mapping from GLSL to C or C++ in uniform blocks for
-the GLSL types ```float```, ```vec2```, ```vec3```, ```vec4``` and ```mat4```
-(these are the currently valid types for use in GLSL uniform blocks).
+The `@ctype` tag defines a type-mapping from GLSL to C or C++ in uniform blocks
+for the GLSL types `float`, `vec2`, `vec3`, `vec4`, `int`, `int2`, `int3`,
+`int4`, and `mat4` (these are the currently valid types for use in GLSL uniform
+blocks).
 
-Consider the following GLSL uniform block without ```@ctype``` tags:
+Consider the following GLSL uniform block without `@ctype` tags:
 
 ```glsl
 @vs my_vs
@@ -504,7 +527,7 @@ typedef struct shape_uniforms_t {
 But what if your C/C++ code uses a math library like HandmadeMath.h or
 GLM?
 
-That's where the ```@ctype``` tag comes in. For instance, with HandmadeMath.h
+That's where the `@ctype` tag comes in. For instance, with HandmadeMath.h
 you would add the following two @ctypes at the top of the GLSL file to
 map the GLSL types to their matching hmm_* types:
 
@@ -537,17 +560,17 @@ typedef struct shape_uniforms_t {
 
 Note that the mapped C/C++ types must have the following byte sizes:
 
-- ```mat4```: 64 bytes
-- ```vec4```: 16 bytes
-- ```vec3```: 12 bytes
-- ```vec2```: 8 bytes
-- ```float```: 4 bytes
+- `mat4`: 64 bytes
+- `vec4`, `int4`: 16 bytes
+- `vec3`, `int3`: 12 bytes
+- `vec2`, `int2`: 8 bytes
+- `float`, `int`: 4 bytes
 
 Explicit padding bytes will be included as needed by the code generator.
 
 ### @header ...
 
-The ```@header``` tag allows to inject target-language specific statements
+The `@header` tag allows to inject target-language specific statements
 before the generated code. This is for instance useful to include any
 required dependencies.
 
@@ -567,10 +590,10 @@ This will result in the following generated C code:
 
 ### @module [name]
 
-The optional ```@module``` tag defines a 'namespace prefix' for all generated
+The optional `@module` tag defines a 'namespace prefix' for all generated
 C types, values, defines and functions.
 
-For instance, when adding a ```@module``` tag to the above @ctype-example:
+For instance, when adding a `@module` tag to the above @ctype-example:
 
 ```glsl
 @module bla
@@ -590,7 +613,7 @@ uniform shape_uniforms {
 ```
 
 ...the generated C uniform block struct (allong with all other identifiers)
-would get a prefix ```bla_```:
+would get a prefix `bla_`:
 
 ```c
 typedef struct bla_shape_uniforms_t {
@@ -618,8 +641,8 @@ arguments:
     - MSL: In vertex shaders, rewrite [-w, w] depth (GL style) to [0, w] depth.
 - **flip_vert_y**: Inverts gl_Position.y or equivalent. (all shader languages)
 
-Currently, ```@glsl_options```, ```@hlsl_options``` and ```@msl_options``` are only
-allowed inside ```@vs, @end``` blocks.
+Currently, `@glsl_options`, `@hlsl_options` and `@msl_options` are only
+allowed inside `@vs, @end` blocks.
 
 Example from the [mrt-sapp sample](https://floooh.github.io/sokol-html5/wasm/mrt-sapp.html),
 this renders a fullscreen-quad to blit an offscreen-render-target image to screen,
@@ -680,7 +703,7 @@ GLSL file:
 
 The following code would be used to create the shader object:
 ```c
-sg_shader shd = sg_make_shader(shape_shader_desc());
+sg_shader shd = sg_make_shader(shape_shader_desc(sg_query_backend()));
 ```
 
 When creating a pipeline object, the shader code generator will
@@ -697,8 +720,8 @@ in vec2 texcoords;
 @end
 ```
 
-The vertex attribute description in the ```sg_pipeline_desc``` struct
-could look like this (note the attribute indices names ```ATTR_vs_position```, etc...):
+The vertex attribute description in the `sg_pipeline_desc` struct
+could look like this (note the attribute indices names `ATTR_vs_position`, etc...):
 
 ```c
 sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
@@ -764,7 +787,7 @@ typedef struct vs_params_t {
 } vs_params_t;
 ```
 
-...which both are used in the ```sg_apply_uniforms()``` call like this:
+...which both are used in the `sg_apply_uniforms()` call like this:
 
 ```c
 vs_params_t vs_params = {
@@ -773,66 +796,58 @@ vs_params_t vs_params = {
 sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
 ```
 
-The GLSL uniform block can have an explicit bind slot:
+Note that you cannot use explicit bind locations for uniform blocks in the shader
+code (or rather: you can, but sokol-shdc will ignore those), instead sokol-shdc
+will automatically assign bind slots to uniform blocks.
+
+To get the correct bind slot on the 'CPU side', either use the code
+generated `SLOT_*` constants, or the optionally generated runtime
+inspection functions which allow to lookup bind slots by name.
+
+More on the optional runtime inspection function below in the
+section `Runtime Inspection`.
+
+### Binding images and samplers
+
+Textures and samplers must be defined separately in the input GLSL (this is
+also known as 'Vulkan-style GLSL'):
 
 ```glsl
-layout(binding=0) uniform vs_params {
-    mat4 mvp;
-};
+uniform texture2D tex;
+uniform sampler smp;
 ```
 
-In this case the generated bind slot constant can be ignored since it has
-been explicitly defined as 0:
+Shader in old 'GL-style GLSL' with combined image-samplers will now generate
+an error.
 
-```c
-vs_params_t vs_params = {
-    .mvp = ...
-};
-sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, &SG_RANGE(vs_params));
-```
-
-### Binding images
-
-When using a texture sampler in a GLSL vertex- or fragment-shader like this:
-
-```glsl
-uniform sampler2D tex;
-...
-```
-
-The C header code generator will create bind-slot constants with the same
-naming convention as uniform blocks:
+The resource binding slot for texture and sampler uniforms is available
+as code-generated constant:
 
 ```C
 #define SLOT_tex (0)
+#define SLOT_smp (0)
 ```
 
-This is used in the ```sg_bindings``` struct as index into the ```vs_images```
-or ```fs_images``` bind slot array:
+This is used in the `sg_bindings` struct as index into the `vs.images[]`,
+`vs.samplers[]`, `fs.images[]` and `fs.samplers[]` arrays:
 
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .fs_images[SLOT_tex] = img
+    .fs = {
+        .images[SLOT_tex] = img,
+        .samplers[SLOT_smp] = smp,
+    },
 });
 ```
 
-Just like with uniform blocks, texture sampler bind slots can
-be defined explicitly in the GLSL shader:
+Just as with uniform blocks, any explit bind slot definition in the shader
+is ignored, instead bind slots will be automatically assigned. The assigned
+bind slot is available either as constant as shown above, or can be looked
+up by name via the optional runtime inspection functions.
 
-```glsl
-layout(binding=0) uniform sampler2D tex;
-...
-```
-
-...in this case the code-generated bind-slot constant can be ignored:
-
-```c
-sg_apply_bindings(&(sg_bindings){
-    .vertex_buffers[0] = vbuf,
-    .fs_images[0] = img
-});
-```
+More on the optional runtime inspection function below in the
+section `Runtime Inspection`.
 
 ### GLSL uniform blocks and C structs
 
@@ -907,7 +922,7 @@ each shader accepts a slightly different set of these inputs.
 
 For such usage scenarios, sokol-shdc offers the ```--reflection``` command line
 option which code-generates additional functions for runtime inspection of
-vertex attributes, image bind slots, uniform-blocks and their layout.
+vertex attributes, image, samplers, and uniform-blocks and their layout.
 
 The functions are prefixed by the module name (defined with the ```@module``` tag
 or ```--module``` command line arg) and the shader program name:
@@ -951,14 +966,15 @@ sg_pipeline_desc pip_desc = {
 };
 ```
 
-### Image Bind Slot Inspection
+### Image and Sampler Bind Slot Inspection
 
 The function
 
-**int [mod]_[prog]_image_slot(sg_shader_stage stage, const char\* img_name)**
+**int [mod]_[prog]_image_slot(sg_shader_stage stage, const char\* image_name)**
+**int [mod]_[prog]_sampler_slot(sg_shader_stage stage, const char\* sampler_name)**
 
-returns the bind-slot of an image on the given shader stage, or -1 if the
-shader doesn't expect an image of that name on that shader stage.
+returns the bind-slot of an image or sampler on the given shader stage, or -1 if the
+shader doesn't expect an image or sampler of that name on that shader stage.
 
 Code example:
 
@@ -969,8 +985,10 @@ sg_bindings binds = { ... };
 // check if the shader expects a specular texture on the fragment shader stage,
 // if yes set it in the bindings struct at the expected slot index:
 const int spec_tex_slot = mod_prog_image_slot(SG_SHADERSTAGE_FS, "spec_tex");
-if (spec_tex_slot >= 0) {
-    binds.fs_images[spec_tex_slot] = specular_texture;
+const int spec_smp_slot = mod_prog_sampler_slot(SG_SHADERSTAGE_FS, "spec_smp");
+if ((spec_tex_slot >= 0) && (spec_smp_slot >= 0)) {
+    bindings.fs.images[spec_tex_slot] = specular_texture;
+    bindings.fs.samplers[spex_smp_slot] = specular_sampler;
 }
 
 // apply bindings

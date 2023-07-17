@@ -40,8 +40,6 @@ static uniform_t as_flattened_uniform(const uniform_block_t& block) {
                 return uniform_t::INVALID;
         }
     }();
-
-
     uniform_t uniform;
     uniform.name = block.struct_name;
     uniform.type = type;
@@ -89,50 +87,76 @@ static void write_image(const image_t& image) {
     L("            -\n");
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);
+    L("              multisampled: {}\n", image.multisampled);
     L("              type: {}\n", image_t::type_to_str(image.type));
-    L("              base_type: {}\n", image_t::basetype_to_str(image.base_type));
+    L("              sample_type: {}\n", image_t::sampletype_to_str(image.sample_type));
+}
+
+static void write_sampler(const sampler_t& sampler) {
+    L("            -\n");
+    L("              slot: {}\n", sampler.slot);
+    L("              name: {}\n", sampler.name);
+    L("              sampler_type: {}\n", sampler_t::type_to_str(sampler.type));
+}
+
+static void write_image_sampler(const image_sampler_t& image_sampler) {
+    L("            -\n");
+    L("              slot: {}\n", image_sampler.slot);
+    L("              name: {}\n", image_sampler.name);
+    L("              image_name: {}\n", image_sampler.image_name);
+    L("              sampler_name: {}\n", image_sampler.sampler_name);
 }
 
 static void write_source_reflection(const spirvcross_source_t* src) {
     L("          entry_point: {}\n", src->refl.entry_point);
-
     L("          inputs:\n");
-    for (const auto& input : src->refl.inputs) {
-        if (input.slot == -1) { 
-            break; 
+    for (const auto& input: src->refl.inputs) {
+        if (input.slot == -1) {
+            break;
         }
-
         write_attribute(input);
     }
-
     L("          outputs:\n");
-    for (const auto& output : src->refl.outputs) {
+    for (const auto& output: src->refl.outputs) {
         if (output.slot == -1) {
             break;
         }
-
         write_attribute(output);
     }
-
     if (src->refl.uniform_blocks.size() > 0) {
         L("          uniform_blocks:\n");
-        for (const auto& uniform_block : src->refl.uniform_blocks) {
+        for (const auto& uniform_block: src->refl.uniform_blocks) {
             if (uniform_block.slot == -1) {
                 break;
             }
-
             write_uniform_block(uniform_block);
         }
     }
-
     if (src->refl.images.size() > 0) {
         L("          images:\n");
-        for (const auto& image : src->refl.images) {
+        for (const auto& image: src->refl.images) {
             if (image.slot == -1) {
                 break;
             }
-
             write_image(image);
+        }
+    }
+    if (src->refl.samplers.size() > 0) {
+        L("          samplers:\n");
+        for (const auto& sampler: src->refl.samplers) {
+            if (sampler.slot == -1) {
+                break;
+            }
+            write_sampler(sampler);
+        }
+    }
+    if (src->refl.image_samplers.size() > 0) {
+        L("          image_sampler_pairs:\n");
+        for (const auto& image_sampler: src->refl.image_samplers) {
+            if (image_sampler.slot == -1) {
+                break;
+            }
+            write_image_sampler(image_sampler);
         }
     }
 }

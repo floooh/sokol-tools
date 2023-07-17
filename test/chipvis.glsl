@@ -12,7 +12,8 @@ uniform vs_params {
     vec2 offset;
     vec2 scale;
 };
-uniform sampler2D palette_tex;
+uniform texture2D palette_tex;
+uniform sampler smp;
 in vec2 pos;
 in vec2 uv;
 out vec4 color;
@@ -22,7 +23,7 @@ void main() {
     p *= scale;
     gl_Position = vec4(p, 0.5, 1.0);
     float u = ((uv.x*65535.0) + 0.5f) / 2048.0;
-    float r = texture(palette_tex, vec2(u, 0.5)).r;
+    float r = texture(sampler2D(palette_tex, smp), vec2(u, 0.5)).r;
     color = vec4(color0.xyz, r);
 }
 @end

@@ -12,8 +12,8 @@ uniform vs_params {
 };
 
 in vec4 pos;
-in vec4 color0;
 in vec2 texcoord0;
+in vec4 color0;
 
 out vec4 color;
 out vec2 uv;
@@ -26,17 +26,18 @@ void main() {
 #pragma sokol @end
 
 #pragma sokol @fs fs
-uniform sampler2D tex1;
-uniform sampler2D tex0;
+uniform texture2D tex0;
+uniform texture2D tex1;
+uniform sampler smp0;
 
 in vec4 color;
 in vec2 uv;
 out vec4 frag_color;
 
 void main() {
-    vec4 color0 = texture(tex0, uv);
-    vec4 color1 = texture(tex1, uv);
-    frag_color = (color0 + color1) * color;
+    vec4 c0 = texture(sampler2D(tex0, smp0), uv);
+    vec4 c1 = texture(sampler2D(tex1, smp0), uv);
+    frag_color = c0 + c1 + color;
 }
 #pragma sokol @end
 

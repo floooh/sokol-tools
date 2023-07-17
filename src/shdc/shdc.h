@@ -22,7 +22,7 @@ struct slang_t {
         METAL_MACOS,
         METAL_IOS,
         METAL_SIM,
-        WGPU,
+        WGSL,
         NUM
     };
 
@@ -39,7 +39,7 @@ struct slang_t {
             case METAL_MACOS:   return "metal_macos";
             case METAL_IOS:     return "metal_ios";
             case METAL_SIM:     return "metal_sim";
-            case WGPU:          return "wgpu";
+            case WGSL:          return "wgsl";
             default:            return "<invalid>";
         }
     }
@@ -86,8 +86,8 @@ struct slang_t {
                 return false;
         }
     }
-    static bool is_wgpu(type_t c) {
-        return WGPU == c;
+    static bool is_wgsl(type_t c) {
+        return WGSL == c;
     }
     static slang_t::type_t first_valid(uint32_t mask) {
         int i = 0;
@@ -373,8 +373,7 @@ struct spirv_t {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static spirv_t compile_input_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
-    static spirv_t compile_spirvcross_glsl(const input_t& inp, slang_t::type_t slang, const spirvcross_t* spirvcross);
+    static spirv_t compile_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines);
     bool write_to_file(const args_t& args, const input_t& inp, slang_t::type_t slang);
     void dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const;
 };
@@ -475,16 +474,18 @@ struct image_t {
         IMAGE_TYPE_3D,
         IMAGE_TYPE_ARRAY
     };
-    enum basetype_t {
-        IMAGE_BASETYPE_INVALID,
-        IMAGE_BASETYPE_FLOAT,
-        IMAGE_BASETYPE_SINT,
-        IMAGE_BASETYPE_UINT
+    enum sampletype_t {
+        IMAGE_SAMPLETYPE_INVALID,
+        IMAGE_SAMPLETYPE_FLOAT,
+        IMAGE_SAMPLETYPE_SINT,
+        IMAGE_SAMPLETYPE_UINT,
+        IMAGE_SAMPLETYPE_DEPTH,
     };
     int slot = -1;
     std::string name;
     type_t type = IMAGE_TYPE_INVALID;
-    basetype_t base_type = IMAGE_BASETYPE_INVALID;
+    sampletype_t sample_type = IMAGE_SAMPLETYPE_INVALID;
+    bool multisampled = false;
     int unique_index = -1;      // index into spirvcross_t.unique_images
 
     static const char* type_to_str(type_t t) {
@@ -496,17 +497,66 @@ struct image_t {
             default:                return "IMAGE_TYPE_INVALID";
         }
     }
-    static const char* basetype_to_str(basetype_t t) {
+    static const char* sampletype_to_str(sampletype_t t) {
         switch (t) {
-            case IMAGE_BASETYPE_FLOAT:  return "IMAGE_BASETYPE_FLOAT";
-            case IMAGE_BASETYPE_SINT:   return "IMAGE_BASETYPE_SINT";
-            case IMAGE_BASETYPE_UINT:   return "IMAGE_BASETYPE_UINT";
-            default:                    return "IMAGE_BASETYPE_INVALID";
+            case IMAGE_SAMPLETYPE_FLOAT:  return "IMAGE_SAMPLETYPE_FLOAT";
+            case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
+            case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
+            case IMAGE_SAMPLETYPE_DEPTH:  return "IMAGE_SAMPLETYPE_DEPTH";
+            default:                      return "IMAGE_BASETYPE_INVALID";
         }
     }
 
     bool equals(const image_t& other) {
-        return (slot == other.slot) && (name == other.name) && (type == other.type) && (base_type == other.base_type);
+        return (slot == other.slot)
+            && (name == other.name)
+            && (type == other.type)
+            && (sample_type == other.sample_type)
+            && (multisampled == other.multisampled);
+    }
+};
+
+struct sampler_t {
+    static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
+    enum type_t {
+        SAMPLER_TYPE_INVALID,
+        SAMPLER_TYPE_SAMPLE,
+        SAMPLER_TYPE_COMPARE,
+    };
+    int slot = -1;
+    std::string name;
+    type_t type = SAMPLER_TYPE_INVALID;
+    int unique_index = -1;          // index into spirvcross_t.unique_samplers
+
+    static const char* type_to_str(type_t t) {
+        switch (t) {
+            case SAMPLER_TYPE_SAMPLE:   return "SAMPLER_TYPE_SAMPLE";
+            case SAMPLER_TYPE_COMPARE:  return "SAMPLER_TYPE_COMPARE";
+            default:                    return "SAMPLER_TYPE_INVALID";
+        }
+    }
+
+    bool equals(const sampler_t& other) {
+        return (slot == other.slot)
+            && (name == other.name)
+            && (type == other.type);
+    }
+};
+
+// special combined-image-samplers for GLSL output with GL semantics
+struct image_sampler_t {
+    static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_IMAGES
+    int slot = -1;
+    std::string name;
+    std::string image_name;
+    std::string sampler_name;
+    int unique_index = -1;
+
+    bool equals(const image_sampler_t& other) {
+        return (slot == other.slot)
+            && (name == other.name)
+            && (image_name == other.image_name)
+            && (sampler_name == other.sampler_name);
     }
 };
 
@@ -532,6 +582,18 @@ struct spirvcross_refl_t {
     std::array<attr_t, attr_t::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
+    std::vector<sampler_t> samplers;
+    std::vector<image_sampler_t> image_samplers;
+};
+
+// a helper struct to transfer symbol names from SPIRVCross to Tint
+struct spirvcross_wgsl_symbol_table_t {
+    std::map<uint32_t, std::string> input_names;
+    std::map<uint32_t, std::string> output_names;
+    std::map<uint32_t, std::string> uniform_block_struct_names;
+    std::map<uint32_t, std::string> uniform_block_inst_names;
+    std::map<uint32_t, std::string> image_names;
+    std::map<uint32_t, std::string> sampler_names;
 };
 
 // result of a spirv-cross compilation
@@ -539,6 +601,7 @@ struct spirvcross_source_t {
     bool valid = false;
     int snippet_index = -1;
     std::string source_code;
+    errmsg_t error;
     spirvcross_refl_t refl;
 };
 
@@ -548,6 +611,7 @@ struct spirvcross_t {
     std::vector<spirvcross_source_t> sources;
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<image_t> unique_images;
+    std::vector<sampler_t> unique_samplers;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     int find_source_by_snippet_index(int snippet_index) const;
@@ -613,8 +677,12 @@ namespace util {
     int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
-    const uniform_block_t* find_uniform_block(const spirvcross_refl_t& refl, int slot);
-    const image_t* find_image(const spirvcross_refl_t& refl, int slot);
+    const uniform_block_t* find_uniform_block_by_slot(const spirvcross_refl_t& refl, int slot);
+    const image_t* find_image_by_slot(const spirvcross_refl_t& refl, int slot);
+    const image_t* find_image_by_name(const spirvcross_refl_t& refl, const std::string& name);
+    const sampler_t* find_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
+    const sampler_t* find_sampler_by_name(const spirvcross_refl_t& refl, const std::string& name);
+    const image_sampler_t* find_image_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);

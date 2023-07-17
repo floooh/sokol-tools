@@ -15,12 +15,13 @@ void main() {
 @end
 
 @fs fs
-uniform sampler2D tex;
+uniform texture2D tex;
+uniform sampler smp;
 in vec2 uv;
 in vec4 color;
 out vec4 frag_color;
 void main() {
-    frag_color = texture(tex, uv) * color;
+    frag_color = texture(sampler2D(tex, smp), uv) * color;
 }
 @end
 
