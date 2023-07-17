@@ -9,7 +9,7 @@ CHANGELOG
   texture and sampler uniforms, this means that old code like this:
 
     ```glsl
-    sampler2D tex;
+    uniform sampler2D tex;
 
     void main() {
         frag_color = texture(tex, uv);
@@ -18,8 +18,8 @@ CHANGELOG
   ...needs to be rewritten to look like this:
 
     ```glsl
-    texture2D tex;
-    sampler smp;
+    uniform texture2D tex;
+    uniform sampler smp;
 
     void main() {
         frag_color = texture(sampler2D(tex, smp), uv);
