@@ -2,6 +2,9 @@ CHANGELOG
 =========
 
 #### **16-Jul-2023**
+
+> NOTE: this update is required for the [image/sampler object split in sokol-gfx](https://github.com/floooh/sokol/blob/master/CHANGELOG.md#16-jul-2023), and in turn it doesn't work with older sokol-gfx versions (use the git tag `pre-separate-samplers` if you need to stick to the older version)
+
 - input shader source code must now be written in Vulkan-GLSL-style with separate
   texture and sampler uniforms, this means that old code like this:
 
