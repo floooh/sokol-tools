@@ -12,6 +12,8 @@
 
 #include "spirv_glsl.hpp"
 
+static const int wgsl_ub_fs_bind_offset = 4;
+
 // workaround for Compiler.comparison_ids being protected
 class UnprotectedCompiler: spirv_cross::Compiler {
 public:
@@ -119,15 +121,21 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
         symbols.output_names[slot] = output.name;
     }
 
-    // WGPU bindgroups are hardwired:
+    // WGPU bindgroups and binding offsets are hardwired:
     //  - bindgroup 0 for uniform buffer bindings
+    //      - vertex stage bindings start at 0
+    //      - fragment stage bindings start at 4
     //  - bindgroup 1 for vertex shader image/sampler bindings
+    //      - image bindings start at zero
+    //      - sampler bindings follow image bindings
     //  - bindgroup 2 for fragment shader image/sampler bindings
+    //      - image bindings start at zero
+    //      - sampler bindings follow image bindings
     const uint32_t ub_bindgroup = 0;
     const uint32_t vs_bindgroup = 1;
     const uint32_t fs_bindgroup = 2;
     const uint32_t resource_bindgroup = (type == snippet_t::VS) ? vs_bindgroup : fs_bindgroup;
-    uint32_t cur_ub_binding = 0;
+    uint32_t cur_ub_binding = (type == snippet_t::type_t::VS) ? 0 : wgsl_ub_fs_bind_offset;
     uint32_t cur_resource_binding = 0;
 
     // uniform buffers
@@ -146,7 +154,8 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_ub_binding++;
+                inout_bytecode[out_offset] = cur_ub_binding;
+                cur_ub_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -164,7 +173,8 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding++;
+                inout_bytecode[out_offset] = cur_resource_binding;
+                cur_resource_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -182,7 +192,8 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding++;
+                inout_bytecode[out_offset] = cur_resource_binding;
+                cur_resource_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -475,7 +486,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     // uniform blocks
     for (const auto& ub: inspector.GetUniformBufferResourceBindings(entry_point.name)) {
         uniform_block_t refl_ub;
-        refl_ub.slot = ub.binding;
+        refl_ub.slot = ub.binding - (refl.stage == stage_t::VS ? 0 : 4);
         refl_ub.size = (int)ub.size;
         refl_ub.struct_name = symbols.uniform_block_struct_names[ub.binding];
         refl_ub.inst_name = symbols.uniform_block_inst_names[ub.binding];
@@ -483,7 +494,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     }
 
     // image bindings
-    // FIXME: sampled vs multisampled vs depth
+    // FIXME: sampled vs comparison vs multisampled
     for (const auto& img: inspector.GetSampledTextureResourceBindings(entry_point.name)) {
         image_t refl_img;
         refl_img.slot = img.binding;
@@ -530,7 +541,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
         refl.samplers.push_back(refl_smp);
     }
 
-    // FIXME: image-samplers
+    // FIXME: image-sampler-pairs
 
     return refl;
 }
