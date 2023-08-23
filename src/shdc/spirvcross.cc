@@ -12,7 +12,12 @@
 
 #include "spirv_glsl.hpp"
 
-static const int wgsl_ub_fs_bind_offset = 4;
+static const int wgsl_vs_ub_bind_offset = 0;
+static const int wgsl_fs_ub_bind_offset = 4;
+static const int wgsl_vs_img_bind_offset = 0;
+static const int wgsl_vs_smp_bind_offset = 16;
+static const int wgsl_fs_img_bind_offset = 32;
+static const int wgsl_fs_smp_bind_offset = 48;
 
 // workaround for Compiler.comparison_ids being protected
 class UnprotectedCompiler: spirv_cross::Compiler {
@@ -93,10 +98,10 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 
     // separate samplers
     {
-        uint32_t slot = 0;
+        uint32_t binding = 0;
         for (const Resource& res: shader_resources.separate_samplers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, slot++);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 }
@@ -125,18 +130,16 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     //  - bindgroup 0 for uniform buffer bindings
     //      - vertex stage bindings start at 0
     //      - fragment stage bindings start at 4
-    //  - bindgroup 1 for vertex shader image/sampler bindings
-    //      - image bindings start at zero
-    //      - sampler bindings follow image bindings
-    //  - bindgroup 2 for fragment shader image/sampler bindings
-    //      - image bindings start at zero
-    //      - sampler bindings follow image bindings
+    //  - bindgroup 1 for all images and samplers
+    //      - vertex stage image bindings start at 0
+    //      - vertex stage sampler bindings start at 16
+    //      - fragment stage image bindings start at 32
+    //      - fragment stage sampler bindings start at 48
     const uint32_t ub_bindgroup = 0;
-    const uint32_t vs_bindgroup = 1;
-    const uint32_t fs_bindgroup = 2;
-    const uint32_t resource_bindgroup = (type == snippet_t::VS) ? vs_bindgroup : fs_bindgroup;
-    uint32_t cur_ub_binding = (type == snippet_t::type_t::VS) ? 0 : wgsl_ub_fs_bind_offset;
-    uint32_t cur_resource_binding = 0;
+    const uint32_t res_bindgroup = 1;
+    uint32_t cur_ub_binding = snippet_t::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
+    uint32_t cur_image_binding = snippet_t::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
+    uint32_t cur_sampler_binding = snippet_t::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
 
     // uniform buffers
     {
@@ -165,16 +168,16 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     // separate images
     {
         for (const Resource& res: shader_resources.separate_images) {
-            symbols.image_names[cur_resource_binding] = res.name;
+            symbols.image_names[cur_image_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = resource_bindgroup;
+                inout_bytecode[out_offset] = res_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding;
-                cur_resource_binding += 1;
+                inout_bytecode[out_offset] = cur_image_binding;
+                cur_image_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -184,16 +187,16 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     // separate samplers
     {
         for (const Resource& res: shader_resources.separate_samplers) {
-            symbols.sampler_names[cur_resource_binding] = res.name;
+            symbols.sampler_names[cur_sampler_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = resource_bindgroup;
+                inout_bytecode[out_offset] = res_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding;
-                cur_resource_binding += 1;
+                inout_bytecode[out_offset] = cur_sampler_binding;
+                cur_sampler_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -346,7 +349,6 @@ static bool spirvtype_to_image_multisampled(const SPIRType& type) {
 }
 
 static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::type_t slang) {
-    assert(slang != slang_t::WGSL);
     spirvcross_refl_t refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
@@ -356,6 +358,22 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         case spv::ExecutionModelFragment: refl.stage = stage_t::FS; break;
         default: refl.stage = stage_t::INVALID; break;
     }
+
+    int ub_bind_offset = 0;
+    int img_bind_offset = 0;
+    int smp_bind_offset = 0;
+    if (slang_t::is_wgsl(slang)) {
+        if (stage_t::is_vs(refl.stage)) {
+            ub_bind_offset = wgsl_vs_ub_bind_offset;
+            img_bind_offset = wgsl_vs_img_bind_offset;
+            smp_bind_offset = wgsl_vs_smp_bind_offset;
+        } else {
+            ub_bind_offset = wgsl_fs_ub_bind_offset;
+            img_bind_offset = wgsl_fs_img_bind_offset;
+            smp_bind_offset = wgsl_fs_smp_bind_offset;
+        }
+    }
+
     // find entry point
     const auto entry_points = compiler.get_entry_points_and_stages();
     for (const auto& item: entry_points) {
@@ -386,7 +404,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         std::string n = compiler.get_name(ub_res.id);
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding) - ub_bind_offset;
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.struct_name = ub_res.name;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
@@ -410,7 +428,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
         image_t refl_img;
-        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding) - img_bind_offset;
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
@@ -426,7 +444,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
     for (const Resource& smp_res: shd_resources.separate_samplers) {
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         sampler_t refl_smp;
-        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
+        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding) - smp_bind_offset;
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
@@ -448,6 +466,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
     return refl;
 }
 
+/*
 static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spirvcross_wgsl_symbol_table_t& symbols) {
     spirvcross_refl_t refl;
 
@@ -545,6 +564,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
 
     return refl;
 }
+*/
 
 static spirvcross_source_t to_glsl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
     CompilerGLSL compiler(blob.bytecode);
@@ -653,21 +673,42 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
 }
 
 static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
-    std::vector<uint32_t> bytecode = blob.bytecode;
-    Compiler compiler(blob.bytecode);
-    spirvcross_wgsl_symbol_table_t symbols = wgsl_patch_bind_slots(compiler, type, bytecode);
+    std::vector<uint32_t> patched_bytecode = blob.bytecode;
+    CompilerGLSL compiler_temp(blob.bytecode);
+    fix_bind_slots(compiler_temp, type, slang);
+    spirvcross_wgsl_symbol_table_t symbols = wgsl_patch_bind_slots(compiler_temp, type, patched_bytecode);
     spirvcross_source_t res;
     res.snippet_index = blob.snippet_index;
     tint::reader::spirv::Options spirv_options;
-    spirv_options.allow_non_uniform_derivatives = false; // FIXME?
-    tint::Program program = tint::reader::spirv::Parse(bytecode, spirv_options);
+    spirv_options.allow_non_uniform_derivatives = true; // FIXME? => this allow texture sample calls inside dynamic if blocks
+    tint::Program program = tint::reader::spirv::Parse(patched_bytecode, spirv_options);
     if (!program.Diagnostics().contains_errors()) {
         const tint::writer::wgsl::Options wgsl_options;
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
             res.valid = true;
             res.source_code = result.wgsl;
-            res.refl = wgsl_parse_reflection(&program, symbols);
+
+            // reactivate this idea at some point
+            //res.refl = wgsl_parse_reflection(&program, symbols);
+
+            // NOTE: in order to get correct reflection info out of SPIRVCross (also for depth images etc...)
+            // we need to do a dummy compile
+            CompilerHLSL compiler_refl(patched_bytecode);
+            CompilerGLSL::Options commonOptions;
+            commonOptions.emit_line_directives = false;
+            commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
+            commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+            compiler_refl.set_common_options(commonOptions);
+            CompilerHLSL::Options hlslOptions;
+            hlslOptions.shader_model = 40;
+            hlslOptions.point_size_compat = true;
+            compiler_refl.set_hlsl_options(hlslOptions);
+            fix_ub_matrix_force_colmajor(compiler_refl);
+            compiler_refl.compile();
+            compiler_refl.build_dummy_sampler_for_combined_images();
+            to_combined_image_samplers(compiler_refl);
+            res.refl = parse_reflection(compiler_refl, slang);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }

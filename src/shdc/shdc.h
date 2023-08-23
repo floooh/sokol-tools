@@ -293,6 +293,12 @@ struct snippet_t {
             default: return "<invalid>";
         }
     }
+    static bool is_vs(type_t t) {
+        return VS == t;
+    }
+    static bool is_fs(type_t t) {
+        return FS == t;
+    }
 };
 
 // a vertex-/fragment-shader pair (@program)
@@ -572,6 +578,12 @@ struct stage_t {
             case FS: return "FS";
             default: return "INVALID";
         }
+    }
+    static bool is_vs(type_t t) {
+        return VS == t;
+    }
+    static bool is_fs(type_t t) {
+        return FS == t;
     }
 };
 
