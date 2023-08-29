@@ -442,6 +442,10 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
+        // ignore generated dummy samplers
+        if (pystring::find(smp_res.name, "SPIRV_Cross") != -1) {
+            continue;
+        }
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         sampler_t refl_smp;
         refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding) - smp_bind_offset;
@@ -456,6 +460,10 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
     }
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
+        // ignore any combined image samplers which involve dummy samplers
+        if (pystring::find(compiler.get_name(img_smp_res.combined_id), "SPIRV_Cross") != -1) {
+            continue;
+        }
         image_sampler_t refl_img_smp;
         refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
