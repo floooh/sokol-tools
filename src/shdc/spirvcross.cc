@@ -452,9 +452,9 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_COMPARE;
+            refl_smp.type = sampler_t::SAMPLER_TYPE_COMPARISON;
         } else {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLE;
+            refl_smp.type = sampler_t::SAMPLER_TYPE_FILTERING;
         }
         refl.samplers.push_back(refl_smp);
     }

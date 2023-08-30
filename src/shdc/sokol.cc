@@ -66,14 +66,16 @@ static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sa
         case image_t::IMAGE_SAMPLETYPE_DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
         case image_t::IMAGE_SAMPLETYPE_SINT:  return "SG_IMAGESAMPLETYPE_SINT";
         case image_t::IMAGE_SAMPLETYPE_UINT:  return "SG_IMAGESAMPLETYPE_UINT";
+        case image_t::IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT:  return "SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT";
         default: return "INVALID";
     }
 }
 
 static const char* smp_type_to_sokol_type_str(sampler_t::type_t type) {
     switch (type) {
-        case sampler_t::SAMPLER_TYPE_SAMPLE: return "SG_SAMPLERTYPE_SAMPLE";
-        case sampler_t::SAMPLER_TYPE_COMPARE: return "SG_SAMPLERTYPE_COMPARE";
+        case sampler_t::SAMPLER_TYPE_FILTERING:     return "SG_SAMPLERTYPE_FILTERING";
+        case sampler_t::SAMPLER_TYPE_COMPARISON:    return "SG_SAMPLERTYPE_COMPARISON";
+        case sampler_t::SAMPLER_TYPE_NONFILTERING:  return "SG_SAMPLERTYPE_NONFILTERING";
         default: return "INVALID";
     }
 }

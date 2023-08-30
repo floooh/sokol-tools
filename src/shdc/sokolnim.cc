@@ -62,18 +62,20 @@ static const char* img_type_to_sokol_type_str(image_t::type_t type) {
 
 static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sampletype) {
     switch (sampletype) {
-        case image_t::IMAGE_SAMPLETYPE_FLOAT: return "imageSampleTypeFloat";
-        case image_t::IMAGE_SAMPLETYPE_DEPTH: return "imageSampleTypeDepth";
-        case image_t::IMAGE_SAMPLETYPE_SINT:  return "imageSampleTypeSint";
-        case image_t::IMAGE_SAMPLETYPE_UINT:  return "imageSamplerTypeUint";
+        case image_t::IMAGE_SAMPLETYPE_FLOAT:               return "imageSampleTypeFloat";
+        case image_t::IMAGE_SAMPLETYPE_DEPTH:               return "imageSampleTypeDepth";
+        case image_t::IMAGE_SAMPLETYPE_SINT:                return "imageSampleTypeSint";
+        case image_t::IMAGE_SAMPLETYPE_UINT:                return "imageSamplerTypeUint";
+        case image_t::IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT:  return "imageSamplerTypeUnfilterableFloat";
         default: return "INVALID";
     }
 }
 
 static const char* smp_type_to_sokol_type_str(sampler_t::type_t type) {
     switch (type) {
-        case sampler_t::SAMPLER_TYPE_SAMPLE: return "samplerTypeSample";
-        case sampler_t::SAMPLER_TYPE_COMPARE: return "samplerTypeCompare";
+        case sampler_t::SAMPLER_TYPE_FILTERING:     return "samplerTypeFiltering";
+        case sampler_t::SAMPLER_TYPE_COMPARISON:    return "samplerTypeComparison";
+        case sampler_t::SAMPLER_TYPE_NONFILTERING:  return "samplerTypeNonfiltering";
         default: return "INVALID";
     }
 }

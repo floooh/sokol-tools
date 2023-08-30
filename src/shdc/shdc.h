@@ -486,6 +486,7 @@ struct image_t {
         IMAGE_SAMPLETYPE_SINT,
         IMAGE_SAMPLETYPE_UINT,
         IMAGE_SAMPLETYPE_DEPTH,
+        IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT,
     };
     int slot = -1;
     std::string name;
@@ -509,6 +510,7 @@ struct image_t {
             case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
             case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
             case IMAGE_SAMPLETYPE_DEPTH:  return "IMAGE_SAMPLETYPE_DEPTH";
+            case IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT: return "IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT";
             default:                      return "IMAGE_BASETYPE_INVALID";
         }
     }
@@ -526,8 +528,9 @@ struct sampler_t {
     static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
     enum type_t {
         SAMPLER_TYPE_INVALID,
-        SAMPLER_TYPE_SAMPLE,
-        SAMPLER_TYPE_COMPARE,
+        SAMPLER_TYPE_FILTERING,
+        SAMPLER_TYPE_COMPARISON,
+        SAMPLER_TYPE_NONFILTERING,
     };
     int slot = -1;
     std::string name;
@@ -536,9 +539,10 @@ struct sampler_t {
 
     static const char* type_to_str(type_t t) {
         switch (t) {
-            case SAMPLER_TYPE_SAMPLE:   return "SAMPLER_TYPE_SAMPLE";
-            case SAMPLER_TYPE_COMPARE:  return "SAMPLER_TYPE_COMPARE";
-            default:                    return "SAMPLER_TYPE_INVALID";
+            case SAMPLER_TYPE_FILTERING:    return "SAMPLER_TYPE_FILTERING";
+            case SAMPLER_TYPE_COMPARISON:   return "SAMPLER_TYPE_COMPARE";
+            case SAMPLER_TYPE_NONFILTERING: return "SAMPLER_TYPE_NONFILTERING";
+            default:                        return "SAMPLER_TYPE_INVALID";
         }
     }
 
