@@ -296,6 +296,24 @@ struct image_sample_type_t {
             default:     return "invalid";
         }
     }
+    static image_sample_type_t::type_t from_str(const std::string& str) {
+        if (str == "float") return FLOAT;
+        else if (str == "sint") return SINT;
+        else if (str == "uint") return UINT;
+        else if (str == "depth") return DEPTH;
+        else if (str == "unfilterable_float") return UNFILTERABLE_FLOAT;
+        else return INVALID;
+    }
+    static bool is_valid_str(const std::string& str) {
+        return (str == "float")
+            || (str == "sint")
+            || (str == "uint")
+            || (str == "depth")
+            || (str == "unfilterable_float");
+    }
+    static const char* valid_image_sample_types_as_str() {
+        return "float|sint|uint|depth|unfilterable_float";
+    }
 };
 
 struct sampler_type_t {
@@ -315,6 +333,15 @@ struct sampler_type_t {
     }
 };
 
+struct image_sample_type_tag_t {
+    std::string tex_name;
+    image_sample_type_t::type_t sample_type = image_sample_type_t::INVALID;
+    int line_index = 0;
+
+    image_sample_type_tag_t() { };
+    image_sample_type_tag_t(const std::string& n, image_sample_type_t::type_t t, int l): tex_name(n), sample_type(t), line_index(l) { };
+};
+
 // a named code-snippet (@block, @vs or @fs) in the input source file
 struct snippet_t {
     enum type_t {
@@ -325,12 +352,21 @@ struct snippet_t {
     };
     type_t type = INVALID;
     std::array<uint32_t, slang_t::NUM> options = { };
+    std::map<std::string, image_sample_type_tag_t> image_sample_type_tags;
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
     snippet_t() { };
     snippet_t(type_t t, const std::string& n): type(t), name(n) { };
 
+    const image_sample_type_tag_t* lookup_image_sample_type_tag(const std::string& tex_name) const {
+        auto it = image_sample_type_tags.find(tex_name);
+        if (it != image_sample_type_tags.end()) {
+            return &image_sample_type_tags.at(tex_name);
+        } else {
+            return nullptr;
+        }
+    }
     static const char* type_to_str(type_t t) {
         switch (t) {
             case BLOCK: return "block";
@@ -465,19 +501,32 @@ struct uniform_t {
 
     static const char* type_to_str(type_t t) {
         switch (t) {
-            case FLOAT:     return "FLOAT";
-            case FLOAT2:    return "FLOAT2";
-            case FLOAT3:    return "FLOAT3";
-            case FLOAT4:    return "FLOAT4";
-            case INT:       return "INT";
-            case INT2:      return "INT2";
-            case INT3:      return "INT3";
-            case INT4:      return "INT4";
-            case MAT4:      return "MAT4";
-            default:        return "INVALID";
+            case FLOAT:     return "float";
+            case FLOAT2:    return "float2";
+            case FLOAT3:    return "float3";
+            case FLOAT4:    return "float4";
+            case INT:       return "int";
+            case INT2:      return "int2";
+            case INT3:      return "int3";
+            case INT4:      return "int4";
+            case MAT4:      return "mat4";
+            default:        return "invalid";
         }
     }
-
+    static bool is_valid_glsl_uniform_type(const std::string& str) {
+        return (str == "float")
+            || (str == "vec2")
+            || (str == "vec3")
+            || (str == "vec4")
+            || (str == "int")
+            || (str == "int2")
+            || (str == "int3")
+            || (str == "int4")
+            || (str == "mat4");
+    }
+    static const char* valid_glsl_uniform_types_as_str() {
+        return "float|vec2|vec3|vec4|int|int2|int3|int4|mat4";
+    }
     bool equals(const uniform_t& other) const {
         return (name == other.name) &&
                (type == other.type) &&
