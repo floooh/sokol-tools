@@ -331,15 +331,36 @@ struct sampler_type_t {
             default:           return "invalid";
         }
     }
+    static sampler_type_t::type_t from_str(const std::string& str) {
+        if (str == "filtering") return FILTERING;
+        else if (str == "comparison") return COMPARISON;
+        else if (str == "nonfiltering") return NONFILTERING;
+        else return INVALID;
+    }
+    static bool is_valid_str(const std::string& str) {
+        return (str == "filtering")
+            || (str == "comparison")
+            || (str == "nonfiltering");
+    }
+    static const char* valid_sampler_types_as_str() {
+        return "filtering|comparison|nonfiltering";
+    }
 };
 
 struct image_sample_type_tag_t {
     std::string tex_name;
-    image_sample_type_t::type_t sample_type = image_sample_type_t::INVALID;
+    image_sample_type_t::type_t type = image_sample_type_t::INVALID;
     int line_index = 0;
-
     image_sample_type_tag_t() { };
-    image_sample_type_tag_t(const std::string& n, image_sample_type_t::type_t t, int l): tex_name(n), sample_type(t), line_index(l) { };
+    image_sample_type_tag_t(const std::string& n, image_sample_type_t::type_t t, int l): tex_name(n), type(t), line_index(l) { };
+};
+
+struct sampler_type_tag_t {
+    std::string smp_name;
+    sampler_type_t::type_t type = sampler_type_t::INVALID;
+    int line_index = 0;
+    sampler_type_tag_t() { };
+    sampler_type_tag_t(const std::string& n, sampler_type_t::type_t t, int l): smp_name(n), type(t), line_index(l) { };
 };
 
 // a named code-snippet (@block, @vs or @fs) in the input source file
@@ -353,6 +374,7 @@ struct snippet_t {
     type_t type = INVALID;
     std::array<uint32_t, slang_t::NUM> options = { };
     std::map<std::string, image_sample_type_tag_t> image_sample_type_tags;
+    std::map<std::string, sampler_type_tag_t> sampler_type_tags;
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
@@ -363,6 +385,14 @@ struct snippet_t {
         auto it = image_sample_type_tags.find(tex_name);
         if (it != image_sample_type_tags.end()) {
             return &image_sample_type_tags.at(tex_name);
+        } else {
+            return nullptr;
+        }
+    }
+    const sampler_type_tag_t* lookup_sampler_type_tag(const std::string& smp_name) const {
+        auto it = sampler_type_tags.find(smp_name);
+        if (it != sampler_type_tags.end()) {
+            return &sampler_type_tags.at(smp_name);
         } else {
             return nullptr;
         }
