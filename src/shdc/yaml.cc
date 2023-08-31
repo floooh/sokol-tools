@@ -88,15 +88,15 @@ static void write_image(const image_t& image) {
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);
     L("              multisampled: {}\n", image.multisampled);
-    L("              type: {}\n", image_t::type_to_str(image.type));
-    L("              sample_type: {}\n", image_t::sampletype_to_str(image.sample_type));
+    L("              type: {}\n", image_type_t::to_str(image.type));
+    L("              sample_type: {}\n", image_sample_type_t::to_str(image.sample_type));
 }
 
 static void write_sampler(const sampler_t& sampler) {
     L("            -\n");
     L("              slot: {}\n", sampler.slot);
     L("              name: {}\n", sampler.name);
-    L("              sampler_type: {}\n", sampler_t::type_to_str(sampler.type));
+    L("              sampler_type: {}\n", sampler_type_t::to_str(sampler.type));
 }
 
 static void write_image_sampler(const image_sampler_t& image_sampler) {

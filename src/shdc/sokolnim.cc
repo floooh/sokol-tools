@@ -50,32 +50,32 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
     }
 }
 
-static const char* img_type_to_sokol_type_str(image_t::type_t type) {
+static const char* img_type_to_sokol_type_str(image_type_t::type_t type) {
     switch (type) {
-        case image_t::IMAGE_TYPE_2D:    return "imageType2d";
-        case image_t::IMAGE_TYPE_CUBE:  return "imageTypeCube";
-        case image_t::IMAGE_TYPE_3D:    return "imageType3d";
-        case image_t::IMAGE_TYPE_ARRAY: return "imageTypeArray";
+        case image_type_t::_2D:     return "imageType2d";
+        case image_type_t::CUBE:    return "imageTypeCube";
+        case image_type_t::_3D:     return "imageType3d";
+        case image_type_t::ARRAY:   return "imageTypeArray";
         default: return "INVALID";
     }
 }
 
-static const char* img_basetype_to_sokol_sampletype_str(image_t::sampletype_t sampletype) {
-    switch (sampletype) {
-        case image_t::IMAGE_SAMPLETYPE_FLOAT:               return "imageSampleTypeFloat";
-        case image_t::IMAGE_SAMPLETYPE_DEPTH:               return "imageSampleTypeDepth";
-        case image_t::IMAGE_SAMPLETYPE_SINT:                return "imageSampleTypeSint";
-        case image_t::IMAGE_SAMPLETYPE_UINT:                return "imageSamplerTypeUint";
-        case image_t::IMAGE_SAMPLETYPE_UNFILTERABLE_FLOAT:  return "imageSamplerTypeUnfilterableFloat";
+static const char* img_basetype_to_sokol_sampletype_str(image_sample_type_t::type_t type) {
+    switch (type) {
+        case image_sample_type_t::FLOAT:               return "imageSampleTypeFloat";
+        case image_sample_type_t::DEPTH:               return "imageSampleTypeDepth";
+        case image_sample_type_t::SINT:                return "imageSampleTypeSint";
+        case image_sample_type_t::UINT:                return "imageSamplerTypeUint";
+        case image_sample_type_t::UNFILTERABLE_FLOAT:  return "imageSamplerTypeUnfilterableFloat";
         default: return "INVALID";
     }
 }
 
-static const char* smp_type_to_sokol_type_str(sampler_t::type_t type) {
+static const char* smp_type_to_sokol_type_str(sampler_type_t::type_t type) {
     switch (type) {
-        case sampler_t::SAMPLER_TYPE_FILTERING:     return "samplerTypeFiltering";
-        case sampler_t::SAMPLER_TYPE_COMPARISON:    return "samplerTypeComparison";
-        case sampler_t::SAMPLER_TYPE_NONFILTERING:  return "samplerTypeNonfiltering";
+        case sampler_type_t::FILTERING:     return "samplerTypeFiltering";
+        case sampler_type_t::COMPARISON:    return "samplerTypeComparison";
+        case sampler_type_t::NONFILTERING:  return "samplerTypeNonfiltering";
         default: return "INVALID";
     }
 }

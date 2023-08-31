@@ -308,38 +308,38 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
     return uniform_t::INVALID;
 }
 
-static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
+static image_type_t::type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_t::IMAGE_TYPE_ARRAY;
+            return image_type_t::ARRAY;
         }
     } else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
-            case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
-            case spv::Dim3D:    return image_t::IMAGE_TYPE_3D;
+            case spv::Dim2D:    return image_type_t::_2D;
+            case spv::DimCube:  return image_type_t::CUBE;
+            case spv::Dim3D:    return image_type_t::_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_t::IMAGE_TYPE_INVALID;
+    return image_type_t::INVALID;
 }
 
-static image_t::sampletype_t spirtype_to_image_sampletype(const SPIRType& type) {
+static image_sample_type_t::type_t spirtype_to_image_sample_type(const SPIRType& type) {
     if (type.image.depth) {
-        return image_t::IMAGE_SAMPLETYPE_DEPTH;
+        return image_sample_type_t::DEPTH;
     } else {
         switch (type.basetype) {
             case SPIRType::Int:
             case SPIRType::Short:
             case SPIRType::SByte:
-                return image_t::IMAGE_SAMPLETYPE_SINT;
+                return image_sample_type_t::SINT;
             case SPIRType::UInt:
             case SPIRType::UShort:
             case SPIRType::UByte:
-                return image_t::IMAGE_SAMPLETYPE_UINT;
+                return image_sample_type_t::UINT;
             default:
-                return image_t::IMAGE_SAMPLETYPE_FLOAT;
+                return image_sample_type_t::FLOAT;
         }
     }
 }
@@ -426,6 +426,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl.uniform_blocks.push_back(refl_ub);
     }
     // (separate) images
+    // FIXME: override from @image_sample_type
     for (const Resource& img_res: shd_resources.separate_images) {
         image_t refl_img;
         refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding) - img_bind_offset;
@@ -433,9 +434,9 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
-            refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_DEPTH;
+            refl_img.sample_type = image_sample_type_t::DEPTH;
         } else {
-            refl_img.sample_type = spirtype_to_image_sampletype(compiler.get_type(img_type.image.type));
+            refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
         refl_img.multisampled = spirvtype_to_image_multisampled(img_type);
         refl.images.push_back(refl_img);
@@ -452,9 +453,9 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_COMPARISON;
+            refl_smp.type = sampler_type_t::COMPARISON;
         } else {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_FILTERING;
+            refl_smp.type = sampler_type_t::FILTERING;
         }
         refl.samplers.push_back(refl_smp);
     }
@@ -961,7 +962,7 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
         }
         for (const image_t& img: source.refl.images) {
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type), image_t::sampletype_to_str(img.sample_type));
+                img.name, img.slot, image_type_t::to_str(img.type), image_sample_type_t::to_str(img.sample_type));
         }
         for (const sampler_t& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);

@@ -143,7 +143,7 @@ static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &
     return true;;
 }
 
-/* validate source tags for errors, on error returns false and sets error object in inp */
+// validate source tags for errors, on error returns false and sets error object in inp
 static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@module tag must have exactly one arg (@lib name)");
