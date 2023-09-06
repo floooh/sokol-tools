@@ -867,6 +867,36 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     return errmsg_t();
 }
 
+static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+    for (const auto& prog_item: inp.programs) {
+        const program_t& prog = prog_item.second;
+        int vs_snippet_index = inp.vs_map.at(prog.vs_name);
+        int fs_snippet_index = inp.fs_map.at(prog.fs_name);
+        int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
+        assert((vs_src_index >= 0) && (fs_src_index >= 0));
+        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
+        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
+        assert(vs_snippet_index == vs_src.snippet_index);
+        assert(fs_snippet_index == fs_src.snippet_index);
+        const snippet_t& vs_snippet = inp.snippets[vs_snippet_index];
+        const snippet_t& fs_snippet = inp.snippets[fs_snippet_index];
+        for (const auto& kvp: vs_snippet.image_sample_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_image_by_name(vs_src.refl, tag.tex_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
+            }
+        }
+        for (const auto& kvp: fs_snippet.image_sample_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_image_by_name(fs_src.refl, tag.tex_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
+            }
+        }
+    }
+    return errmsg_t();
+}
+
 spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
@@ -927,11 +957,25 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         }
     }
     // check that vertex-shader outputs match their fragment shader inputs
-    errmsg_t err = validate_linking(inp, spv_cross);
+    errmsg_t err;
+    err = validate_linking(inp, spv_cross);
     if (err.valid) {
         spv_cross.error = err;
         return spv_cross;
     }
+    // check that explicit image-sampler-type-tags and sampler-type-tags use existing image and sampler names
+    err = validate_image_sample_type_tags(inp, spv_cross);
+    if (err.valid) {
+        spv_cross.error = err;
+        return spv_cross;
+    }
+    /* FIXME
+    err = validate_sampler_type_tags(inp, spv_cross);
+    if (err.valid) {
+        spv_cross.error = err;
+        return spv_cross;
+    }
+    */
     return spv_cross;
 }
 
