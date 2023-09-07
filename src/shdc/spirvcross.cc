@@ -840,23 +840,37 @@ static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) 
     return true;
 }
 
+struct snippets_refls_t {
+    const snippet_t& vs_snippet;
+    const snippet_t& fs_snippet;
+    const spirvcross_refl_t vs_refl;
+    const spirvcross_refl_t fs_refl;
+};
+
+static snippets_refls_t get_snippets_and_sources(const input_t& inp, const program_t& prog, const spirvcross_t& spv_cross) {
+    const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
+    const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
+    const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
+    const int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
+    assert((vs_src_index >= 0) && (fs_src_index >= 0));
+    const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
+    const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
+    assert(vs_snippet_index == vs_src.snippet_index);
+    assert(fs_snippet_index == fs_src.snippet_index);
+    const snippet_t& vs_snippet = inp.snippets[vs_snippet_index];
+    const snippet_t& fs_snippet = inp.snippets[fs_snippet_index];
+    return { vs_snippet, fs_snippet, vs_src.refl, fs_src.refl };
+}
+
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
 static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
-        int vs_snippet_index = inp.vs_map.at(prog.vs_name);
-        int fs_snippet_index = inp.fs_map.at(prog.fs_name);
-        int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
-        assert(vs_snippet_index == vs_src.snippet_index);
-        assert(fs_snippet_index == fs_src.snippet_index);
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
         for (int i = 0; i < attr_t::NUM; i++) {
-            const attr_t& vs_out = vs_src.refl.outputs[i];
-            const attr_t& fs_inp = fs_src.refl.inputs[i];
+            const attr_t& vs_out = res.vs_refl.outputs[i];
+            const attr_t& fs_inp = res.fs_refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
                 return inp.error(prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
@@ -870,27 +884,37 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
 static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
-        int vs_snippet_index = inp.vs_map.at(prog.vs_name);
-        int fs_snippet_index = inp.fs_map.at(prog.fs_name);
-        int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
-        assert(vs_snippet_index == vs_src.snippet_index);
-        assert(fs_snippet_index == fs_src.snippet_index);
-        const snippet_t& vs_snippet = inp.snippets[vs_snippet_index];
-        const snippet_t& fs_snippet = inp.snippets[fs_snippet_index];
-        for (const auto& kvp: vs_snippet.image_sample_type_tags) {
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
+        for (const auto& kvp: res.vs_snippet.image_sample_type_tags) {
             const auto& tag = kvp.second;
-            if (nullptr == util::find_image_by_name(vs_src.refl, tag.tex_name)) {
+            if (nullptr == util::find_image_by_name(res.vs_refl, tag.tex_name)) {
                 return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
             }
         }
-        for (const auto& kvp: fs_snippet.image_sample_type_tags) {
+        for (const auto& kvp: res.fs_snippet.image_sample_type_tags) {
             const auto& tag = kvp.second;
-            if (nullptr == util::find_image_by_name(fs_src.refl, tag.tex_name)) {
+            if (nullptr == util::find_image_by_name(res.fs_refl, tag.tex_name)) {
                 return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
+            }
+        }
+    }
+    return errmsg_t();
+}
+
+static errmsg_t validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+    for (const auto& prog_item: inp.programs) {
+        const program_t& prog = prog_item.second;
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
+        for (const auto& kvp: res.vs_snippet.sampler_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_sampler_by_name(res.vs_refl, tag.smp_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
+            }
+        }
+        for (const auto& kvp: res.fs_snippet.sampler_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_sampler_by_name(res.fs_refl, tag.smp_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
             }
         }
     }
@@ -969,13 +993,11 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         spv_cross.error = err;
         return spv_cross;
     }
-    /* FIXME
     err = validate_sampler_type_tags(inp, spv_cross);
     if (err.valid) {
         spv_cross.error = err;
         return spv_cross;
     }
-    */
     return spv_cross;
 }
 
