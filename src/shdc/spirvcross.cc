@@ -881,6 +881,9 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     return errmsg_t();
 }
 
+/*
+CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
+
 static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
@@ -920,6 +923,7 @@ static errmsg_t validate_sampler_type_tags(const input_t& inp, const spirvcross_
     }
     return errmsg_t();
 }
+*/
 
 spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
     spirvcross_t spv_cross;
@@ -988,6 +992,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         return spv_cross;
     }
     // check that explicit image-sampler-type-tags and sampler-type-tags use existing image and sampler names
+    /* FIXME this doesn't work with conditional compilation via #ifdef!
     err = validate_image_sample_type_tags(inp, spv_cross);
     if (err.valid) {
         spv_cross.error = err;
@@ -998,6 +1003,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         spv_cross.error = err;
         return spv_cross;
     }
+    */
     return spv_cross;
 }
 
