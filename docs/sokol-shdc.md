@@ -4,7 +4,6 @@ Shader-code-generator for sokol_gfx.h
 
 ## Table of Content
 
-- [Updates](#updates)
 - [Feature Overview](#feature-overview)
 - [Build Process Integration with fips](#build-process-integration-with-fips)
 - [Standalone Usage](#standalone-usage)
@@ -271,12 +270,14 @@ void main() {
 ### Command Line Reference
 
 - **-h --help**: Print usage information and exit
-- **-i --input=[GLSL file]**: The path to the input shader file in 'tagged
+- **-i --input=[GLSL file]**: The path to the input shader file in 'annotated
   GLSL' format, this must be either relative to the current working directory,
   or an absolute path.
-- **-o --output=[C header]**: The path to the generated ouput source file, either
+- **-o --output=[path]**: The path to the generated output source file, either
   relative to the current working directory, or as absolute path. The target
-  directory must exist.
+  directory must exist, note that some output generators may generate
+  more than one output file, in that case the -o argument is used
+  as the base path
 - **-t --tmpdir=[path]**: Optional path to a directory used for storing
   intermediate files when generating Metal bytecode. If no separate temporary
   directory is provided, intermediate files will be written to the same
@@ -359,6 +360,7 @@ works, but not much else :)
 preprocessor defines for the initial GLSL-to-SPIRV compilation pass
 - **--module=[name]**: a command-line override for the ```@module``` keyword
 - **--reflection**: if present, code-generate additional runtime-inspection functions
+- **--save-intermediate-spirv**: debug feature to save out the intermediate SPIRV blob, useful for debug inspection
 
 ## Shader Tags Reference
 
@@ -655,6 +657,57 @@ which should be flipped vertically for GLSL targets:
 @end
 ```
 
+### @image_sample_type [texture] [type]
+
+Allows to provide a hint to the reflection code generator about the 'image sample type' of a texture
+This corresponds to the sokol-gfx enum `sg_image_sample_type`, and the WebGPU type `GPUTextureSampleType`.
+
+Valid values for `type` are:
+
+- `float`
+- `unfilterable-float`
+- `sint`
+- `uint`
+- `depth`
+
+Note that the annotation is usually only required for the `unfilterable-float` type, since all other
+types can be inferred from the shader code.
+
+The `unfilterable_float` annotation is required for floating point texture formats which can not be filtered
+(like RGBA32F).
+
+Example from https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-sapp.glsl:
+
+```glsl
+@image_sample_type joint_tex unfilterable_float
+uniform texture2D joint_tex;
+```
+
+### @sampler_type [sampler] [type]
+
+Similar to `@image_sample_type`, the tag `@sampler_type` allows to provide a hint to the code generator
+about the `sampler type` of a GLSL sampler object. This corresponds to the sokol-gfx enum
+`sg_sampler_type`, and the WebGPU type `GPUSamplerBindingType`.
+
+Valid values for `type` are:
+
+- `filtering`
+- `nonfiltering`
+- `comparison`
+
+The annotation is usually only required for the `non-filtering` type, since all other types can
+be inferred from the shader code.
+
+The `non-filtering` annoation is required for samplers that used together with `unfilterable-float`
+textures.
+
+Example from https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-sapp.glsl:
+
+```glsl
+@sampler_type smp nonfiltering
+uniform sampler smp;
+```
+
 ## Programming Considerations
 
 ### Target Shader Language Defines
@@ -675,8 +728,8 @@ compile code for the different target shader languages:
     // target shader language is MetalSL
 #endif
 
-#if SOKOL_WGPU
-    // target shader language is SPIRV/WGSL
+#if SOKOL_WGSL
+    // target shader language is WGSL
 #endif
 ```
 
