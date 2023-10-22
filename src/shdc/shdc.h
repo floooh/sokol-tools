@@ -133,32 +133,23 @@ struct format_t	{
     static type_t from_str(const std::string& str) {
         if (str == "sokol") {
             return SOKOL;
-        }
-        else if (str == "sokol_decl") {
+        } else if (str == "sokol_decl") {
             return SOKOL_DECL;
-        }
-        else if (str == "sokol_impl") {
+        } else if (str == "sokol_impl") {
             return SOKOL_IMPL;
-        }
-        else if (str == "sokol_zig") {
+        } else if (str == "sokol_zig") {
             return SOKOL_ZIG;
-        }
-        else if (str == "sokol_nim") {
+        } else if (str == "sokol_nim") {
             return SOKOL_NIM;
-        }
-        else if (str == "sokol_odin") {
+        } else if (str == "sokol_odin") {
             return SOKOL_ODIN;
-        }
-        else if (str == "sokol_rust") {
+        } else if (str == "sokol_rust") {
             return SOKOL_RUST;
-        }
-        else if (str == "bare") {
+        } else if (str == "bare") {
             return BARE;
-        }
-        else if (str == "bare_yaml") {
+        } else if (str == "bare_yaml") {
             return BARE_YAML;
-        }
-        else {
+        } else {
             return INVALID;
         }
     }
@@ -203,8 +194,7 @@ struct errmsg_t {
     std::string as_string(msg_format_t fmt) const {
         if (fmt == MSVC) {
             return fmt::format("{}({}): {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
-        }
-        else {
+        } else {
             return fmt::format("{}:{}:0: {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
         }
     }
@@ -252,21 +242,125 @@ struct option_t {
         INVALID = 0,
         FIXUP_CLIPSPACE = (1<<0),
         FLIP_VERT_Y = (1<<1),
-
-        NUM
     };
 
     static type_t from_string(const std::string& str) {
         if (str == "fixup_clipspace") {
             return FIXUP_CLIPSPACE;
-        }
-        else if (str == "flip_vert_y") {
+        } else if (str == "flip_vert_y") {
             return FLIP_VERT_Y;
-        }
-        else {
+        } else {
             return INVALID;
         }
     }
+};
+
+// image-type (see sg_image_type)
+struct image_type_t {
+    enum type_t {
+        INVALID,
+        _2D,
+        CUBE,
+        _3D,
+        ARRAY
+    };
+
+    static const char* to_str(type_t t) {
+        switch (t) {
+            case _2D:   return "2d";
+            case CUBE:  return "cube";
+            case _3D:   return "3d";
+            case ARRAY: return "array";
+            default:    return "invalid";
+        }
+    }
+};
+
+// image-sample-type (see sg_image_sample_type)
+struct image_sample_type_t {
+    enum type_t {
+        INVALID,
+        FLOAT,
+        SINT,
+        UINT,
+        DEPTH,
+        UNFILTERABLE_FLOAT,
+    };
+    static const char* to_str(type_t t) {
+        switch (t) {
+            case FLOAT:  return "float";
+            case SINT:   return "sint";
+            case UINT:   return "uint";
+            case DEPTH:  return "depth";
+            case UNFILTERABLE_FLOAT: return "unfilterable_float";
+            default:     return "invalid";
+        }
+    }
+    static image_sample_type_t::type_t from_str(const std::string& str) {
+        if (str == "float") return FLOAT;
+        else if (str == "sint") return SINT;
+        else if (str == "uint") return UINT;
+        else if (str == "depth") return DEPTH;
+        else if (str == "unfilterable_float") return UNFILTERABLE_FLOAT;
+        else return INVALID;
+    }
+    static bool is_valid_str(const std::string& str) {
+        return (str == "float")
+            || (str == "sint")
+            || (str == "uint")
+            || (str == "depth")
+            || (str == "unfilterable_float");
+    }
+    static const char* valid_image_sample_types_as_str() {
+        return "float|sint|uint|depth|unfilterable_float";
+    }
+};
+
+struct sampler_type_t {
+    enum type_t {
+        INVALID,
+        FILTERING,
+        COMPARISON,
+        NONFILTERING,
+    };
+    static const char* to_str(type_t t) {
+        switch (t) {
+            case FILTERING:    return "filtering";
+            case COMPARISON:   return "comparison";
+            case NONFILTERING: return "nonfiltering";
+            default:           return "invalid";
+        }
+    }
+    static sampler_type_t::type_t from_str(const std::string& str) {
+        if (str == "filtering") return FILTERING;
+        else if (str == "comparison") return COMPARISON;
+        else if (str == "nonfiltering") return NONFILTERING;
+        else return INVALID;
+    }
+    static bool is_valid_str(const std::string& str) {
+        return (str == "filtering")
+            || (str == "comparison")
+            || (str == "nonfiltering");
+    }
+    static const char* valid_sampler_types_as_str() {
+        return "filtering|comparison|nonfiltering";
+    }
+};
+
+struct image_sample_type_tag_t {
+    std::string tex_name;
+    image_sample_type_t::type_t type = image_sample_type_t::INVALID;
+    int line_index = 0;
+    image_sample_type_tag_t() { };
+    image_sample_type_tag_t(const std::string& n, image_sample_type_t::type_t t, int l): tex_name(n), type(t), line_index(l) { };
+};
+
+struct sampler_type_tag_t {
+    std::string smp_name;
+    sampler_type_t::type_t type = sampler_type_t::INVALID;
+    int line_index = 0;
+    sampler_type_tag_t() { };
+    sampler_type_tag_t(const std::string& n, sampler_type_t::type_t t, int l): smp_name(n), type(t), line_index(l) { };
 };
 
 // a named code-snippet (@block, @vs or @fs) in the input source file
@@ -279,12 +373,30 @@ struct snippet_t {
     };
     type_t type = INVALID;
     std::array<uint32_t, slang_t::NUM> options = { };
+    std::map<std::string, image_sample_type_tag_t> image_sample_type_tags;
+    std::map<std::string, sampler_type_tag_t> sampler_type_tags;
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
     snippet_t() { };
     snippet_t(type_t t, const std::string& n): type(t), name(n) { };
 
+    const image_sample_type_tag_t* lookup_image_sample_type_tag(const std::string& tex_name) const {
+        auto it = image_sample_type_tags.find(tex_name);
+        if (it != image_sample_type_tags.end()) {
+            return &image_sample_type_tags.at(tex_name);
+        } else {
+            return nullptr;
+        }
+    }
+    const sampler_type_tag_t* lookup_sampler_type_tag(const std::string& smp_name) const {
+        auto it = sampler_type_tags.find(smp_name);
+        if (it != sampler_type_tags.end()) {
+            return &sampler_type_tags.at(smp_name);
+        } else {
+            return nullptr;
+        }
+    }
     static const char* type_to_str(type_t t) {
         switch (t) {
             case BLOCK: return "block";
@@ -292,6 +404,12 @@ struct snippet_t {
             case FS: return "fs";
             default: return "<invalid>";
         }
+    }
+    static bool is_vs(type_t t) {
+        return VS == t;
+    }
+    static bool is_fs(type_t t) {
+        return FS == t;
     }
 };
 
@@ -340,8 +458,7 @@ struct input_t {
         if (index < (int)lines.size()) {
             const line_t& line = lines[index];
             return errmsg_t::error(filenames[line.filename], line.index, msg);
-        }
-        else {
+        } else {
             return errmsg_t::error(base_path, 0, msg);
         }
     };
@@ -349,8 +466,7 @@ struct input_t {
         if (index < (int)lines.size()) {
             const line_t& line = lines[index];
             return errmsg_t::warning(filenames[line.filename], line.index, msg);
-        }
-        else {
+        } else {
             return errmsg_t::warning(base_path, 0, msg);
         }
     };
@@ -415,19 +531,32 @@ struct uniform_t {
 
     static const char* type_to_str(type_t t) {
         switch (t) {
-            case FLOAT:     return "FLOAT";
-            case FLOAT2:    return "FLOAT2";
-            case FLOAT3:    return "FLOAT3";
-            case FLOAT4:    return "FLOAT4";
-            case INT:       return "INT";
-            case INT2:      return "INT2";
-            case INT3:      return "INT3";
-            case INT4:      return "INT4";
-            case MAT4:      return "MAT4";
-            default:        return "INVALID";
+            case FLOAT:     return "float";
+            case FLOAT2:    return "float2";
+            case FLOAT3:    return "float3";
+            case FLOAT4:    return "float4";
+            case INT:       return "int";
+            case INT2:      return "int2";
+            case INT3:      return "int3";
+            case INT4:      return "int4";
+            case MAT4:      return "mat4";
+            default:        return "invalid";
         }
     }
-
+    static bool is_valid_glsl_uniform_type(const std::string& str) {
+        return (str == "float")
+            || (str == "vec2")
+            || (str == "vec3")
+            || (str == "vec4")
+            || (str == "int")
+            || (str == "int2")
+            || (str == "int3")
+            || (str == "int4")
+            || (str == "mat4");
+    }
+    static const char* valid_glsl_uniform_types_as_str() {
+        return "float|vec2|vec3|vec4|int|int2|int3|int4|mat4";
+    }
     bool equals(const uniform_t& other) const {
         return (name == other.name) &&
                (type == other.type) &&
@@ -467,45 +596,12 @@ struct uniform_block_t {
 
 struct image_t {
     static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
-    enum type_t {
-        IMAGE_TYPE_INVALID,
-        IMAGE_TYPE_2D,
-        IMAGE_TYPE_CUBE,
-        IMAGE_TYPE_3D,
-        IMAGE_TYPE_ARRAY
-    };
-    enum sampletype_t {
-        IMAGE_SAMPLETYPE_INVALID,
-        IMAGE_SAMPLETYPE_FLOAT,
-        IMAGE_SAMPLETYPE_SINT,
-        IMAGE_SAMPLETYPE_UINT,
-        IMAGE_SAMPLETYPE_DEPTH,
-    };
     int slot = -1;
     std::string name;
-    type_t type = IMAGE_TYPE_INVALID;
-    sampletype_t sample_type = IMAGE_SAMPLETYPE_INVALID;
+    image_type_t::type_t type = image_type_t::INVALID;
+    image_sample_type_t::type_t sample_type = image_sample_type_t::INVALID;
     bool multisampled = false;
     int unique_index = -1;      // index into spirvcross_t.unique_images
-
-    static const char* type_to_str(type_t t) {
-        switch (t) {
-            case IMAGE_TYPE_2D:     return "IMAGE_TYPE_2D";
-            case IMAGE_TYPE_CUBE:   return "IMAGE_TYPE_CUBE";
-            case IMAGE_TYPE_3D:     return "IMAGE_TYPE_3D";
-            case IMAGE_TYPE_ARRAY:  return "IMAGE_TYPE_ARRAY";
-            default:                return "IMAGE_TYPE_INVALID";
-        }
-    }
-    static const char* sampletype_to_str(sampletype_t t) {
-        switch (t) {
-            case IMAGE_SAMPLETYPE_FLOAT:  return "IMAGE_SAMPLETYPE_FLOAT";
-            case IMAGE_SAMPLETYPE_SINT:   return "IMAGE_SAMPLETYPE_SINT";
-            case IMAGE_SAMPLETYPE_UINT:   return "IMAGE_SAMPLETYPE_UINT";
-            case IMAGE_SAMPLETYPE_DEPTH:  return "IMAGE_SAMPLETYPE_DEPTH";
-            default:                      return "IMAGE_BASETYPE_INVALID";
-        }
-    }
 
     bool equals(const image_t& other) {
         return (slot == other.slot)
@@ -518,23 +614,10 @@ struct image_t {
 
 struct sampler_t {
     static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
-    enum type_t {
-        SAMPLER_TYPE_INVALID,
-        SAMPLER_TYPE_SAMPLE,
-        SAMPLER_TYPE_COMPARE,
-    };
     int slot = -1;
     std::string name;
-    type_t type = SAMPLER_TYPE_INVALID;
+    sampler_type_t::type_t type = sampler_type_t::INVALID;
     int unique_index = -1;          // index into spirvcross_t.unique_samplers
-
-    static const char* type_to_str(type_t t) {
-        switch (t) {
-            case SAMPLER_TYPE_SAMPLE:   return "SAMPLER_TYPE_SAMPLE";
-            case SAMPLER_TYPE_COMPARE:  return "SAMPLER_TYPE_COMPARE";
-            default:                    return "SAMPLER_TYPE_INVALID";
-        }
-    }
 
     bool equals(const sampler_t& other) {
         return (slot == other.slot)
@@ -572,6 +655,12 @@ struct stage_t {
             case FS: return "FS";
             default: return "INVALID";
         }
+    }
+    static bool is_vs(type_t t) {
+        return VS == t;
+    }
+    static bool is_fs(type_t t) {
+        return FS == t;
     }
 };
 

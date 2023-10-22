@@ -12,6 +12,13 @@
 
 #include "spirv_glsl.hpp"
 
+static const int wgsl_vs_ub_bind_offset = 0;
+static const int wgsl_fs_ub_bind_offset = 4;
+static const int wgsl_vs_img_bind_offset = 0;
+static const int wgsl_vs_smp_bind_offset = 16;
+static const int wgsl_fs_img_bind_offset = 32;
+static const int wgsl_fs_smp_bind_offset = 48;
+
 // workaround for Compiler.comparison_ids being protected
 class UnprotectedCompiler: spirv_cross::Compiler {
 public:
@@ -91,10 +98,10 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::
 
     // separate samplers
     {
-        uint32_t slot = 0;
+        uint32_t binding = 0;
         for (const Resource& res: shader_resources.separate_samplers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, slot++);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 }
@@ -119,16 +126,20 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
         symbols.output_names[slot] = output.name;
     }
 
-    // WGPU bindgroups are hardwired:
+    // WGPU bindgroups and binding offsets are hardwired:
     //  - bindgroup 0 for uniform buffer bindings
-    //  - bindgroup 1 for vertex shader image/sampler bindings
-    //  - bindgroup 2 for fragment shader image/sampler bindings
+    //      - vertex stage bindings start at 0
+    //      - fragment stage bindings start at 4
+    //  - bindgroup 1 for all images and samplers
+    //      - vertex stage image bindings start at 0
+    //      - vertex stage sampler bindings start at 16
+    //      - fragment stage image bindings start at 32
+    //      - fragment stage sampler bindings start at 48
     const uint32_t ub_bindgroup = 0;
-    const uint32_t vs_bindgroup = 1;
-    const uint32_t fs_bindgroup = 2;
-    const uint32_t resource_bindgroup = (type == snippet_t::VS) ? vs_bindgroup : fs_bindgroup;
-    uint32_t cur_ub_binding = 0;
-    uint32_t cur_resource_binding = 0;
+    const uint32_t res_bindgroup = 1;
+    uint32_t cur_ub_binding = snippet_t::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
+    uint32_t cur_image_binding = snippet_t::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
+    uint32_t cur_sampler_binding = snippet_t::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
 
     // uniform buffers
     {
@@ -146,7 +157,8 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_ub_binding++;
+                inout_bytecode[out_offset] = cur_ub_binding;
+                cur_ub_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -156,15 +168,16 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     // separate images
     {
         for (const Resource& res: shader_resources.separate_images) {
-            symbols.image_names[cur_resource_binding] = res.name;
+            symbols.image_names[cur_image_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = resource_bindgroup;
+                inout_bytecode[out_offset] = res_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding++;
+                inout_bytecode[out_offset] = cur_image_binding;
+                cur_image_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -174,15 +187,16 @@ static spirvcross_wgsl_symbol_table_t wgsl_patch_bind_slots(Compiler& compiler, 
     // separate samplers
     {
         for (const Resource& res: shader_resources.separate_samplers) {
-            symbols.sampler_names[cur_resource_binding] = res.name;
+            symbols.sampler_names[cur_sampler_binding] = res.name;
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = resource_bindgroup;
+                inout_bytecode[out_offset] = res_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_resource_binding++;
+                inout_bytecode[out_offset] = cur_sampler_binding;
+                cur_sampler_binding += 1;
             } else {
                 // FIXME: handle error
             }
@@ -294,38 +308,38 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
     return uniform_t::INVALID;
 }
 
-static image_t::type_t spirtype_to_image_type(const SPIRType& type) {
+static image_type_t::type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_t::IMAGE_TYPE_ARRAY;
+            return image_type_t::ARRAY;
         }
     } else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_t::IMAGE_TYPE_2D;
-            case spv::DimCube:  return image_t::IMAGE_TYPE_CUBE;
-            case spv::Dim3D:    return image_t::IMAGE_TYPE_3D;
+            case spv::Dim2D:    return image_type_t::_2D;
+            case spv::DimCube:  return image_type_t::CUBE;
+            case spv::Dim3D:    return image_type_t::_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_t::IMAGE_TYPE_INVALID;
+    return image_type_t::INVALID;
 }
 
-static image_t::sampletype_t spirtype_to_image_sampletype(const SPIRType& type) {
+static image_sample_type_t::type_t spirtype_to_image_sample_type(const SPIRType& type) {
     if (type.image.depth) {
-        return image_t::IMAGE_SAMPLETYPE_DEPTH;
+        return image_sample_type_t::DEPTH;
     } else {
         switch (type.basetype) {
             case SPIRType::Int:
             case SPIRType::Short:
             case SPIRType::SByte:
-                return image_t::IMAGE_SAMPLETYPE_SINT;
+                return image_sample_type_t::SINT;
             case SPIRType::UInt:
             case SPIRType::UShort:
             case SPIRType::UByte:
-                return image_t::IMAGE_SAMPLETYPE_UINT;
+                return image_sample_type_t::UINT;
             default:
-                return image_t::IMAGE_SAMPLETYPE_FLOAT;
+                return image_sample_type_t::FLOAT;
         }
     }
 }
@@ -334,8 +348,7 @@ static bool spirvtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::type_t slang) {
-    assert(slang != slang_t::WGSL);
+static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippet_t& snippet, slang_t::type_t slang) {
     spirvcross_refl_t refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
@@ -345,6 +358,22 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         case spv::ExecutionModelFragment: refl.stage = stage_t::FS; break;
         default: refl.stage = stage_t::INVALID; break;
     }
+
+    int ub_bind_offset = 0;
+    int img_bind_offset = 0;
+    int smp_bind_offset = 0;
+    if (slang_t::is_wgsl(slang)) {
+        if (stage_t::is_vs(refl.stage)) {
+            ub_bind_offset = wgsl_vs_ub_bind_offset;
+            img_bind_offset = wgsl_vs_img_bind_offset;
+            smp_bind_offset = wgsl_vs_smp_bind_offset;
+        } else {
+            ub_bind_offset = wgsl_fs_ub_bind_offset;
+            img_bind_offset = wgsl_fs_img_bind_offset;
+            smp_bind_offset = wgsl_fs_smp_bind_offset;
+        }
+    }
+
     // find entry point
     const auto entry_points = compiler.get_entry_points_and_stages();
     for (const auto& item: entry_points) {
@@ -375,7 +404,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         std::string n = compiler.get_name(ub_res.id);
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding) - ub_bind_offset;
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.struct_name = ub_res.name;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
@@ -397,36 +426,46 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl.uniform_blocks.push_back(refl_ub);
     }
     // (separate) images
+    // FIXME: override from @image_sample_type
     for (const Resource& img_res: shd_resources.separate_images) {
         image_t refl_img;
-        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding) - img_bind_offset;
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
-            refl_img.sample_type = image_t::IMAGE_SAMPLETYPE_DEPTH;
+            refl_img.sample_type = image_sample_type_t::DEPTH;
         } else {
-            refl_img.sample_type = spirtype_to_image_sampletype(compiler.get_type(img_type.image.type));
+            refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
         refl_img.multisampled = spirvtype_to_image_multisampled(img_type);
         refl.images.push_back(refl_img);
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
+        // ignore generated dummy samplers
+        if (pystring::find(smp_res.name, "SPIRV_Cross") != -1) {
+            continue;
+        }
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         sampler_t refl_smp;
-        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
+        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding) - smp_bind_offset;
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_COMPARE;
+            refl_smp.type = sampler_type_t::COMPARISON;
         } else {
-            refl_smp.type = sampler_t::SAMPLER_TYPE_SAMPLE;
+            refl_smp.type = sampler_type_t::FILTERING;
         }
         refl.samplers.push_back(refl_smp);
     }
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
+        // ignore any combined image samplers which involve dummy samplers
+        // FIXME: this will probably bite us in the ass later (GLSL texelFetch?)
+        if (pystring::find(compiler.get_name(img_smp_res.combined_id), "SPIRV_Cross") != -1) {
+            continue;
+        }
         image_sampler_t refl_img_smp;
         refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
@@ -434,9 +473,24 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, slang_t::typ
         refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);
         refl.image_samplers.push_back(refl_img_smp);
     }
+    // patch textures with overridden image-sample-types
+    for (auto& img: refl.images) {
+        const auto* tag = snippet.lookup_image_sample_type_tag(img.name);
+        if (tag) {
+            img.sample_type = tag->type;
+        }
+    }
+    // patch samplers with overridden sampler-types
+    for (auto& smp: refl.samplers) {
+        const auto* tag = snippet.lookup_sampler_type_tag(smp.name);
+        if (tag) {
+            smp.type = tag->type;
+        }
+    }
     return refl;
 }
 
+/*
 static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spirvcross_wgsl_symbol_table_t& symbols) {
     spirvcross_refl_t refl;
 
@@ -475,7 +529,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     // uniform blocks
     for (const auto& ub: inspector.GetUniformBufferResourceBindings(entry_point.name)) {
         uniform_block_t refl_ub;
-        refl_ub.slot = ub.binding;
+        refl_ub.slot = ub.binding - (refl.stage == stage_t::VS ? 0 : 4);
         refl_ub.size = (int)ub.size;
         refl_ub.struct_name = symbols.uniform_block_struct_names[ub.binding];
         refl_ub.inst_name = symbols.uniform_block_inst_names[ub.binding];
@@ -483,7 +537,7 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
     }
 
     // image bindings
-    // FIXME: sampled vs multisampled vs depth
+    // FIXME: sampled vs comparison vs multisampled
     for (const auto& img: inspector.GetSampledTextureResourceBindings(entry_point.name)) {
         image_t refl_img;
         refl_img.slot = img.binding;
@@ -530,12 +584,13 @@ static spirvcross_refl_t wgsl_parse_reflection(const tint::Program* program, spi
         refl.samplers.push_back(refl_smp);
     }
 
-    // FIXME: image-samplers
+    // FIXME: image-sampler-pairs
 
     return refl;
 }
+*/
 
-static spirvcross_source_t to_glsl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -561,7 +616,7 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, slang_t::type_t sla
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
-    fix_bind_slots(compiler, type, slang);
+    fix_bind_slots(compiler, snippet.type, slang);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
@@ -569,12 +624,12 @@ static spirvcross_source_t to_glsl(const spirv_blob_t& blob, slang_t::type_t sla
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = parse_reflection(compiler, slang);
+        res.refl = parse_reflection(compiler, snippet, slang);
     }
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -592,7 +647,7 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t sla
     }
     hlslOptions.point_size_compat = true;
     compiler.set_hlsl_options(hlslOptions);
-    fix_bind_slots(compiler, type, slang);
+    fix_bind_slots(compiler, snippet.type, slang);
     fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     spirvcross_source_t res;
@@ -602,12 +657,12 @@ static spirvcross_source_t to_hlsl(const spirv_blob_t& blob, slang_t::type_t sla
         res.source_code = std::move(src);
         compiler.build_dummy_sampler_for_combined_images();
         to_combined_image_samplers(compiler);
-        res.refl = parse_reflection(compiler, slang);
+        res.refl = parse_reflection(compiler, snippet, slang);
     }
     return res;
 }
 
-static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
+static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -625,7 +680,7 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
     }
     mslOptions.enable_decoration_binding = true;
     compiler.set_msl_options(mslOptions);
-    fix_bind_slots(compiler, type, slang);
+    fix_bind_slots(compiler, snippet.type, slang);
     std::string src = compiler.compile();
     spirvcross_source_t res;
     res.snippet_index = blob.snippet_index;
@@ -634,29 +689,50 @@ static spirvcross_source_t to_msl(const spirv_blob_t& blob, slang_t::type_t slan
         res.source_code = std::move(src);
         compiler.build_dummy_sampler_for_combined_images();
         to_combined_image_samplers(compiler);
-        res.refl = parse_reflection(compiler, slang);
+        res.refl = parse_reflection(compiler, snippet, slang);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
     return res;
 }
 
-static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, snippet_t::type_t type) {
-    std::vector<uint32_t> bytecode = blob.bytecode;
-    Compiler compiler(blob.bytecode);
-    spirvcross_wgsl_symbol_table_t symbols = wgsl_patch_bind_slots(compiler, type, bytecode);
+static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+    std::vector<uint32_t> patched_bytecode = blob.bytecode;
+    CompilerGLSL compiler_temp(blob.bytecode);
+    fix_bind_slots(compiler_temp, snippet.type, slang);
+    spirvcross_wgsl_symbol_table_t symbols = wgsl_patch_bind_slots(compiler_temp, snippet.type, patched_bytecode);
     spirvcross_source_t res;
     res.snippet_index = blob.snippet_index;
     tint::reader::spirv::Options spirv_options;
-    spirv_options.allow_non_uniform_derivatives = false; // FIXME?
-    tint::Program program = tint::reader::spirv::Parse(bytecode, spirv_options);
+    spirv_options.allow_non_uniform_derivatives = true; // FIXME? => this allow texture sample calls inside dynamic if blocks
+    tint::Program program = tint::reader::spirv::Parse(patched_bytecode, spirv_options);
     if (!program.Diagnostics().contains_errors()) {
         const tint::writer::wgsl::Options wgsl_options;
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
             res.valid = true;
             res.source_code = result.wgsl;
-            res.refl = wgsl_parse_reflection(&program, symbols);
+
+            // reactivate this idea at some point
+            //res.refl = wgsl_parse_reflection(&program, symbols);
+
+            // NOTE: in order to get correct reflection info out of SPIRVCross (also for depth images etc...)
+            // we need to do a dummy compile
+            CompilerHLSL compiler_refl(patched_bytecode);
+            CompilerGLSL::Options commonOptions;
+            commonOptions.emit_line_directives = false;
+            commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
+            commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+            compiler_refl.set_common_options(commonOptions);
+            CompilerHLSL::Options hlslOptions;
+            hlslOptions.shader_model = 40;
+            hlslOptions.point_size_compat = true;
+            compiler_refl.set_hlsl_options(hlslOptions);
+            fix_ub_matrix_force_colmajor(compiler_refl);
+            compiler_refl.compile();
+            compiler_refl.build_dummy_sampler_for_combined_images();
+            to_combined_image_samplers(compiler_refl);
+            res.refl = parse_reflection(compiler_refl, snippet, slang);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }
@@ -764,23 +840,37 @@ static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) 
     return true;
 }
 
+struct snippets_refls_t {
+    const snippet_t& vs_snippet;
+    const snippet_t& fs_snippet;
+    const spirvcross_refl_t vs_refl;
+    const spirvcross_refl_t fs_refl;
+};
+
+static snippets_refls_t get_snippets_and_sources(const input_t& inp, const program_t& prog, const spirvcross_t& spv_cross) {
+    const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
+    const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
+    const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
+    const int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
+    assert((vs_src_index >= 0) && (fs_src_index >= 0));
+    const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
+    const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
+    assert(vs_snippet_index == vs_src.snippet_index);
+    assert(fs_snippet_index == fs_src.snippet_index);
+    const snippet_t& vs_snippet = inp.snippets[vs_snippet_index];
+    const snippet_t& fs_snippet = inp.snippets[fs_snippet_index];
+    return { vs_snippet, fs_snippet, vs_src.refl, fs_src.refl };
+}
+
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
 static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
-        int vs_snippet_index = inp.vs_map.at(prog.vs_name);
-        int fs_snippet_index = inp.fs_map.at(prog.fs_name);
-        int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spv_cross.find_source_by_snippet_index(fs_snippet_index);
-        assert((vs_src_index >= 0) && (fs_src_index >= 0));
-        const spirvcross_source_t& vs_src = spv_cross.sources[vs_src_index];
-        const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
-        assert(vs_snippet_index == vs_src.snippet_index);
-        assert(fs_snippet_index == fs_src.snippet_index);
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
         for (int i = 0; i < attr_t::NUM; i++) {
-            const attr_t& vs_out = vs_src.refl.outputs[i];
-            const attr_t& fs_inp = fs_src.refl.inputs[i];
+            const attr_t& vs_out = res.vs_refl.outputs[i];
+            const attr_t& fs_inp = res.fs_refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
                 return inp.error(prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
@@ -791,13 +881,57 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     return errmsg_t();
 }
 
+/*
+CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
+
+static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+    for (const auto& prog_item: inp.programs) {
+        const program_t& prog = prog_item.second;
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
+        for (const auto& kvp: res.vs_snippet.image_sample_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_image_by_name(res.vs_refl, tag.tex_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
+            }
+        }
+        for (const auto& kvp: res.fs_snippet.image_sample_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_image_by_name(res.fs_refl, tag.tex_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
+            }
+        }
+    }
+    return errmsg_t();
+}
+
+static errmsg_t validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+    for (const auto& prog_item: inp.programs) {
+        const program_t& prog = prog_item.second;
+        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
+        for (const auto& kvp: res.vs_snippet.sampler_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_sampler_by_name(res.vs_refl, tag.smp_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
+            }
+        }
+        for (const auto& kvp: res.fs_snippet.sampler_type_tags) {
+            const auto& tag = kvp.second;
+            if (nullptr == util::find_sampler_by_name(res.fs_refl, tag.smp_name)) {
+                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
+            }
+        }
+    }
+    return errmsg_t();
+}
+*/
+
 spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
-        snippet_t::type_t type = inp.snippets[blob.snippet_index].type;
-        assert((type == snippet_t::VS) || (type == snippet_t::FS));
+        const snippet_t& snippet = inp.snippets[blob.snippet_index];
+        assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
         spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
         if (spv_cross.error.valid) {
             return spv_cross;
@@ -806,19 +940,19 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             case slang_t::GLSL330:
             case slang_t::GLSL100:
             case slang_t::GLSL300ES:
-                src = to_glsl(blob, slang, opt_mask, type);
+                src = to_glsl(inp, blob, slang, opt_mask, snippet);
                 break;
             case slang_t::HLSL4:
             case slang_t::HLSL5:
-                src = to_hlsl(blob, slang, opt_mask, type);
+                src = to_hlsl(inp, blob, slang, opt_mask, snippet);
                 break;
             case slang_t::METAL_MACOS:
             case slang_t::METAL_IOS:
             case slang_t::METAL_SIM:
-                src = to_msl(blob, slang, opt_mask, type);
+                src = to_msl(inp, blob, slang, opt_mask, snippet);
                 break;
             case slang_t::WGSL:
-                src = to_wgsl(inp, blob, slang, opt_mask, type);
+                src = to_wgsl(inp, blob, slang, opt_mask, snippet);
                 break;
             default: break;
         }
@@ -827,7 +961,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             spv_cross.sources.push_back(std::move(src));
         }
         else {
-            const int line_index = inp.snippets[blob.snippet_index].lines[0];
+            const int line_index = snippet.lines[0];
             std::string err_msg;
             if (src.error.valid) {
                 err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", slang_t::to_str(slang), src.error.msg);
@@ -851,11 +985,25 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         }
     }
     // check that vertex-shader outputs match their fragment shader inputs
-    errmsg_t err = validate_linking(inp, spv_cross);
+    errmsg_t err;
+    err = validate_linking(inp, spv_cross);
     if (err.valid) {
         spv_cross.error = err;
         return spv_cross;
     }
+    // check that explicit image-sampler-type-tags and sampler-type-tags use existing image and sampler names
+    /* FIXME this doesn't work with conditional compilation via #ifdef!
+    err = validate_image_sample_type_tags(inp, spv_cross);
+    if (err.valid) {
+        spv_cross.error = err;
+        return spv_cross;
+    }
+    err = validate_sampler_type_tags(inp, spv_cross);
+    if (err.valid) {
+        spv_cross.error = err;
+        return spv_cross;
+    }
+    */
     return spv_cross;
 }
 
@@ -901,7 +1049,7 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
         }
         for (const image_t& img: source.refl.images) {
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
-                img.name, img.slot, image_t::type_to_str(img.type), image_t::sampletype_to_str(img.sample_type));
+                img.name, img.slot, image_type_t::to_str(img.type), image_sample_type_t::to_str(img.sample_type));
         }
         for (const sampler_t& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);

@@ -1,6 +1,49 @@
 CHANGELOG
 =========
 
+#### **18-Oct-2023**
+
+> NOTE: this update is required for WebGPU backend update of sokol-gfx!
+
+This update officially introduces WGSL output for the sokol-gfx WebGPU backend
+via `-f wgsl`.
+
+Two new 'meta-tags' have been added to provide texture- and sampler-hints
+for WebGPU which can't be inferred from the shader code:
+
+`@image_sample_type [tex] [type]`: provides an image-sample-type hint for the
+texture named `tex`, corresponds with the sokol_gfx.h type
+`sg_image_sample_type` and the WebGPU type `WGPUTextureSampleType`. Valid
+values for `[type]` are: `float`, `unfilterable_float`, `sint`, `uint` and
+`depth`.
+
+`@sampler_type [smp] [type]`: provides a sampler-type hint for the
+sample named `smp`, corresponds with the sokol_gfx.h type `sg_sampler_type`
+and the WebGPU type `WGPUSamplerBindingType`. Valid values for `[type]` are:
+`filtering`, `nonfiltering` and `comparison`.
+
+Those tags are only needed for `unfilterable_float / nonfiltering` texture/sampler
+combinations (this is the only combination that can't be inferred from the shader
+code). Unfilterable textures commonly have a floating point pixel format.
+
+For instance in the [ozz-skin-sapp sampler shader code](https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-sapp.glsl), the skinning matrix texture and sampler need the following annoations:
+
+```glsl
+@image_sample_type joint_tex unfilterable_float
+@sampler_type smp nonfiltering
+uniform texture2D joint_tex;
+uniform sampler smp;
+```
+
+Addition changes:
+
+- Some type-to-string conversion result strings have changed for consistency,
+  this may leak into the `bare_yaml` output files.
+- A lot of the bind slot allocation and the 'reflection parsing' code has changed,
+  and this area also has unfortunately become more complex, which result
+  in more brittleness. This may result in new errors with non-trivial
+  shader code. Please report any issues you encounter (https://github.com/floooh/sokol-tools/issues)
+
 #### **16-Jul-2023**
 
 > NOTE: this update is required for the [image/sampler object split in sokol-gfx](https://github.com/floooh/sokol/blob/master/CHANGELOG.md#16-jul-2023), and in turn it doesn't work with older sokol-gfx versions (use the git tag `pre-separate-samplers` if you need to stick to the older version)
