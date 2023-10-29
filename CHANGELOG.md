@@ -6,7 +6,7 @@ CHANGELOG
 Fix a reflection parsing regression that was introduced in the last
 update (see: https://github.com/floooh/sokol-tools/issues/109).
 
-This avoids having to deal with 'dummy samplers' when parsing reflection
+The fix avoids having to deal with 'dummy samplers' when parsing reflection
 information for HLSL, WGSL and MSL by using a common GLSL output
 for parsing reflection data instead of using the HLSL, WGSL and MSL
 output.
