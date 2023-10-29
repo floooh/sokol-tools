@@ -11,6 +11,8 @@ information for HLSL, WGSL and MSL by using a common GLSL output
 for parsing reflection data instead of using the HLSL, WGSL and MSL
 output.
 
+PR: https://github.com/floooh/sokol-tools/pull/110
+
 #### **18-Oct-2023**
 
 > NOTE: this update is required for WebGPU backend update of sokol-gfx!
