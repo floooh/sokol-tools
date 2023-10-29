@@ -359,21 +359,6 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
         default: refl.stage = stage_t::INVALID; break;
     }
 
-    int ub_bind_offset = 0;
-    int img_bind_offset = 0;
-    int smp_bind_offset = 0;
-    if (slang_t::is_wgsl(slang)) {
-        if (stage_t::is_vs(refl.stage)) {
-            ub_bind_offset = wgsl_vs_ub_bind_offset;
-            img_bind_offset = wgsl_vs_img_bind_offset;
-            smp_bind_offset = wgsl_vs_smp_bind_offset;
-        } else {
-            ub_bind_offset = wgsl_fs_ub_bind_offset;
-            img_bind_offset = wgsl_fs_img_bind_offset;
-            smp_bind_offset = wgsl_fs_smp_bind_offset;
-        }
-    }
-
     // find entry point
     const auto entry_points = compiler.get_entry_points_and_stages();
     for (const auto& item: entry_points) {
@@ -404,7 +389,7 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
         std::string n = compiler.get_name(ub_res.id);
         uniform_block_t refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding) - ub_bind_offset;
+        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.struct_name = ub_res.name;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
@@ -426,10 +411,9 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
         refl.uniform_blocks.push_back(refl_ub);
     }
     // (separate) images
-    // FIXME: override from @image_sample_type
     for (const Resource& img_res: shd_resources.separate_images) {
         image_t refl_img;
-        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding) - img_bind_offset;
+        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
@@ -443,13 +427,9 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
-        // ignore generated dummy samplers
-        if (pystring::find(smp_res.name, "SPIRV_Cross") != -1) {
-            continue;
-        }
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         sampler_t refl_smp;
-        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding) - smp_bind_offset;
+        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
@@ -461,11 +441,6 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
     }
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
-        // ignore any combined image samplers which involve dummy samplers
-        // FIXME: this will probably bite us in the ass later (GLSL texelFetch?)
-        if (pystring::find(compiler.get_name(img_smp_res.combined_id), "SPIRV_Cross") != -1) {
-            continue;
-        }
         image_sampler_t refl_img_smp;
         refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
@@ -488,6 +463,28 @@ static spirvcross_refl_t parse_reflection(const Compiler& compiler, const snippe
         }
     }
     return refl;
+}
+
+static spirvcross_refl_t parse_reflection_glsl(const std::vector<uint32_t>& bytecode, const snippet_t& snippet, slang_t::type_t slang) {
+    // use a separate CompilerGLSL instance to parse reflection, this is used
+    // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
+    CompilerGLSL compiler(bytecode);
+    CompilerGLSL::Options options;
+    options.emit_line_directives = false;
+    options.version = 330;
+    options.es = false;
+    options.vulkan_semantics = false;
+    options.enable_420pack_extension = false;
+    options.emit_uniform_buffer_as_plain_uniforms = true;
+    compiler.set_common_options(options);
+    flatten_uniform_blocks(compiler);
+    to_combined_image_samplers(compiler);
+    fix_bind_slots(compiler, snippet.type, slang);
+    fix_ub_matrix_force_colmajor(compiler);
+    // NOTE: we need to compile here, otherwise the reflection won't be
+    // able to detect depth-textures and comparison-samplers!
+    compiler.compile();
+    return parse_reflection(compiler, snippet, slang);
 }
 
 /*
@@ -655,9 +652,7 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        compiler.build_dummy_sampler_for_combined_images();
-        to_combined_image_samplers(compiler);
-        res.refl = parse_reflection(compiler, snippet, slang);
+        res.refl = parse_reflection_glsl(blob.bytecode, snippet, slang);
     }
     return res;
 }
@@ -687,9 +682,7 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        compiler.build_dummy_sampler_for_combined_images();
-        to_combined_image_samplers(compiler);
-        res.refl = parse_reflection(compiler, snippet, slang);
+        res.refl = parse_reflection_glsl(blob.bytecode, snippet, slang);
         // Metal's entry point function are called main0() because main() is reserved
         res.refl.entry_point += "0";
     }
@@ -712,27 +705,9 @@ static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob,
         if (result.success) {
             res.valid = true;
             res.source_code = result.wgsl;
-
-            // reactivate this idea at some point
+            res.refl = parse_reflection_glsl(blob.bytecode, snippet, slang);
+            // reactivate this idea at some point (to parse reflection via Tint)
             //res.refl = wgsl_parse_reflection(&program, symbols);
-
-            // NOTE: in order to get correct reflection info out of SPIRVCross (also for depth images etc...)
-            // we need to do a dummy compile
-            CompilerHLSL compiler_refl(patched_bytecode);
-            CompilerGLSL::Options commonOptions;
-            commonOptions.emit_line_directives = false;
-            commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
-            commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
-            compiler_refl.set_common_options(commonOptions);
-            CompilerHLSL::Options hlslOptions;
-            hlslOptions.shader_model = 40;
-            hlslOptions.point_size_compat = true;
-            compiler_refl.set_hlsl_options(hlslOptions);
-            fix_ub_matrix_force_colmajor(compiler_refl);
-            compiler_refl.compile();
-            compiler_refl.build_dummy_sampler_for_combined_images();
-            to_combined_image_samplers(compiler_refl);
-            res.refl = parse_reflection(compiler_refl, snippet, slang);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }
