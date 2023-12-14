@@ -65,7 +65,6 @@ uniform vs_params {
 in vec4 position;
 in vec2 texcoord0;
 
-out vec4 color;
 out vec2 uv;
 
 void main() {
