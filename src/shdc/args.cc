@@ -77,6 +77,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_nim      Nim module file\n"
         "  - sokol_odin     Odin module file\n"
         "  - sokol_rust     Rust module file\n"
+        "  - sokol_d        D module file\n"
         "  - bare           raw output of SPIRV-Cross compiler, in text or binary format\n"
         "  - bare_yaml      like bare, but with reflection file in YAML format\n\n"
         "Options:\n\n");
