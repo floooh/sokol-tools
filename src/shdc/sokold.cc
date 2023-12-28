@@ -4,6 +4,7 @@
 #include "shdc.h"
 #include "fmt/format.h"
 #include "pystring.h"
+#include <filesystem>
 #include <stdio.h>
 
 namespace shdc {
@@ -458,6 +459,8 @@ errmsg_t sokold_t::gen(const args_t& args, const input_t& inp,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
 
+    std::filesystem::path module_prefix = args.input;
+    L("module shaders.{};\n", module_prefix.stem().string());
     L("import sg = sokol.gfx;\n\n");
     bool comment_header_written = false;
     bool common_decls_written = false;
