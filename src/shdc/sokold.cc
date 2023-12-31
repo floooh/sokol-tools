@@ -88,9 +88,9 @@ static const char* sokol_backend(slang_t::type_t slang) {
         case slang_t::GLSL300ES:    return "sg.Backend.Gles3";
         case slang_t::HLSL4:        return "sg.Backend.D3d11";
         case slang_t::HLSL5:        return "sg.Backend.D3d11";
-        case slang_t::METAL_MACOS:  return "sg.Backend.MetalMacos";
-        case slang_t::METAL_IOS:    return "sg.Backend.MetalIos";
-        case slang_t::METAL_SIM:    return "sg.Backend.MetalSimulator";
+        case slang_t::METAL_MACOS:  return "sg.Backend.Metal_macos";
+        case slang_t::METAL_IOS:    return "sg.Backend.Metal_ios";
+        case slang_t::METAL_SIM:    return "sg.Backend.Metal_simulator";
         case slang_t::WGSL:         return "sg.Backend.Wgpu";
         default: return "<INVALID>";
     }
@@ -210,7 +210,6 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         L("enum SLOT_{}{} = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
 
-        L("extern(C)\n");
         L("struct {} {{\n", to_pascal_case(fmt::format("{}{}", mod_prefix(inp), ub.struct_name)));
         int cur_offset = 0;
         for (const uniform_t& uniform: ub.uniforms) {
@@ -300,7 +299,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         L("*/\n");
         if (blob) {
             std::string c_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", (mod_prefix(inp)), (snippet.name), (slang_t::to_str(slang))));
-            L("ubyte[{}] {} = [\n", blob->data.size(), c_name.c_str());
+            L("__gshared char[{}] {} = [\n", blob->data.size(), c_name.c_str());
             const size_t len = blob->data.size();
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
@@ -319,7 +318,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
             /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
             std::string c_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang)));
             const size_t len = src.source_code.length() + 1;
-            L("ubyte[{}] {} = [\n", len, c_name.c_str());
+            L("__gshared char[{}] {} = [\n", len, c_name.c_str());
             for (size_t i = 0; i < len; i++) {
                 if ((i & 15) == 0) {
                     L("    ");
@@ -343,11 +342,11 @@ static void write_stage(const char* indent,
                         slang_t::type_t slang)
 {
     if (blob) {
-        L("{}desc.{}.bytecode.ptr = &{};\n", indent, stage_name, blob_name);
+        L("{}desc.{}.bytecode.ptr = {}.ptr;\n", indent, stage_name, blob_name);
         L("{}desc.{}.bytecode.size = {};\n", indent, stage_name, blob->data.size());
     }
     else {
-        L("{}desc.{}.source = &{};\n", indent, stage_name, src_name);
+        L("{}desc.{}.source = &{}[0];\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
         if (slang == slang_t::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
@@ -369,14 +368,14 @@ static void write_stage(const char* indent,
             if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = \"{}\";\n", indent, stage_name, ub_index, ub->struct_name);
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0]._type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
+                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
                 }
                 else {
                     for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                         const uniform_t& u = ub->uniforms[u_index];
                         L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = \"{}\";\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}]._type = {};\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
+                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].type = {};\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
                         L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
                     }
                 }
@@ -461,7 +460,8 @@ errmsg_t sokold_t::gen(const args_t& args, const input_t& inp,
 
     std::filesystem::path module_prefix = args.input;
     L("module shaders.{};\n", module_prefix.stem().string());
-    L("import sg = sokol.gfx;\n\n");
+    L("import sg = sokol.gfx;\n");
+    L("extern(C):\n\n");
     bool comment_header_written = false;
     bool common_decls_written = false;
     for (int i = 0; i < slang_t::NUM; i++) {
@@ -491,7 +491,7 @@ errmsg_t sokold_t::gen(const args_t& args, const input_t& inp,
     // write access functions which return sg.ShaderDesc structs
     for (const auto& item: inp.programs) {
         const program_t& prog = item.second;
-        L("sg.ShaderDesc {}{}_shader_desc(sg.Backend backend) {{\n", mod_prefix(inp), prog.name);
+        L("sg.ShaderDesc {}{}_shader_desc(sg.Backend backend) @trusted @nogc nothrow {{\n", mod_prefix(inp), prog.name);
         L("\tsg.ShaderDesc desc;\n");
         L("\tswitch (backend) {{\n");
         for (int i = 0; i < slang_t::NUM; i++) {
