@@ -1,6 +1,24 @@
 CHANGELOG
 =========
 
+#### **12-Feb-2024**
+
+Fixed a confusing behaviour when writing conditional shader code via
+`#if` vs `#ifdef`. Previously, when a shader is compiled it would get
+an implicit definition block at the start looking like this:
+
+```
+#define SOKOL_GLSL (1)
+#define SOKOL_HLSL (0)
+#define SOKOL_MSL (0)
+#define SOKOL_WGSL (0)
+```
+
+...meaning an `#ifdef` would always trigger and only `#if` had worked.
+
+Now only the define for the current output language is present, so that
+both `#if` and `#ifdef` works.
+
 #### **29-Oct-2023**
 
 Fix a reflection parsing regression that was introduced in the last
