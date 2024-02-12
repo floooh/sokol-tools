@@ -27,10 +27,18 @@ extern const TBuiltInResource DefaultTBuiltInResource;
 /* merge shader snippet source into a single string */
 static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
-    src += fmt::format("#define SOKOL_GLSL ({})\n", slang_t::is_glsl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_HLSL ({})\n", slang_t::is_hlsl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_MSL ({})\n", slang_t::is_msl(slang) ? 1 : 0);
-    src += fmt::format("#define SOKOL_WGSL ({})\n", slang_t::is_wgsl(slang) ? 1 : 0);
+    if (slang_t::is_glsl(slang)) {
+        src += "#define SOKOL_GLSL (1)\n";
+    }
+    if (slang_t::is_hlsl(slang)) {
+        src += "#define SOKOL_HLSL (1)\n";
+    }
+    if (slang_t::is_msl(slang)) {
+        src += "#define SOKOL_MSL (1)\n";
+    }
+    if (slang_t::is_wgsl(slang)) {
+        src += "#define SOKOL_WGSL (1)\n";
+    }
     for (const std::string& define : defines) {
         src += fmt::format("#define {} (1)\n", define);
     }
