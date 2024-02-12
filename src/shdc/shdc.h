@@ -110,6 +110,7 @@ struct format_t	{
         SOKOL_NIM,
         SOKOL_ODIN,
         SOKOL_RUST,
+        SOKOL_D,
         BARE,
         BARE_YAML,
         NUM,
@@ -125,6 +126,7 @@ struct format_t	{
             case SOKOL_NIM:     return "sokol_nim";
             case SOKOL_ODIN:    return "sokol_odin";
             case SOKOL_RUST:    return "sokol_rust";
+            case SOKOL_D:       return "sokol_d";
             case BARE:          return "bare";
             case BARE_YAML:     return "bare_yaml";
             default:            return "<invalid>";
@@ -145,6 +147,8 @@ struct format_t	{
             return SOKOL_ODIN;
         } else if (str == "sokol_rust") {
             return SOKOL_RUST;
+        } else if (str == "sokol_d") {
+            return SOKOL_D;
         } else if (str == "bare") {
             return BARE;
         } else if (str == "bare_yaml") {
@@ -745,6 +749,11 @@ struct sokolodin_t {
 
 // Rust module-generator for sokol-rust
 struct sokolrust_t {
+    static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
+};
+
+// D module-generator for sokol-d
+struct sokold_t {
     static errmsg_t gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode);
 };
 
