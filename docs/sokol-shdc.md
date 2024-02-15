@@ -481,7 +481,7 @@ where the top-level source file is located and must not contain whitespace or
 quotes. The ```@include``` tag can appear inside or outside a code block:
 
 ```glsl
-@ctype mat4 hmm_mat4
+@ctype mat4 HMM_Mat4
 
 @vs vs
 @include bla/vs.glsl
@@ -533,8 +533,8 @@ you would add the following two @ctypes at the top of the GLSL file to
 map the GLSL types to their matching hmm_* types:
 
 ```glsl
-@ctype mat4 hmm_mat4
-@ctype vec4 hmm_vec4
+@ctype mat4 HMM_Mat4
+@ctype vec4 HMM_Vec4
 
 @vs my_vs
 uniform shape_uniforms {
@@ -551,11 +551,11 @@ With this change, the uniform block struct on the C side is generated like this 
 
 ```c
 typedef struct shape_uniforms_t {
-    hmm_mat4 mvp;
-    hmm_mat4 model;
-    hmm_vec4 shape_color;
-    hmm_vec4 light_dir;
-    hmm_vec4 eye_pos;
+    HMM_Mat4 mvp;
+    HMM_Mat4 model;
+    HMM_Vec4 shape_color;
+    HMM_Vec4 light_dir;
+    HMM_Vec4 eye_pos;
 } shape_uniforms_t;
 ```
 
@@ -599,8 +599,8 @@ For instance, when adding a `@module` tag to the above @ctype-example:
 ```glsl
 @module bla
 
-@ctype mat4 hmm_mat4
-@ctype vec4 hmm_vec4
+@ctype mat4 HMM_Mat4
+@ctype vec4 HMM_Vec4
 
 @vs my_vs
 uniform shape_uniforms {
@@ -618,11 +618,11 @@ would get a prefix `bla_`:
 
 ```c
 typedef struct bla_shape_uniforms_t {
-    hmm_mat4 mvp;
-    hmm_mat4 model;
-    hmm_vec4 shape_color;
-    hmm_vec4 light_dir;
-    hmm_vec4 eye_pos;
+    HMM_Mat4 mvp;
+    HMM_Mat4 model;
+    HMM_Vec4 shape_color;
+    HMM_Vec4 light_dir;
+    HMM_Vec4 eye_pos;
 } bla_shape_uniforms_t;
 ```
 
@@ -835,7 +835,7 @@ for the uniform block:
 ```c
 #define SLOT_vs_params (0)
 typedef struct vs_params_t {
-    hmm_mat4 mvp;
+    HMM_Mat4 mvp;
 } vs_params_t;
 ```
 
