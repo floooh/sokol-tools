@@ -352,7 +352,7 @@ static void write_stage(const char* indent,
     assert(src);
     L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = find_uniform_block_by_slot(src->refl, ub_index);
+        const uniform_block_t* ub = src->refl.find_uniform_block_by_slot(ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = .STD140;\n", indent, stage_name, ub_index);
@@ -374,7 +374,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = find_image_by_slot(src->refl, img_index);
+        const image_t* img = src->refl.find_image_by_slot(img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
@@ -383,18 +383,18 @@ static void write_stage(const char* indent,
         }
     }
     for (int smp_index = 0; smp_index < sampler_t::NUM; smp_index++) {
-        const sampler_t* smp = find_sampler_by_slot(src->refl, smp_index);
+        const sampler_t* smp = src->refl.find_sampler_by_slot(smp_index);
         if (smp) {
             L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
             L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
     for (int img_smp_index = 0; img_smp_index < image_sampler_t::NUM; img_smp_index++) {
-        const image_sampler_t* img_smp = find_image_sampler_by_slot(src->refl, img_smp_index);
+        const image_sampler_t* img_smp = src->refl.find_image_sampler_by_slot(img_smp_index);
         if (img_smp) {
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
-            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, find_image_by_name(src->refl, img_smp->image_name)->slot);
-            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, find_sampler_by_name(src->refl, img_smp->sampler_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_image_by_name(img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_sampler_by_name(img_smp->sampler_name)->slot);
             if (slang_t::is_glsl(slang)) {
                 L("{}desc.{}.image_sampler_pairs[{}].glsl_name = \"{}\";\n", indent, stage_name, img_smp_index, img_smp->name);
             }

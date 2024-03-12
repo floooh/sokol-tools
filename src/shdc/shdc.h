@@ -664,7 +664,7 @@ struct stage_t {
     }
 };
 
-struct spirvcross_refl_t {
+struct reflection_t {
     stage_t::type_t stage = stage_t::INVALID;
     std::string entry_point;
     std::array<attr_t, attr_t::NUM> inputs;
@@ -673,16 +673,15 @@ struct spirvcross_refl_t {
     std::vector<image_t> images;
     std::vector<sampler_t> samplers;
     std::vector<image_sampler_t> image_samplers;
-};
 
-// a helper struct to transfer symbol names from SPIRVCross to Tint
-struct spirvcross_wgsl_symbol_table_t {
-    std::map<uint32_t, std::string> input_names;
-    std::map<uint32_t, std::string> output_names;
-    std::map<uint32_t, std::string> uniform_block_struct_names;
-    std::map<uint32_t, std::string> uniform_block_inst_names;
-    std::map<uint32_t, std::string> image_names;
-    std::map<uint32_t, std::string> sampler_names;
+    static reflection_t parse(const spirv_cross::Compiler& compiler, const snippet_t& snippet, slang_t::type_t slang);
+
+    const uniform_block_t* find_uniform_block_by_slot(int slot) const;
+    const image_t* find_image_by_slot(int slot) const;
+    const image_t* find_image_by_name(const std::string& name) const;
+    const sampler_t* find_sampler_by_slot(int slot) const;
+    const sampler_t* find_sampler_by_name(const std::string& name) const;
+    const image_sampler_t* find_image_sampler_by_slot(int slot) const;
 };
 
 // result of a spirv-cross compilation
@@ -691,7 +690,7 @@ struct spirvcross_source_t {
     int snippet_index = -1;
     std::string source_code;
     errmsg_t error;
-    spirvcross_refl_t refl;
+    reflection_t refl;
 };
 
 // spirv-cross wrapper
@@ -703,6 +702,7 @@ struct spirvcross_t {
     std::vector<sampler_t> unique_samplers;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
+    static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);
     int find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
@@ -766,12 +766,6 @@ namespace util {
     int uniform_size(uniform_t::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
-    const uniform_block_t* find_uniform_block_by_slot(const spirvcross_refl_t& refl, int slot);
-    const image_t* find_image_by_slot(const spirvcross_refl_t& refl, int slot);
-    const image_t* find_image_by_name(const spirvcross_refl_t& refl, const std::string& name);
-    const sampler_t* find_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
-    const sampler_t* find_sampler_by_name(const spirvcross_refl_t& refl, const std::string& name);
-    const image_sampler_t* find_image_sampler_by_slot(const spirvcross_refl_t& refl, int slot);
     const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
     const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
     std::string to_camel_case(const std::string& str);

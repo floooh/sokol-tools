@@ -89,60 +89,6 @@ std::string mod_prefix(const input_t& inp) {
     }
 }
 
-const uniform_block_t* find_uniform_block_by_slot(const spirvcross_refl_t& refl, int slot) {
-    for (const uniform_block_t& ub: refl.uniform_blocks) {
-        if (ub.slot == slot) {
-            return &ub;
-        }
-    }
-    return nullptr;
-}
-
-const image_t* find_image_by_slot(const spirvcross_refl_t& refl, int slot) {
-    for (const image_t& img: refl.images) {
-        if (img.slot == slot) {
-            return &img;
-        }
-    }
-    return nullptr;
-}
-
-const sampler_t* find_sampler_by_slot(const spirvcross_refl_t& refl, int slot) {
-    for (const sampler_t& smp: refl.samplers) {
-        if (smp.slot == slot) {
-            return &smp;
-        }
-    }
-    return nullptr;
-}
-
-const image_sampler_t* find_image_sampler_by_slot(const spirvcross_refl_t& refl, int slot) {
-    for (const image_sampler_t& img_smp: refl.image_samplers) {
-        if (img_smp.slot == slot) {
-            return &img_smp;
-        }
-    }
-    return nullptr;
-}
-
-const image_t* find_image_by_name(const spirvcross_refl_t& refl, const std::string& name) {
-    for (const image_t& img: refl.images) {
-        if (img.name == name) {
-            return &img;
-        }
-    }
-    return nullptr;
-}
-
-const sampler_t* find_sampler_by_name(const spirvcross_refl_t& refl, const std::string& name) {
-    for (const sampler_t& smp: refl.samplers) {
-        if (smp.name == name) {
-            return &smp;
-        }
-    }
-    return nullptr;
-}
-
 const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
