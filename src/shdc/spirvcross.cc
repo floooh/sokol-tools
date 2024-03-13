@@ -260,17 +260,21 @@ static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob,
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     switch (slang) {
-        case slang_t::GLSL100:
-            options.version = 100;
-            options.es = true;
+        case slang_t::GLSL410:
+            options.version = 410;
+            options.es = false;
+            break;
+        case slang_t::GLSL430:
+            options.version = 430;
+            options.es = false;
             break;
         case slang_t::GLSL300ES:
             options.version = 300;
             options.es = true;
             break;
         default:
-            options.version = 330;
-            options.es = false;
+            // can't happen
+            assert(false);
             break;
     }
     options.vulkan_semantics = false;
@@ -578,8 +582,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             return spv_cross;
         }
         switch (slang) {
-            case slang_t::GLSL330:
-            case slang_t::GLSL100:
+            case slang_t::GLSL410:
+            case slang_t::GLSL430:
             case slang_t::GLSL300ES:
                 src = to_glsl(inp, blob, slang, opt_mask, snippet);
                 break;

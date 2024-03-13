@@ -63,7 +63,7 @@ def run_sokol_shdc(fips_dir, proj_dir, cfg_name, out_path, shader_filename):
     args = [
         '-i', shader_filename,
         '-o', f'{out_path}/{shader_filename}.h',
-        '-l', 'glsl300es:glsl330:hlsl4:metal_macos:metal_ios:metal_sim',
+        '-l', 'glsl300es:glsl430:hlsl4:metal_macos:metal_ios:metal_sim',
         '-b',
     ]
     log.info(f'==> {shader_filename} => {out_path}/{shader_filename}.h:')

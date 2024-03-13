@@ -12,8 +12,8 @@ using namespace util;
 
 const char* bare_t::slang_file_extension(slang_t::type_t c, bool binary) {
     switch (c) {
-        case slang_t::GLSL330:
-        case slang_t::GLSL100:
+        case slang_t::GLSL410:
+        case slang_t::GLSL430:
         case slang_t::GLSL300ES:
             return ".glsl";
         case slang_t::HLSL4:

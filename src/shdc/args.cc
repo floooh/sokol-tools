@@ -33,7 +33,7 @@ static const getopt_option_t option_list[] = {
     { "help",               'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,         "print this help text", 0},
     { "input",              'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
     { "output",             'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "C header" },
-    { "slang",              'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl330:glsl100..." },
+    { "slang",              'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl430:glsl300es..." },
     { "defines",            0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEFINES,      "optional preprocessor defines", "define1:define2..." },
     { "module",             'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection",         'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
@@ -60,8 +60,8 @@ static void print_help_string(getopt_context_t& ctx) {
         "Please refer to the documentation to learn about the 'annotated GLSL syntax':\n\n"
         "  https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md\n\n\n"
         "Target shader languages (used with -l --slang):\n"
-        "  - glsl330        desktop OpenGL backend (SOKOL_GLCORE33)\n"
-        "  - glsl100        (deprecated) OpenGLES2 and WebGL\n"
+        "  - glsl410        desktop OpenGL backend (SOKOL_GLCORE)\n"
+        "  - glsl430        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
         "  - hlsl4          Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
         "  - hlsl5          Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
@@ -99,7 +99,7 @@ static bool parse_slang(args_t& args, const char* str) {
             }
         }
         if (!item_valid) {
-            fmt::print(stderr, "sokol-shdc: unknown shader language '{}'\n", item);
+            fmt::print(stderr, "sokol-shdc: unknown shader language '{}' (valid: {})\n", item, slang_t::bits_to_str(0xFFFF, " "));
             args.valid = false;
             args.exit_code = 10;
             return false;
@@ -107,6 +107,12 @@ static bool parse_slang(args_t& args, const char* str) {
     }
     if ((args.slang & slang_t::bit(slang_t::HLSL4)) && (args.slang & slang_t::bit(slang_t::HLSL5))) {
         fmt::print(stderr, "sokol-shdc: hlsl4 and hlsl5 output cannot be active at the same time!\n");
+        args.valid = false;
+        args.exit_code = 10;
+        return false;
+    }
+    if ((args.slang & slang_t::bit(slang_t::GLSL410)) && (args.slang & slang_t::bit(slang_t::GLSL430))) {
+        fmt::print(stderr, "sokol-shdc: glsl410 and glsl430 output cannot be active at the same time!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;
@@ -267,7 +273,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  input: '{}'\n", input);
     fmt::print(stderr, "  output: '{}'\n", output);
     fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
-    fmt::print(stderr, "  slang: '{}'\n", slang_t::bits_to_str(slang));
+    fmt::print(stderr, "  slang: '{}'\n", slang_t::bits_to_str(slang, ":"));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  module: '{}'\n", module);
     fmt::print(stderr, "  defines: '{}'\n", pystring::join(":", defines));

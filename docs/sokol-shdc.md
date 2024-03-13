@@ -213,7 +213,7 @@ else()
         set(slang "glsl300es")
     else()
         add_definitions(-DSOKOL_GLCORE33)
-        set(slang "glsl330")
+        set(slang "glsl430")
     endif()
 endif()
 ```
@@ -261,7 +261,7 @@ void main() {
 ...and then run:
 
 ```bash
-> ./sokol-shdc --input shd.glsl --output shd.h --slang glsl330:hlsl5:metal_macos
+> ./sokol-shdc --input shd.glsl --output shd.h --slang glsl430:hlsl5:metal_macos
 ```
 
 ...this should generate a C header named ```shd.h``` in the current directory.
@@ -285,7 +285,8 @@ void main() {
 - **-l --slang=[shader languages]**: One or multiple output shader languages.
   If multiple languages are provided, they must be separated by a **colon**.
   Valid shader language names are:
-    - **glsl330**: desktop GL
+    - **glsl410**: desktop GL 4.1 (e.g. macOS: no SSBOs and compute shaders)
+    - **glsl430**: desktop GL 4.3
     - **glsl300es**: GLES3 / WebGL2
     - **hlsl4**: D3D11
     - **hlsl5**: D3D11
@@ -294,10 +295,10 @@ void main() {
     - **metal_sim**: Metal on iOS simulator
     - **wgsl**: WebGPU
 
-  For instance, to generate header with support for all supported GLSL dialects:
+  For instance, to generate header with support for Metal on macOS and desktop GL:
 
   ```
-  --slang glsl330:glsl300es
+  --slang glsl430:metal_macos
   ```
 
 - **-b --bytecode**: If possible, compile shaders to bytecode instead of

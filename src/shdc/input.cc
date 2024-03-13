@@ -394,8 +394,8 @@ static bool parse(input_t& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = option_t::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::GLSL330] |= option_bit;
-                    cur_snippet.options[slang_t::GLSL100] |= option_bit;
+                    cur_snippet.options[slang_t::GLSL410] |= option_bit;
+                    cur_snippet.options[slang_t::GLSL430] |= option_bit;
                     cur_snippet.options[slang_t::GLSL300ES] |= option_bit;
                 }
                 add_line = false;

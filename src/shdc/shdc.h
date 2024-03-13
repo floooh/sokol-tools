@@ -14,8 +14,8 @@ namespace shdc {
 // the output shader languages to create
 struct slang_t {
     enum type_t {
-        GLSL330 = 0,
-        GLSL100,
+        GLSL410 = 0,
+        GLSL430,
         GLSL300ES,
         HLSL4,
         HLSL5,
@@ -31,8 +31,8 @@ struct slang_t {
     }
     static const char* to_str(type_t c) {
         switch (c) {
-            case GLSL330:       return "glsl330";
-            case GLSL100:       return "glsl100";
+            case GLSL410:       return "glsl410";
+            case GLSL430:       return "glsl430";
             case GLSL300ES:     return "glsl300es";
             case HLSL4:         return "hlsl4";
             case HLSL5:         return "hlsl5";
@@ -43,13 +43,13 @@ struct slang_t {
             default:            return "<invalid>";
         }
     }
-    static std::string bits_to_str(uint32_t mask) {
+    static std::string bits_to_str(uint32_t mask, const std::string& delim) {
         std::string res;
         bool sep = false;
         for (int i = 0; i < slang_t::NUM; i++) {
             if (mask & slang_t::bit((type_t)i)) {
                 if (sep) {
-                    res += ":";
+                    res += delim;
                 }
                 res += to_str((type_t)i);
                 sep = true;
@@ -59,8 +59,8 @@ struct slang_t {
     }
     static bool is_glsl(type_t c) {
         switch (c) {
-            case GLSL330:
-            case GLSL100:
+            case GLSL410:
+            case GLSL430:
             case GLSL300ES:
                 return true;
             default:

@@ -82,8 +82,8 @@ static const char* smp_type_to_sokol_type_str(sampler_type_t::type_t type) {
 
 static const char* sokol_backend(slang_t::type_t slang) {
     switch (slang) {
-        case slang_t::GLSL330:      return "sg::Backend::Glcore33";
-        case slang_t::GLSL100:      return "sg::Backend::Gles3";
+        case slang_t::GLSL410:      return "sg::Backend::Glcore";
+        case slang_t::GLSL430:      return "sg::Backend::Glcore";
         case slang_t::GLSL300ES:    return "sg::Backend::Gles3";
         case slang_t::HLSL4:        return "sg::Backend::D3d11";
         case slang_t::HLSL5:        return "sg::Backend::D3d11";
