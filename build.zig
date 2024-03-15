@@ -36,6 +36,7 @@ pub fn build_exe(
         "bytecode.cc",
         "input.cc",
         "main.cc",
+        "reflection.cc",
         "sokol.cc",
         "sokolnim.cc",
         "sokolodin.cc",
