@@ -127,7 +127,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("            Get shader desc: {}{}_shader_desc(sg_query_backend());\n", mod_prefix(inp), prog.name);
         L("            Vertex shader: {}\n", prog.vs_name);
         L("                Attribute slots:\n");
-        const snippet_t& vs_snippet = inp.snippets[vs_src->snippet_index];
+        const Snippet& vs_snippet = inp.snippets[vs_src->snippet_index];
         for (const VertexAttr& attr: vs_src->refl.inputs) {
             if (attr.slot >= 0) {
                 L("                    ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
@@ -188,7 +188,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("\n");
     for (const spirvcross_source_t& src: spirvcross.sources) {
         if (src.refl.stage == stage_t::VS) {
-            const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
+            const Snippet& vs_snippet = inp.snippets[src.snippet_index];
             L("    Vertex attribute locations for vertex shader '{}':\n\n", vs_snippet.name);
             L("        sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){{\n");
             L("            .layout = {{\n");
@@ -239,7 +239,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
     // vertex attributes
     for (const spirvcross_source_t& src: spirvcross.sources) {
         if (src.refl.stage == stage_t::VS) {
-            const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
+            const Snippet& vs_snippet = inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
                     L("#define ATTR_{}{}_{} ({})\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
@@ -359,8 +359,8 @@ static void write_shader_sources_and_blobs(const input_t& inp,
                                            Slang::type_t slang)
 {
     for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
-        const snippet_t& snippet = inp.snippets[snippet_index];
-        if ((snippet.type != snippet_t::VS) && (snippet.type != snippet_t::FS)) {
+        const Snippet& snippet = inp.snippets[snippet_index];
+        if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
             continue;
         }
         int src_index = spirvcross.find_source_by_snippet_index(snippet_index);

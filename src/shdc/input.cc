@@ -293,12 +293,12 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
     return true;
 }
 
-static bool validate_options_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_options_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 2) {
         inp.out_error = inp.error(line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
         return false;
     }
-    if (cur_snippet.type != snippet_t::VS) {
+    if (cur_snippet.type != Snippet::VS) {
         inp.out_error = inp.error(line_index, fmt::format("{} must be inside a @vs block", tokens[0]));
         return false;
     }
@@ -311,12 +311,12 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
     return true;
 }
 
-static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 3) {
         inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have at least 2 arg (@image_sample_type [texture] {})", ImageSampleType::valid_image_sample_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != snippet_t::VS) && (cur_snippet.type != snippet_t::FS)) {
+    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
         inp.out_error = inp.error(line_index, "@image_sample_type tag must be inside a @vs or @fs block");
         return false;
     }
@@ -331,12 +331,12 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
     return true;
 }
 
-static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 3) {
         inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != snippet_t::VS) && (cur_snippet.type != snippet_t::FS)) {
+    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
         inp.out_error = inp.error(line_index, "@sampler_type tag must be inside a @vs or @fs block");
         return false;
     }
@@ -359,7 +359,7 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
 static bool parse(input_t& inp) {
     bool in_snippet = false;
     bool add_line = false;
-    snippet_t cur_snippet;
+    Snippet cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
     for (const Line& line_info : inp.lines) {
@@ -430,7 +430,7 @@ static bool parse(input_t& inp) {
                 if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::BLOCK, tokens[1]);
+                cur_snippet = Snippet(Snippet::BLOCK, tokens[1]);
                 add_line = false;
                 in_snippet = true;
             }
@@ -438,7 +438,7 @@ static bool parse(input_t& inp) {
                 if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::VS, tokens[1]);
+                cur_snippet = Snippet(Snippet::VS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
             }
@@ -446,7 +446,7 @@ static bool parse(input_t& inp) {
                 if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::FS, tokens[1]);
+                cur_snippet = Snippet(Snippet::FS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
             }
@@ -454,7 +454,7 @@ static bool parse(input_t& inp) {
                 if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                const snippet_t& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
+                const Snippet& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
                 for (int line_index : src_snippet.lines) {
                     cur_snippet.lines.push_back(line_index);
                 }
@@ -466,19 +466,19 @@ static bool parse(input_t& inp) {
                 }
                 inp.snippet_map[cur_snippet.name] = (int)inp.snippets.size();
                 switch (cur_snippet.type) {
-                    case snippet_t::BLOCK:
+                    case Snippet::BLOCK:
                         inp.block_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
-                    case snippet_t::VS:
+                    case Snippet::VS:
                         inp.vs_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
-                    case snippet_t::FS:
+                    case Snippet::FS:
                         inp.fs_map[cur_snippet.name] = (int)inp.snippets.size();
                         break;
                     default: break;
                 }
                 inp.snippets.push_back(std::move(cur_snippet));
-                cur_snippet = snippet_t();
+                cur_snippet = Snippet();
                 add_line = false;
                 in_snippet = false;
             }
@@ -674,10 +674,10 @@ void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
     {
         int snippet_nr = 0;
         fmt::print(stderr, "  snippets:\n");
-        for (const snippet_t& snippet : snippets) {
+        for (const Snippet& snippet : snippets) {
             fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
             fmt::print(stderr, "      name: {}\n", snippet.name);
-            fmt::print(stderr, "      type: {}\n", snippet_t::type_to_str(snippet.type));
+            fmt::print(stderr, "      type: {}\n", Snippet::type_to_str(snippet.type));
             fmt::print(stderr, "      image sample type tags:\n");
             for (const auto& [key, val]: snippet.image_sample_type_tags) {
                 fmt::print(stderr, "        {}: {} (line: {})\n", key, ImageSampleType::to_str(val.type), val.line_index);

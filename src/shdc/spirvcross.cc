@@ -50,7 +50,7 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
-static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, Slang::type_t slang) {
+static void fix_bind_slots(Compiler& compiler, Snippet::type_t type, Slang::type_t slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // uniform buffers
@@ -93,7 +93,7 @@ static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, Slang::ty
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::type_t type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // WGPU bindgroups and binding offsets are hardwired:
@@ -107,9 +107,9 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, st
     //      - fragment stage sampler bindings start at 48
     const uint32_t ub_bindgroup = 0;
     const uint32_t res_bindgroup = 1;
-    uint32_t cur_ub_binding = snippet_t::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
-    uint32_t cur_image_binding = snippet_t::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
-    uint32_t cur_sampler_binding = snippet_t::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
+    uint32_t cur_ub_binding = Snippet::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
+    uint32_t cur_image_binding = Snippet::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
+    uint32_t cur_sampler_binding = Snippet::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
 
     // uniform buffers
     {
@@ -234,7 +234,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const snippet_t& snippet, Slang::type_t slang) {
+static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::type_t slang) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -256,7 +256,7 @@ static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& by
     return reflection_t::parse(compiler, snippet, slang);
 }
 
-static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -299,7 +299,7 @@ static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -330,7 +330,7 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -362,7 +362,7 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     return res;
 }
 
-static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, snippet.type, slang);
@@ -487,8 +487,8 @@ static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) 
 }
 
 struct snippets_refls_t {
-    const snippet_t& vs_snippet;
-    const snippet_t& fs_snippet;
+    const Snippet& vs_snippet;
+    const Snippet& fs_snippet;
     const reflection_t vs_refl;
     const reflection_t fs_refl;
 };
@@ -503,8 +503,8 @@ static snippets_refls_t get_snippets_and_sources(const input_t& inp, const Progr
     const spirvcross_source_t& fs_src = spv_cross.sources[fs_src_index];
     assert(vs_snippet_index == vs_src.snippet_index);
     assert(fs_snippet_index == fs_src.snippet_index);
-    const snippet_t& vs_snippet = inp.snippets[vs_snippet_index];
-    const snippet_t& fs_snippet = inp.snippets[fs_snippet_index];
+    const Snippet& vs_snippet = inp.snippets[vs_snippet_index];
+    const Snippet& fs_snippet = inp.snippets[fs_snippet_index];
     return { vs_snippet, fs_snippet, vs_src.refl, fs_src.refl };
 }
 
@@ -576,8 +576,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, S
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
-        const snippet_t& snippet = inp.snippets[blob.snippet_index];
-        assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
+        const Snippet& snippet = inp.snippets[blob.snippet_index];
+        assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
         spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
         if (spv_cross.error.has_error) {
             return spv_cross;

@@ -25,7 +25,7 @@ void spirv_t::finalize_spirv_tools() {
 extern const TBuiltInResource DefaultTBuiltInResource;
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const snippet_t& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
+static std::string merge_source(const input_t& inp, const Snippet& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
     if (Slang::is_glsl(slang)) {
         src += "#define SOKOL_GLSL (1)\n";
@@ -54,7 +54,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
         format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
         And a last line we need to ignore: "ERROR: N compilation errors. ..."
     */
-    const snippet_t& snippet = inp.snippets[snippet_index];
+    const Snippet& snippet = inp.snippets[snippet_index];
 
     std::vector<std::string> lines;
     pystring::splitlines(log, lines);
@@ -238,15 +238,15 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, Slang::type_t slang, const std
 
     // compile shader-snippets
     int snippet_index = 0;
-    for (const snippet_t& snippet: inp.snippets) {
-        if (snippet.type == snippet_t::VS) {
+    for (const Snippet& snippet: inp.snippets) {
+        if (snippet.type == Snippet::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
-        } else if (snippet.type == snippet_t::FS) {
+        } else if (snippet.type == Snippet::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
@@ -268,7 +268,7 @@ bool spirv_t::write_to_file(const args_t& args, const input_t& inp, Slang::type_
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
     std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
     for (const spirv_blob_t& blob: blobs) {
-        const snippet_t& snippet = inp.snippets[blob.snippet_index];
+        const Snippet& snippet = inp.snippets[blob.snippet_index];
         {
             const std::string path = fmt::format("{}{}.spv", base_path, snippet.name);
             FILE* fp = fopen(path.c_str(), "wb");

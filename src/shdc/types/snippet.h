@@ -10,7 +10,7 @@
 namespace shdc {
 
 // a named code-snippet (@block, @vs or @fs) in the input source file
-struct snippet_t {
+struct Snippet {
     enum type_t {
         INVALID,
         BLOCK,
@@ -24,8 +24,8 @@ struct snippet_t {
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
-    snippet_t();
-    snippet_t(type_t t, const std::string& n);
+    Snippet();
+    Snippet(type_t t, const std::string& n);
     const ImageSampleTypeTag* lookup_image_sample_type_tag(const std::string& tex_name) const;
     const SamplerTypeTag* lookup_sampler_type_tag(const std::string& smp_name) const;
     static const char* type_to_str(type_t t);
@@ -33,11 +33,11 @@ struct snippet_t {
     static bool is_fs(type_t t);
 };
 
-inline snippet_t::snippet_t() { };
+inline Snippet::Snippet() { };
 
-inline snippet_t::snippet_t(type_t t, const std::string& n): type(t), name(n) { };
+inline Snippet::Snippet(type_t t, const std::string& n): type(t), name(n) { };
 
-inline const ImageSampleTypeTag* snippet_t::lookup_image_sample_type_tag(const std::string& tex_name) const {
+inline const ImageSampleTypeTag* Snippet::lookup_image_sample_type_tag(const std::string& tex_name) const {
     auto it = image_sample_type_tags.find(tex_name);
     if (it != image_sample_type_tags.end()) {
         return &image_sample_type_tags.at(tex_name);
@@ -46,7 +46,7 @@ inline const ImageSampleTypeTag* snippet_t::lookup_image_sample_type_tag(const s
     }
 }
 
-inline const SamplerTypeTag* snippet_t::lookup_sampler_type_tag(const std::string& smp_name) const {
+inline const SamplerTypeTag* Snippet::lookup_sampler_type_tag(const std::string& smp_name) const {
     auto it = sampler_type_tags.find(smp_name);
     if (it != sampler_type_tags.end()) {
         return &sampler_type_tags.at(smp_name);
@@ -55,7 +55,7 @@ inline const SamplerTypeTag* snippet_t::lookup_sampler_type_tag(const std::strin
     }
 }
 
-inline const char* snippet_t::type_to_str(type_t t) {
+inline const char* Snippet::type_to_str(type_t t) {
     switch (t) {
         case BLOCK: return "block";
         case VS: return "vs";
@@ -64,11 +64,11 @@ inline const char* snippet_t::type_to_str(type_t t) {
     }
 }
 
-inline bool snippet_t::is_vs(type_t t) {
+inline bool Snippet::is_vs(type_t t) {
     return VS == t;
 }
 
-inline bool snippet_t::is_fs(type_t t) {
+inline bool Snippet::is_fs(type_t t) {
     return FS == t;
 }
 
