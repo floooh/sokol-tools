@@ -4,30 +4,30 @@ namespace shdc {
 
 // a shader stage
 struct ShaderStage {
-    enum type_t {
+    enum Enum {
         INVALID,
         VS,
         FS,
     };
-    static const char* to_str(type_t t);
-    static bool is_vs(type_t t);
-    static bool is_fs(type_t t);
+    static const char* to_str(Enum e);
+    static bool is_vs(Enum e);
+    static bool is_fs(Enum e);
 };
 
-inline const char* ShaderStage::to_str(ShaderStage::type_t t) {
-    switch (t) {
+inline const char* ShaderStage::to_str(ShaderStage::Enum e) {
+    switch (e) {
         case VS: return "VS";
         case FS: return "FS";
         default: return "INVALID";
     }
 }
 
-inline bool ShaderStage::is_vs(ShaderStage::type_t t) {
-    return VS == t;
+inline bool ShaderStage::is_vs(ShaderStage::Enum e) {
+    return VS == e;
 }
 
-inline bool ShaderStage::is_fs(ShaderStage::type_t t) {
-    return FS == t;
+inline bool ShaderStage::is_fs(ShaderStage::Enum e) {
+    return FS == e;
 }
 
 } // namespace shdc

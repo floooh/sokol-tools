@@ -15,7 +15,7 @@
 namespace shdc {
 
 struct Reflection {
-    ShaderStage::type_t stage = ShaderStage::INVALID;
+    ShaderStage::Enum stage = ShaderStage::INVALID;
     std::string entry_point;
     std::array<VertexAttr, VertexAttr::NUM> inputs;
     std::array<VertexAttr, VertexAttr::NUM> outputs;
