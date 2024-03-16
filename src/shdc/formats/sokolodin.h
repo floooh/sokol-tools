@@ -7,10 +7,8 @@
 #include "types/errmsg.h"
 #include "types/slang.h"
 
-namespace shdc {
+namespace shdc::formats::sokolodin {
 
-struct sokolodin_t {
-    static ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
-};
+ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
 
-} // namespace shdc
+}

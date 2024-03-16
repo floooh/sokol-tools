@@ -108,25 +108,25 @@ int main(int argc, const char** argv) {
     ErrMsg output_err;
     switch (args.output_format) {
         case Format::BARE:
-            output_err = bare_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::bare::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::BARE_YAML:
-            output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::yaml::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::SOKOL_ZIG:
-            output_err = sokolzig_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolzig::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::SOKOL_NIM:
-            output_err = sokolnim_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolnim::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::SOKOL_ODIN:
-            output_err = sokolodin_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolodin::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::SOKOL_RUST:
-            output_err = sokolrust_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolrust::gen(args, inp, spirvcross, bytecode);
             break;
         default:
-            output_err = sokol_t::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokol::gen(args, inp, spirvcross, bytecode);
             break;
     }
     if (output_err.has_error) {

@@ -7,7 +7,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc {
+namespace shdc::formats::sokolnim {
 
 using namespace util;
 
@@ -458,10 +458,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     L("{}result.label = \"{}\"\n", indent, shader_name);
 }
 
-ErrMsg sokolnim_t::gen(const Args& args, const Input& inp,
-                     const std::array<Spirvcross,Slang::NUM>& spirvcross,
-                     const std::array<Bytecode,Slang::NUM>& bytecode)
-{
+ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode) {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
@@ -516,4 +513,4 @@ ErrMsg sokolnim_t::gen(const Args& args, const Input& inp,
     return ErrMsg();
 }
 
-} // namespace shdc
+} // namespace

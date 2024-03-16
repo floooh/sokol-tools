@@ -7,7 +7,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc {
+namespace shdc::formats::bare {
 
 using namespace util;
 
@@ -70,10 +70,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
     return ErrMsg();
 }
 
-ErrMsg bare_t::gen(const Args& args, const Input& inp,
-                     const std::array<Spirvcross,Slang::NUM>& spirvcross,
-                     const std::array<Bytecode,Slang::NUM>& bytecode)
-{
+ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode) {
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
@@ -91,4 +88,4 @@ ErrMsg bare_t::gen(const Args& args, const Input& inp,
     return ErrMsg();
 }
 
-} // namespace shdc
+} // namespace
