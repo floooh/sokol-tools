@@ -51,7 +51,7 @@ static const char* uniform_type_to_flattened_sokol_type_str(Uniform::Type type) 
     }
 }
 
-static const char* img_type_to_sokol_type_str(ImageType::type_t type) {
+static const char* img_type_to_sokol_type_str(ImageType::Enum type) {
     switch (type) {
         case ImageType::_2D:     return "._2D";
         case ImageType::CUBE:    return ".CUBE";

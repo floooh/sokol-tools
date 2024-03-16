@@ -60,7 +60,7 @@ static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
     return Uniform::INVALID;
 }
 
-static ImageType::type_t spirtype_to_image_type(const SPIRType& type) {
+static ImageType::Enum spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
             return ImageType::ARRAY;
