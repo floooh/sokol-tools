@@ -20,7 +20,7 @@ struct Args {
     uint32_t slang = 0;                 // combined Slang bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     bool reflection = false;            // if true, generate runtime reflection functions
-    Format::type_t output_format = Format::SOKOL; // output format
+    Format::Enum output_format = Format::SOKOL; // output format
     bool debug_dump = false;            // print debug-dump info
     bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
     bool save_intermediate_spirv = false;   // save intermediate SPIRV bytecode (glslangvalidator output)
