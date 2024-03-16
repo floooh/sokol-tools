@@ -4,20 +4,20 @@
 namespace shdc {
 
 struct SamplerType {
-    enum type_t {
+    enum Enum {
         INVALID,
         FILTERING,
         COMPARISON,
         NONFILTERING,
     };
-    static const char* to_str(type_t t);
-    static SamplerType::type_t from_str(const std::string& str);
+    static const char* to_str(Enum e);
+    static SamplerType::Enum from_str(const std::string& str);
     static bool is_valid_str(const std::string& str);
     static const char* valid_sampler_types_as_str();
 };
 
-inline const char* SamplerType::to_str(type_t t) {
-    switch (t) {
+inline const char* SamplerType::to_str(Enum e) {
+    switch (e) {
         case FILTERING:    return "filtering";
         case COMPARISON:   return "comparison";
         case NONFILTERING: return "nonfiltering";
@@ -25,7 +25,7 @@ inline const char* SamplerType::to_str(type_t t) {
     }
 }
 
-inline SamplerType::type_t SamplerType::from_str(const std::string& str) {
+inline SamplerType::Enum SamplerType::from_str(const std::string& str) {
     if (str == "filtering") return FILTERING;
     else if (str == "comparison") return COMPARISON;
     else if (str == "nonfiltering") return NONFILTERING;

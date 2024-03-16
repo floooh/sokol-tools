@@ -72,7 +72,7 @@ static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::Enum ty
     }
 }
 
-static const char* smp_type_to_sokol_type_str(SamplerType::type_t type) {
+static const char* smp_type_to_sokol_type_str(SamplerType::Enum type) {
     switch (type) {
         case SamplerType::FILTERING:     return "sg::SamplerType::Filtering";
         case SamplerType::COMPARISON:    return "sg::SamplerType::Comparison";
