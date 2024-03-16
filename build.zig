@@ -38,7 +38,6 @@ pub fn build_exe(
         "reflection.cc",
         "spirv.cc",
         "spirvcross.cc",
-        "util.cc",
         "formats/bare.cc",
         "formats/sokol.cc",
         "formats/sokolnim.cc",
@@ -46,6 +45,7 @@ pub fn build_exe(
         "formats/sokolrust.cc",
         "formats/sokolzig.cc",
         "formats/yaml.cc",
+        "formats/util.cc",
     };
     const incl_dirs = [_][]const u8{
         "src/shdc",
