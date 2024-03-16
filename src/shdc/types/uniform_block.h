@@ -11,7 +11,7 @@ struct UniformBlock {
     int size = 0;
     std::string struct_name;
     std::string inst_name;
-    std::vector<uniform_t> uniforms;
+    std::vector<Uniform> uniforms;
     int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
     bool flattened = false;
 

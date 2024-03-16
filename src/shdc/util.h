@@ -12,8 +12,8 @@ namespace shdc {
 namespace util {
     ErrMsg check_errors(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang);
     const char* slang_file_extension(Slang::type_t c, bool binary);
-    const char* uniform_type_str(uniform_t::type_t type);
-    int uniform_size(uniform_t::type_t type, int array_size);
+    const char* uniform_type_str(Uniform::type_t type);
+    int uniform_size(Uniform::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
     const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);

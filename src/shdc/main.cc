@@ -15,7 +15,7 @@ int main(int argc, const char** argv) {
     spirv_t::initialize_spirv_tools();
 
     // parse command line args
-    args_t args = args_t::parse(argc, argv);
+    Args args = Args::parse(argc, argv);
     if (args.debug_dump) {
         args.dump_debug();
     }

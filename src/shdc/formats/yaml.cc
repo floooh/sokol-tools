@@ -20,29 +20,29 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
-static uniform_t as_flattened_uniform(const UniformBlock& block) {
+static Uniform as_flattened_uniform(const UniformBlock& block) {
     assert(block.flattened);
     assert(!block.uniforms.empty());
 
-    const uniform_t::type_t type = [&block](){
+    const Uniform::type_t type = [&block](){
         switch (block.uniforms[0].type) {
-            case uniform_t::FLOAT:
-            case uniform_t::FLOAT2:
-            case uniform_t::FLOAT3:
-            case uniform_t::FLOAT4:
-            case uniform_t::MAT4:
-                return uniform_t::FLOAT4;
-            case uniform_t::INT:
-            case uniform_t::INT2:
-            case uniform_t::INT3:
-            case uniform_t::INT4:
-                return uniform_t::INT4;
+            case Uniform::FLOAT:
+            case Uniform::FLOAT2:
+            case Uniform::FLOAT3:
+            case Uniform::FLOAT4:
+            case Uniform::MAT4:
+                return Uniform::FLOAT4;
+            case Uniform::INT:
+            case Uniform::INT2:
+            case Uniform::INT3:
+            case Uniform::INT4:
+                return Uniform::INT4;
             default:
                 assert(false);
-                return uniform_t::INVALID;
+                return Uniform::INVALID;
         }
     }();
-    uniform_t uniform;
+    Uniform uniform;
     uniform.name = block.struct_name;
     uniform.type = type;
     uniform.array_count = roundup(block.size, 16) / 16;
@@ -57,7 +57,7 @@ static void write_attribute(const VertexAttr& att) {
     L("              sem_index: {}\n", att.sem_index);
 }
 
-static void write_uniform(const uniform_t& uniform);
+static void write_uniform(const Uniform& uniform);
 static void write_uniform_block(const UniformBlock& uniform_block) {
     L("            -\n");
     L("              slot: {}\n", uniform_block.slot);
@@ -77,10 +77,10 @@ static void write_uniform_block(const UniformBlock& uniform_block) {
     }
 }
 
-static void write_uniform(const uniform_t& uniform) {
+static void write_uniform(const Uniform& uniform) {
     L("                -\n");
     L("                  name: {}\n", uniform.name);
-    L("                  type: {}\n", uniform_t::type_to_str(uniform.type));
+    L("                  type: {}\n", Uniform::type_to_str(uniform.type));
     L("                  array_count: {}\n", uniform.array_count);
     L("                  offset: {}\n", uniform.offset);
 }
@@ -163,7 +163,7 @@ static void write_source_reflection(const SpirvcrossSource* src) {
     }
 }
 
-static ErrMsg write_shader_sources_and_blobs(const args_t& args,
+static ErrMsg write_shader_sources_and_blobs(const Args& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
@@ -197,7 +197,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
     return ErrMsg();
 }
 
-ErrMsg yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<bytecode_t,Slang::NUM>& bytecode)
+ErrMsg yaml_t::gen(const Args& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<bytecode_t,Slang::NUM>& bytecode)
 {
     // first generate the bare-output files
     ErrMsg output_err = bare_t::gen(args, inp, spirvcross, bytecode);

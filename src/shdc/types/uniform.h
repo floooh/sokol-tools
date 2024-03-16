@@ -3,7 +3,7 @@
 
 namespace shdc {
 
-struct uniform_t {
+struct Uniform {
     static const int NUM = 16;      // must be identical with SG_MAX_UB_MEMBERS
     enum type_t {
         INVALID,
@@ -25,10 +25,10 @@ struct uniform_t {
     static const char* type_to_str(type_t t);
     static bool is_valid_glsl_uniform_type(const std::string& str);
     static const char* valid_glsl_uniform_types_as_str();
-    bool equals(const uniform_t& other) const;
+    bool equals(const Uniform& other) const;
 };
 
-inline const char* uniform_t::type_to_str(type_t t) {
+inline const char* Uniform::type_to_str(type_t t) {
     switch (t) {
         case FLOAT:     return "float";
         case FLOAT2:    return "float2";
@@ -43,7 +43,7 @@ inline const char* uniform_t::type_to_str(type_t t) {
     }
 }
 
-inline bool uniform_t::is_valid_glsl_uniform_type(const std::string& str) {
+inline bool Uniform::is_valid_glsl_uniform_type(const std::string& str) {
     return (str == "float")
         || (str == "vec2")
         || (str == "vec3")
@@ -55,11 +55,11 @@ inline bool uniform_t::is_valid_glsl_uniform_type(const std::string& str) {
         || (str == "mat4");
 }
 
-inline const char* uniform_t::valid_glsl_uniform_types_as_str() {
+inline const char* Uniform::valid_glsl_uniform_types_as_str() {
     return "float|vec2|vec3|vec4|int|int2|int3|int4|mat4";
 }
 
-inline bool uniform_t::equals(const uniform_t& other) const {
+inline bool Uniform::equals(const Uniform& other) const {
     return (name == other.name) &&
            (type == other.type) &&
            (array_count == other.array_count) &&

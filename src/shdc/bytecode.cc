@@ -173,7 +173,7 @@ static bool mtl_link(const std::string& lib_path, const std::string& bin_path, S
     return 0 == xcrun(cmdline, dummy_output, slang);
 }
 
-static bytecode_t mtl_compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+static bytecode_t mtl_compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
     bytecode_t bytecode;
     std::string base_dir;
     std::string base_filename;
@@ -351,7 +351,7 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
 }
 #endif
 
-bytecode_t bytecode_t::compile(const args_t& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+bytecode_t bytecode_t::compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
     bytecode_t bytecode;
     #if defined(__APPLE__)
     // NOTE: for the iOS simulator case, don't compile bytecode but use source code

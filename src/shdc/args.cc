@@ -86,7 +86,7 @@ static void print_help_string(getopt_context_t& ctx) {
 }
 
 /* parse string of format 'hlsl4|glsl100|...' args.slang bitmask */
-static bool parse_slang(args_t& args, const char* str) {
+static bool parse_slang(Args& args, const char* str) {
     args.slang = 0;
     std::vector<std::string> splits;
     pystring::split(str, splits, ":");
@@ -121,7 +121,7 @@ static bool parse_slang(args_t& args, const char* str) {
     return true;
 }
 
-static void validate(args_t& args) {
+static void validate(Args& args) {
     bool err = false;
     if (args.input.empty()) {
         fmt::print(stderr, "sokol-shdc: no input file (--input [path])\n");
@@ -157,8 +157,8 @@ static void validate(args_t& args) {
     }
 }
 
-args_t args_t::parse(int argc, const char** argv) {
-    args_t args;
+Args Args::parse(int argc, const char** argv) {
+    Args args;
 
     // store the original command line args
     args.cmdline = "sokol-shdc";
@@ -267,8 +267,8 @@ args_t args_t::parse(int argc, const char** argv) {
     return args;
 }
 
-void args_t::dump_debug() const {
-    fmt::print(stderr, "args_t:\n");
+void Args::dump_debug() const {
+    fmt::print(stderr, "Args:\n");
     fmt::print(stderr, "  valid: {}\n", valid);
     fmt::print(stderr, "  exit_code: {}\n", exit_code);
     fmt::print(stderr, "  input: '{}'\n", input);

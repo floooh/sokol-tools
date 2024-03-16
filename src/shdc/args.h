@@ -8,7 +8,7 @@
 namespace shdc {
 
 // result of command-line-args parsing
-struct args_t {
+struct Args {
     bool valid = false;
     std::string cmdline;
     int exit_code = 10;
@@ -27,7 +27,7 @@ struct args_t {
     int gen_version = 1;                // generator-version stamp
     ErrMsg::msg_format_t error_format = ErrMsg::GCC;  // format for error messages
 
-    static args_t parse(int argc, const char** argv);
+    static Args parse(int argc, const char** argv);
     void dump_debug() const;
 };
 

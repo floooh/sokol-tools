@@ -25,39 +25,39 @@ using namespace spirv_cross;
 
 namespace shdc {
 
-static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
+static Uniform::type_t spirtype_to_uniform_type(const SPIRType& type) {
     switch (type.basetype) {
         case SPIRType::Float:
             if (type.columns == 1) {
                 // scalar or vec
                 switch (type.vecsize) {
-                    case 1: return uniform_t::FLOAT;
-                    case 2: return uniform_t::FLOAT2;
-                    case 3: return uniform_t::FLOAT3;
-                    case 4: return uniform_t::FLOAT4;
+                    case 1: return Uniform::FLOAT;
+                    case 2: return Uniform::FLOAT2;
+                    case 3: return Uniform::FLOAT3;
+                    case 4: return Uniform::FLOAT4;
                 }
             }
             else {
                 // a matrix
                 if ((type.vecsize == 4) && (type.columns == 4)) {
-                    return uniform_t::MAT4;
+                    return Uniform::MAT4;
                 }
             }
             break;
         case SPIRType::Int:
             if (type.columns == 1) {
                 switch (type.vecsize) {
-                    case 1: return uniform_t::INT;
-                    case 2: return uniform_t::INT2;
-                    case 3: return uniform_t::INT3;
-                    case 4: return uniform_t::INT4;
+                    case 1: return Uniform::INT;
+                    case 2: return Uniform::INT2;
+                    case 3: return Uniform::INT3;
+                    case 4: return Uniform::INT4;
                 }
             }
             break;
         default: break;
     }
     // fallthrough: invalid type
-    return uniform_t::INVALID;
+    return Uniform::INVALID;
 }
 
 static ImageType::type_t spirtype_to_image_type(const SPIRType& type) {
@@ -150,7 +150,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippe
         }
         refl_ub.flattened = spirvcross_t::can_flatten_uniform_block(compiler, ub_res);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
-            uniform_t refl_uniform;
+            Uniform refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
             const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
             refl_uniform.type = spirtype_to_uniform_type(m_type);

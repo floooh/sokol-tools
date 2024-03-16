@@ -262,7 +262,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, Slang::type_t slang, const std
     return out_spirv;
 }
 
-bool spirv_t::write_to_file(const args_t& args, const input_t& inp, Slang::type_t slang) {
+bool spirv_t::write_to_file(const Args& args, const input_t& inp, Slang::type_t slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);

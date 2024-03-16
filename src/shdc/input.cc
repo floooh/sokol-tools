@@ -174,8 +174,8 @@ static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_s
         inp.out_error = inp.error(line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
         return false;
     }
-    if (!uniform_t::is_valid_glsl_uniform_type(tokens[1])) {
-        inp.out_error = inp.error(line_index, fmt::format("first arg of type tag must be one of {}", uniform_t::valid_glsl_uniform_types_as_str()));
+    if (!Uniform::is_valid_glsl_uniform_type(tokens[1])) {
+        inp.out_error = inp.error(line_index, fmt::format("first arg of type tag must be one of {}", Uniform::valid_glsl_uniform_types_as_str()));
         return false;
     }
     return true;

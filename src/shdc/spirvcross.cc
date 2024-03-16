@@ -685,10 +685,10 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang)
         }
         for (const UniformBlock& ub: source.refl.uniform_blocks) {
             fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
-            for (const uniform_t& uniform: ub.uniforms) {
+            for (const Uniform& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
                     uniform.name,
-                    uniform_t::type_to_str(uniform.type),
+                    Uniform::type_to_str(uniform.type),
                     uniform.array_count,
                     uniform.offset);
             }

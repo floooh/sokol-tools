@@ -33,43 +33,43 @@ ErrMsg check_errors(const input_t& inp,
     return ErrMsg();
 }
 
-const char* uniform_type_str(uniform_t::type_t type) {
+const char* uniform_type_str(Uniform::type_t type) {
     switch (type) {
-        case uniform_t::FLOAT: return "float";
-        case uniform_t::FLOAT2: return "vec2";
-        case uniform_t::FLOAT3: return "vec3";
-        case uniform_t::FLOAT4: return "vec4";
-        case uniform_t::MAT4: return "mat4";
+        case Uniform::FLOAT: return "float";
+        case Uniform::FLOAT2: return "vec2";
+        case Uniform::FLOAT3: return "vec3";
+        case Uniform::FLOAT4: return "vec4";
+        case Uniform::MAT4: return "mat4";
         default: return "FIXME";
     }
 }
 
-int uniform_size(uniform_t::type_t type, int array_size) {
+int uniform_size(Uniform::type_t type, int array_size) {
     if (array_size > 1) {
         switch (type) {
-            case uniform_t::FLOAT4:
-            case uniform_t::INT4:
+            case Uniform::FLOAT4:
+            case Uniform::INT4:
                 return 16 * array_size;
-            case uniform_t::MAT4:
+            case Uniform::MAT4:
                 return 64 * array_size;
             default: return 0;
         }
     }
     else {
         switch (type) {
-            case uniform_t::FLOAT:
-            case uniform_t::INT:
+            case Uniform::FLOAT:
+            case Uniform::INT:
                 return 4;
-            case uniform_t::FLOAT2:
-            case uniform_t::INT2:
+            case Uniform::FLOAT2:
+            case Uniform::INT2:
                 return 8;
-            case uniform_t::FLOAT3:
-            case uniform_t::INT3:
+            case Uniform::FLOAT3:
+            case Uniform::INT3:
                 return 12;
-            case uniform_t::FLOAT4:
-            case uniform_t::INT4:
+            case Uniform::FLOAT4:
+            case Uniform::INT4:
                 return 16;
-            case uniform_t::MAT4:
+            case Uniform::MAT4:
                 return 64;
             default: return 0;
         }
