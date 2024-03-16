@@ -500,7 +500,7 @@ static bool parse(input_t& inp) {
                 if (!validate_sampler_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.sampler_type_tags[tokens[1]] = sampler_type_tag_t(tokens[1], sampler_type_t::from_str(tokens[2]), line_index);
+                cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], sampler_type_t::from_str(tokens[2]), line_index);
                 add_line = false;
             }
             else if (tokens[0][0] == '@') {
