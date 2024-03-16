@@ -25,18 +25,18 @@ void spirv_t::finalize_spirv_tools() {
 extern const TBuiltInResource DefaultTBuiltInResource;
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang, const std::vector<std::string>& defines) {
+static std::string merge_source(const input_t& inp, const snippet_t& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
-    if (slang_t::is_glsl(slang)) {
+    if (Slang::is_glsl(slang)) {
         src += "#define SOKOL_GLSL (1)\n";
     }
-    if (slang_t::is_hlsl(slang)) {
+    if (Slang::is_hlsl(slang)) {
         src += "#define SOKOL_HLSL (1)\n";
     }
-    if (slang_t::is_msl(slang)) {
+    if (Slang::is_msl(slang)) {
         src += "#define SOKOL_MSL (1)\n";
     }
-    if (slang_t::is_wgsl(slang)) {
+    if (Slang::is_wgsl(slang)) {
         src += "#define SOKOL_WGSL (1)\n";
     }
     for (const std::string& define : defines) {
@@ -116,8 +116,8 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     bounded for-loops are converted to what looks like an unbounded loop
     ("for (;;) { }") to WebGL
 */
-static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    if (slang == slang_t::WGSL) {
+static void spirv_optimize(Slang::type_t slang, std::vector<uint32_t>& spirv) {
+    if (slang == Slang::WGSL) {
         return;
     }
     spv_target_env target_env;
@@ -164,7 +164,7 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const input_t& inp, int snippet_index, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -233,7 +233,7 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
 }
 
 // compile all shader-snippets into SPIRV bytecode
-spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
+spirv_t spirv_t::compile_glsl(const input_t& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
@@ -262,11 +262,11 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const s
     return out_spirv;
 }
 
-bool spirv_t::write_to_file(const args_t& args, const input_t& inp, slang_t::type_t slang) {
+bool spirv_t::write_to_file(const args_t& args, const input_t& inp, Slang::type_t slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
-    std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, slang_t::to_str(slang));
+    std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
     for (const spirv_blob_t& blob: blobs) {
         const snippet_t& snippet = inp.snippets[blob.snippet_index];
         {

@@ -92,27 +92,27 @@ static bool parse_slang(args_t& args, const char* str) {
     pystring::split(str, splits, ":");
     for (const auto& item : splits) {
         bool item_valid = false;
-        for (int i = 0; i < slang_t::NUM; i++) {
-            if (item == slang_t::to_str((slang_t::type_t)i)) {
-                args.slang |= slang_t::bit((slang_t::type_t)i);
+        for (int i = 0; i < Slang::NUM; i++) {
+            if (item == Slang::to_str((Slang::type_t)i)) {
+                args.slang |= Slang::bit((Slang::type_t)i);
                 item_valid = true;
                 break;
             }
         }
         if (!item_valid) {
-            fmt::print(stderr, "sokol-shdc: unknown shader language '{}' (valid: {})\n", item, slang_t::bits_to_str(0xFFFF, " "));
+            fmt::print(stderr, "sokol-shdc: unknown shader language '{}' (valid: {})\n", item, Slang::bits_to_str(0xFFFF, " "));
             args.valid = false;
             args.exit_code = 10;
             return false;
         }
     }
-    if ((args.slang & slang_t::bit(slang_t::HLSL4)) && (args.slang & slang_t::bit(slang_t::HLSL5))) {
+    if ((args.slang & Slang::bit(Slang::HLSL4)) && (args.slang & Slang::bit(Slang::HLSL5))) {
         fmt::print(stderr, "sokol-shdc: hlsl4 and hlsl5 output cannot be active at the same time!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;
     }
-    if ((args.slang & slang_t::bit(slang_t::GLSL410)) && (args.slang & slang_t::bit(slang_t::GLSL430))) {
+    if ((args.slang & Slang::bit(Slang::GLSL410)) && (args.slang & Slang::bit(Slang::GLSL430))) {
         fmt::print(stderr, "sokol-shdc: glsl410 and glsl430 output cannot be active at the same time!\n");
         args.valid = false;
         args.exit_code = 10;
@@ -274,7 +274,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  input: '{}'\n", input);
     fmt::print(stderr, "  output: '{}'\n", output);
     fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
-    fmt::print(stderr, "  slang: '{}'\n", slang_t::bits_to_str(slang, ":"));
+    fmt::print(stderr, "  slang: '{}'\n", Slang::bits_to_str(slang, ":"));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  module: '{}'\n", module);
     fmt::print(stderr, "  defines: '{}'\n", pystring::join(":", defines));

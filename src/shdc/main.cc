@@ -34,10 +34,10 @@ int main(int argc, const char** argv) {
     }
 
     // compile source snippets to SPIRV blobs
-    std::array<spirv_t,slang_t::NUM> spirv;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t)i;
-        if (args.slang & slang_t::bit(slang)) {
+    std::array<spirv_t,Slang::NUM> spirv;
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::type_t slang = (Slang::type_t)i;
+        if (args.slang & Slang::bit(slang)) {
             spirv[i] = spirv_t::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
@@ -63,10 +63,10 @@ int main(int argc, const char** argv) {
     }
 
     // cross-translate SPIRV to shader dialects
-    std::array<spirvcross_t,slang_t::NUM> spirvcross;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t)i;
-        if (args.slang & slang_t::bit(slang)) {
+    std::array<spirvcross_t,Slang::NUM> spirvcross;
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::type_t slang = (Slang::type_t)i;
+        if (args.slang & Slang::bit(slang)) {
             spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
@@ -79,11 +79,11 @@ int main(int argc, const char** argv) {
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    std::array<bytecode_t, slang_t::NUM> bytecode;
+    std::array<bytecode_t, Slang::NUM> bytecode;
     if (args.byte_code) {
-        for (int i = 0; i < slang_t::NUM; i++) {
-            slang_t::type_t slang = (slang_t::type_t)i;
-            if (args.slang & slang_t::bit(slang)) {
+        for (int i = 0; i < Slang::NUM; i++) {
+            Slang::type_t slang = (Slang::type_t)i;
+            if (args.slang & Slang::bit(slang)) {
                 bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();

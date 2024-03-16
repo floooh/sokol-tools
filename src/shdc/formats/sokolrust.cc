@@ -81,17 +81,17 @@ static const char* smp_type_to_sokol_type_str(SamplerType::type_t type) {
     }
 }
 
-static const char* sokol_backend(slang_t::type_t slang) {
+static const char* sokol_backend(Slang::type_t slang) {
     switch (slang) {
-        case slang_t::GLSL410:      return "sg::Backend::Glcore";
-        case slang_t::GLSL430:      return "sg::Backend::Glcore";
-        case slang_t::GLSL300ES:    return "sg::Backend::Gles3";
-        case slang_t::HLSL4:        return "sg::Backend::D3d11";
-        case slang_t::HLSL5:        return "sg::Backend::D3d11";
-        case slang_t::METAL_MACOS:  return "sg::Backend::MetalMacos";
-        case slang_t::METAL_IOS:    return "sg::Backend::MetalIos";
-        case slang_t::METAL_SIM:    return "sg::Backend::MetalSimulator";
-        case slang_t::WGSL:         return "sg::Backend::Wgpu";
+        case Slang::GLSL410:      return "sg::Backend::Glcore";
+        case Slang::GLSL430:      return "sg::Backend::Glcore";
+        case Slang::GLSL300ES:    return "sg::Backend::Gles3";
+        case Slang::HLSL4:        return "sg::Backend::D3d11";
+        case Slang::HLSL5:        return "sg::Backend::D3d11";
+        case Slang::METAL_MACOS:  return "sg::Backend::MetalMacos";
+        case Slang::METAL_IOS:    return "sg::Backend::MetalIos";
+        case Slang::METAL_SIM:    return "sg::Backend::MetalSimulator";
+        case Slang::WGSL:         return "sg::Backend::Wgpu";
         default: return "<INVALID>";
     }
 }
@@ -206,7 +206,7 @@ static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spi
     }
 }
 
-static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang) {
+static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
     for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
 
@@ -279,7 +279,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
 static void write_shader_sources_and_blobs(const input_t& inp,
                                            const spirvcross_t& spirvcross,
                                            const bytecode_t& bytecode,
-                                           slang_t::type_t slang)
+                                           Slang::type_t slang)
 {
     for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
         const snippet_t& snippet = inp.snippets[snippet_index];
@@ -303,7 +303,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         }
         L("*/\n");
         if (blob) {
-            std::string c_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", (mod_prefix(inp)), (snippet.name), (slang_t::to_str(slang))));
+            std::string c_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", (mod_prefix(inp)), (snippet.name), (Slang::to_str(slang))));
             L("pub const {}: [u8; {}] = [\n", c_name.c_str(), blob->data.size());
             const size_t len = blob->data.size();
             for (size_t i = 0; i < len; i++) {
@@ -321,7 +321,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         }
         else {
             /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
-            std::string c_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), snippet.name, slang_t::to_str(slang)));
+            std::string c_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), snippet.name, Slang::to_str(slang)));
             const size_t len = src.source_code.length() + 1;
             L("pub const {}: [u8; {}] = [\n", c_name.c_str(), len);
             for (size_t i = 0; i < len; i++) {
@@ -344,7 +344,7 @@ static void write_stage(const char* indent,
                         const std::string& src_name,
                         const BytecodeBlob* blob,
                         const std::string& blob_name,
-                        slang_t::type_t slang)
+                        Slang::type_t slang)
 {
     if (blob) {
         L("{}desc.{}.bytecode.ptr = &{} as *const _ as *const _;\n", indent, stage_name, blob_name);
@@ -353,10 +353,10 @@ static void write_stage(const char* indent,
     else {
         L("{}desc.{}.source = &{} as *const _ as *const _;\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
-        if (slang == slang_t::HLSL4) {
+        if (slang == Slang::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
         }
-        else if (slang == slang_t::HLSL5) {
+        else if (slang == Slang::HLSL5) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_5_0" : "ps_5_0";
         }
         if (d3d11_tgt) {
@@ -370,7 +370,7 @@ static void write_stage(const char* indent,
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = sg::UniformLayout::Std140;\n", indent, stage_name, ub_index);
-            if (slang_t::is_glsl(slang) && (ub->uniforms.size() > 0)) {
+            if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                 if (ub->flattened) {
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, ub_index, ub->struct_name);
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0]._type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
@@ -409,14 +409,14 @@ static void write_stage(const char* indent,
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
             L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_image_by_name(img_smp->image_name)->slot);
             L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_sampler_by_name(img_smp->sampler_name)->slot);
-            if (slang_t::is_glsl(slang)) {
+            if (Slang::is_glsl(slang)) {
                 L("{}desc.{}.image_sampler_pairs[{}].glsl_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_smp_index, img_smp->name);
             }
         }
     }
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, Slang::type_t slang) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -425,26 +425,26 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     std::string vs_src_name, fs_src_name;
     std::string vs_blob_name, fs_blob_name;
     if (vs_blob) {
-        vs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang)));
+        vs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
     }
     else {
-        vs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.vs_name, slang_t::to_str(slang)));
+        vs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
     }
     if (fs_blob) {
-        fs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang)));
+        fs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
     }
     else {
-        fs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.fs_name, slang_t::to_str(slang)));
+        fs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
     }
 
     /* write shader desc */
     for (int attr_index = 0; attr_index < VertexAttr::NUM; attr_index++) {
         const VertexAttr& attr = vs_src->refl.inputs[attr_index];
         if (attr.slot >= 0) {
-            if (slang_t::is_glsl(slang)) {
+            if (Slang::is_glsl(slang)) {
                 L("{}desc.attrs[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.name);
             }
-            else if (slang_t::is_hlsl(slang)) {
+            else if (Slang::is_hlsl(slang)) {
                 L("{}desc.attrs[{}].sem_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.sem_name);
                 L("{}desc.attrs[{}].sem_index = {};\n", indent, attr_index, attr.sem_index);
             }
@@ -456,8 +456,8 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
 }
 
 ErrMsg sokolrust_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
-                     const std::array<bytecode_t,slang_t::NUM>& bytecode)
+                     const std::array<spirvcross_t,Slang::NUM>& spirvcross,
+                     const std::array<bytecode_t,Slang::NUM>& bytecode)
 {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
@@ -467,9 +467,9 @@ ErrMsg sokolrust_t::gen(const args_t& args, const input_t& inp,
     L("use sokol::gfx as sg;\n\n");
     bool comment_header_written = false;
     bool common_decls_written = false;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t) i;
-        if (args.slang & slang_t::bit(slang)) {
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::type_t slang = (Slang::type_t) i;
+        if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
@@ -497,9 +497,9 @@ ErrMsg sokolrust_t::gen(const args_t& args, const input_t& inp,
         L("pub fn {}{}_shader_desc(backend: sg::Backend) -> sg::ShaderDesc {{\n", mod_prefix(inp), prog.name);
         L("    let mut desc = sg::ShaderDesc::new();\n");
         L("    match backend {{\n");
-        for (int i = 0; i < slang_t::NUM; i++) {
-            slang_t::type_t slang = (slang_t::type_t) i;
-            if (args.slang & slang_t::bit(slang)) {
+        for (int i = 0; i < Slang::NUM; i++) {
+            Slang::type_t slang = (Slang::type_t) i;
+            if (args.slang & Slang::bit(slang)) {
                 L("        {} => {{\n", sokol_backend(slang));
                 write_shader_desc_init("            ", prog, inp, spirvcross[i], bytecode[i], slang);
                 L("        }},\n");

@@ -167,7 +167,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
-                                               slang_t::type_t slang)
+                                               Slang::type_t slang)
 {
     L("    programs:\n");
     for (const auto& item: inp.programs) {
@@ -177,7 +177,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
         const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 
-        const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang));
+        const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, Slang::to_str(slang));
         const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, util::slang_file_extension(slang, vs_blob));
         const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, util::slang_file_extension(slang, fs_blob));
 
@@ -197,7 +197,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
     return ErrMsg();
 }
 
-ErrMsg yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode)
+ErrMsg yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<bytecode_t,Slang::NUM>& bytecode)
 {
     // first generate the bare-output files
     ErrMsg output_err = bare_t::gen(args, inp, spirvcross, bytecode);
@@ -209,16 +209,16 @@ ErrMsg yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spir
 
     L("shaders:\n");
 
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t) i;
-        if (args.slang & slang_t::bit(slang)) {
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::type_t slang = (Slang::type_t) i;
+        if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
             }
 
             L("  -\n");
-            L("    slang: {}\n", slang_t::to_str(slang));
+            L("    slang: {}\n", Slang::to_str(slang));
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
             if (err.has_error) {
                 return err;

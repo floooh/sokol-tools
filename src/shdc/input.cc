@@ -397,9 +397,9 @@ static bool parse(input_t& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = Option::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::GLSL410] |= option_bit;
-                    cur_snippet.options[slang_t::GLSL430] |= option_bit;
-                    cur_snippet.options[slang_t::GLSL300ES] |= option_bit;
+                    cur_snippet.options[Slang::GLSL410] |= option_bit;
+                    cur_snippet.options[Slang::GLSL430] |= option_bit;
+                    cur_snippet.options[Slang::GLSL300ES] |= option_bit;
                 }
                 add_line = false;
             }
@@ -409,8 +409,8 @@ static bool parse(input_t& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = Option::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::HLSL4] |= option_bit;
-                    cur_snippet.options[slang_t::HLSL5] |= option_bit;
+                    cur_snippet.options[Slang::HLSL4] |= option_bit;
+                    cur_snippet.options[Slang::HLSL5] |= option_bit;
                 }
                 add_line = false;
             }
@@ -420,9 +420,9 @@ static bool parse(input_t& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = Option::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::METAL_MACOS] |= option_bit;
-                    cur_snippet.options[slang_t::METAL_IOS] |= option_bit;
-                    cur_snippet.options[slang_t::METAL_SIM] |= option_bit;
+                    cur_snippet.options[Slang::METAL_MACOS] |= option_bit;
+                    cur_snippet.options[Slang::METAL_IOS] |= option_bit;
+                    cur_snippet.options[Slang::METAL_SIM] |= option_bit;
                 }
                 add_line = false;
             }

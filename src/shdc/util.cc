@@ -10,7 +10,7 @@ namespace util {
 
 ErrMsg check_errors(const input_t& inp,
                       const spirvcross_t& spirvcross,
-                      slang_t::type_t slang)
+                      Slang::type_t slang)
 {
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
@@ -21,12 +21,12 @@ ErrMsg check_errors(const input_t& inp,
         if (vs_src_index < 0) {
             return inp.error(inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
-                    slang_t::to_str(slang), prog.vs_name, prog.name));
+                    Slang::to_str(slang), prog.vs_name, prog.name));
         }
         if (fs_src_index < 0) {
             return inp.error(inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
-                    slang_t::to_str(slang), prog.fs_name, prog.name));
+                    Slang::to_str(slang), prog.fs_name, prog.name));
         }
     }
     // all ok
@@ -153,20 +153,20 @@ std::string replace_C_comment_tokens(const std::string& str) {
     return s;
 }
 
-const char* slang_file_extension(slang_t::type_t c, bool binary) {
+const char* slang_file_extension(Slang::type_t c, bool binary) {
     switch (c) {
-        case slang_t::GLSL410:
-        case slang_t::GLSL430:
-        case slang_t::GLSL300ES:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+        case Slang::GLSL300ES:
             return ".glsl";
-        case slang_t::HLSL4:
-        case slang_t::HLSL5:
+        case Slang::HLSL4:
+        case Slang::HLSL5:
             return binary ? ".fxc" : ".hlsl";
-        case slang_t::METAL_MACOS:
-        case slang_t::METAL_IOS:
-        case slang_t::METAL_SIM:
+        case Slang::METAL_MACOS:
+        case Slang::METAL_IOS:
+        case Slang::METAL_SIM:
             return binary ? ".metallib" : ".metal";
-        case slang_t::WGSL:
+        case Slang::WGSL:
             return ".wgsl";
         default:
             return "";

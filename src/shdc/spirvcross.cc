@@ -50,7 +50,7 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
-static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, slang_t::type_t slang) {
+static void fix_bind_slots(Compiler& compiler, snippet_t::type_t type, Slang::type_t slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // uniform buffers
@@ -234,7 +234,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const snippet_t& snippet, slang_t::type_t slang) {
+static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const snippet_t& snippet, Slang::type_t slang) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -256,20 +256,20 @@ static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& by
     return reflection_t::parse(compiler, snippet, slang);
 }
 
-static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     switch (slang) {
-        case slang_t::GLSL410:
+        case Slang::GLSL410:
             options.version = 410;
             options.es = false;
             break;
-        case slang_t::GLSL430:
+        case Slang::GLSL430:
             options.version = 430;
             options.es = false;
             break;
-        case slang_t::GLSL300ES:
+        case Slang::GLSL300ES:
             options.version = 300;
             options.es = true;
             break;
@@ -299,7 +299,7 @@ static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -308,7 +308,7 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     compiler.set_common_options(commonOptions);
     CompilerHLSL::Options hlslOptions;
     switch (slang) {
-        case slang_t::HLSL4:
+        case Slang::HLSL4:
             hlslOptions.shader_model = 40;
             break;
         default:
@@ -330,7 +330,7 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -339,7 +339,7 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     compiler.set_common_options(commonOptions);
     CompilerMSL::Options mslOptions;
     switch (slang) {
-        case slang_t::METAL_MACOS:
+        case Slang::METAL_MACOS:
             mslOptions.platform = CompilerMSL::Options::macOS;
             break;
         default:
@@ -362,7 +362,7 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     return res;
 }
 
-static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, slang_t::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
+static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const snippet_t& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, snippet.type, slang);
@@ -571,7 +571,7 @@ static ErrMsg validate_sampler_type_tags(const input_t& inp, const spirvcross_t&
 }
 */
 
-spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang) {
+spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, Slang::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         spirvcross_source_t src;
@@ -583,21 +583,21 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             return spv_cross;
         }
         switch (slang) {
-            case slang_t::GLSL410:
-            case slang_t::GLSL430:
-            case slang_t::GLSL300ES:
+            case Slang::GLSL410:
+            case Slang::GLSL430:
+            case Slang::GLSL300ES:
                 src = to_glsl(inp, blob, slang, opt_mask, snippet);
                 break;
-            case slang_t::HLSL4:
-            case slang_t::HLSL5:
+            case Slang::HLSL4:
+            case Slang::HLSL5:
                 src = to_hlsl(inp, blob, slang, opt_mask, snippet);
                 break;
-            case slang_t::METAL_MACOS:
-            case slang_t::METAL_IOS:
-            case slang_t::METAL_SIM:
+            case Slang::METAL_MACOS:
+            case Slang::METAL_IOS:
+            case Slang::METAL_SIM:
                 src = to_msl(inp, blob, slang, opt_mask, snippet);
                 break;
-            case slang_t::WGSL:
+            case Slang::WGSL:
                 src = to_wgsl(inp, blob, slang, opt_mask, snippet);
                 break;
             default: break;
@@ -610,9 +610,9 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
             const int line_index = snippet.lines[0];
             std::string err_msg;
             if (src.error.has_error) {
-                err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", slang_t::to_str(slang), src.error.msg);
+                err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", Slang::to_str(slang), src.error.msg);
             } else {
-                err_msg = fmt::format("Failed to cross-compile to {}\n", slang_t::to_str(slang));
+                err_msg = fmt::format("Failed to cross-compile to {}\n", Slang::to_str(slang));
             }
             spv_cross.error = inp.error(line_index, err_msg);
             return spv_cross;
@@ -653,8 +653,8 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slang) const {
-    fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
+void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang) const {
+    fmt::print(stderr, "spirvcross_t ({}):\n", Slang::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }

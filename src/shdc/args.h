@@ -17,7 +17,7 @@ struct args_t {
     std::string tmpdir;                 // directory for temporary files
     std::string module;                 // optional @module name override
     std::vector<std::string> defines;   // additional preprocessor defines
-    uint32_t slang = 0;                 // combined slang_t bits
+    uint32_t slang = 0;                 // combined Slang bits
     bool byte_code = false;             // output byte code (for HLSL and MetalSL)
     bool reflection = false;            // if true, generate runtime reflection functions
     Format::type_t output_format = Format::SOKOL; // output format

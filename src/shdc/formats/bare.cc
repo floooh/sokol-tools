@@ -43,7 +43,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
-                                               slang_t::type_t slang)
+                                               Slang::type_t slang)
 {
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
@@ -52,7 +52,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
         const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 
-        const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang));
+        const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, Slang::to_str(slang));
         const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, util::slang_file_extension(slang, vs_blob));
         const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, util::slang_file_extension(slang, fs_blob));
 
@@ -71,12 +71,12 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
 }
 
 ErrMsg bare_t::gen(const args_t& args, const input_t& inp,
-                     const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
-                     const std::array<bytecode_t,slang_t::NUM>& bytecode)
+                     const std::array<spirvcross_t,Slang::NUM>& spirvcross,
+                     const std::array<bytecode_t,Slang::NUM>& bytecode)
 {
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t) i;
-        if (args.slang & slang_t::bit(slang)) {
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::type_t slang = (Slang::type_t) i;
+        if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
