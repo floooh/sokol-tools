@@ -50,7 +50,7 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
-static void fix_bind_slots(Compiler& compiler, Snippet::type_t type, Slang::Enum slang) {
+static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // uniform buffers
@@ -93,7 +93,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::type_t type, Slang::Enum
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::type_t type, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // WGPU bindgroups and binding offsets are hardwired:

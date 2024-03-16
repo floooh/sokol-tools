@@ -11,13 +11,13 @@ namespace shdc {
 
 // a named code-snippet (@block, @vs or @fs) in the input source file
 struct Snippet {
-    enum type_t {
+    enum Type {
         INVALID,
         BLOCK,
         VS,
         FS
     };
-    type_t type = INVALID;
+    Type type = INVALID;
     std::array<uint32_t, Slang::NUM> options = { };
     std::map<std::string, ImageSampleTypeTag> image_sample_type_tags;
     std::map<std::string, SamplerTypeTag> sampler_type_tags;
@@ -25,17 +25,17 @@ struct Snippet {
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
     Snippet();
-    Snippet(type_t t, const std::string& n);
+    Snippet(Type t, const std::string& n);
     const ImageSampleTypeTag* lookup_image_sample_type_tag(const std::string& tex_name) const;
     const SamplerTypeTag* lookup_sampler_type_tag(const std::string& smp_name) const;
-    static const char* type_to_str(type_t t);
-    static bool is_vs(type_t t);
-    static bool is_fs(type_t t);
+    static const char* type_to_str(Type t);
+    static bool is_vs(Type t);
+    static bool is_fs(Type t);
 };
 
 inline Snippet::Snippet() { };
 
-inline Snippet::Snippet(type_t t, const std::string& n): type(t), name(n) { };
+inline Snippet::Snippet(Type t, const std::string& n): type(t), name(n) { };
 
 inline const ImageSampleTypeTag* Snippet::lookup_image_sample_type_tag(const std::string& tex_name) const {
     auto it = image_sample_type_tags.find(tex_name);
@@ -55,7 +55,7 @@ inline const SamplerTypeTag* Snippet::lookup_sampler_type_tag(const std::string&
     }
 }
 
-inline const char* Snippet::type_to_str(type_t t) {
+inline const char* Snippet::type_to_str(Type t) {
     switch (t) {
         case BLOCK: return "block";
         case VS: return "vs";
@@ -64,11 +64,11 @@ inline const char* Snippet::type_to_str(type_t t) {
     }
 }
 
-inline bool Snippet::is_vs(type_t t) {
+inline bool Snippet::is_vs(Type t) {
     return VS == t;
 }
 
-inline bool Snippet::is_fs(type_t t) {
+inline bool Snippet::is_fs(Type t) {
     return FS == t;
 }
 
