@@ -131,7 +131,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: vs_src->refl.images) {
+        for (const Image& img: vs_src->refl.images) {
             L("#               Image '{}':\n", img.name);
             L("#                   Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("#                   Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -154,7 +154,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.images) {
             L("#               Image '{}':\n", img.name);
             L("#                   Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("#                   Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -197,7 +197,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 }
 
 static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const image_t& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.unique_images) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), img.name));
         L("const {}* = {}\n", slotName, img.slot);
     }
@@ -389,8 +389,8 @@ static void write_stage(const char* indent,
             }
         }
     }
-    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = src->refl.find_image_by_slot(img_index);
+    for (int img_index = 0; img_index < Image::NUM; img_index++) {
+        const Image* img = src->refl.find_image_by_slot(img_index);
         if (img) {
             L("{}result.{}.images[{}].used = true\n", indent, stage_name, img_index);
             L("{}result.{}.images[{}].multisampled = {}\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");

@@ -18,7 +18,7 @@ struct spirvcross_t {
     std::vector<spirvcross_source_t> sources;
     // FIXME: those should go into reflection?
     std::vector<uniform_block_t> unique_uniform_blocks;
-    std::vector<image_t> unique_images;
+    std::vector<Image> unique_images;
     std::vector<sampler_t> unique_samplers;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);

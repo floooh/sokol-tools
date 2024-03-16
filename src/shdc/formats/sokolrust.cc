@@ -127,7 +127,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
         }
-        for (const image_t& img: vs_src->refl.images) {
+        for (const Image& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -150,13 +150,13 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -195,7 +195,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 }
 
 static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const image_t& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.unique_images) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
     }
 }
@@ -387,8 +387,8 @@ static void write_stage(const char* indent,
             }
         }
     }
-    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = src->refl.find_image_by_slot(img_index);
+    for (int img_index = 0; img_index < Image::NUM; img_index++) {
+        const Image* img = src->refl.find_image_by_slot(img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");

@@ -164,7 +164,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
     }
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
-        image_t refl_img;
+        Image refl_img;
         refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
@@ -226,8 +226,8 @@ const uniform_block_t* reflection_t::find_uniform_block_by_slot(int slot) const 
     return nullptr;
 }
 
-const image_t* reflection_t::find_image_by_slot(int slot) const {
-    for (const image_t& img: this->images) {
+const Image* reflection_t::find_image_by_slot(int slot) const {
+    for (const Image& img: this->images) {
         if (img.slot == slot) {
             return &img;
         }
@@ -253,8 +253,8 @@ const ImageSampler* reflection_t::find_image_sampler_by_slot(int slot) const {
     return nullptr;
 }
 
-const image_t* reflection_t::find_image_by_name(const std::string& name) const {
-    for (const image_t& img: this->images) {
+const Image* reflection_t::find_image_by_name(const std::string& name) const {
+    for (const Image& img: this->images) {
         if (img.name == name) {
             return &img;
         }

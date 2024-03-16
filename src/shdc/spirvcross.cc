@@ -443,7 +443,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
 // find all identical images across all shaders, and check for collisions
 static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
     for (spirvcross_source_t& src: spv_cross.sources) {
-        for (image_t& img: src.refl.images) {
+        for (Image& img: src.refl.images) {
             int other_img_index = find_unique_image_by_name(spv_cross, img.name);
             if (other_img_index >= 0) {
                 if (img.equals(spv_cross.unique_images[other_img_index])) {
@@ -693,7 +693,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slan
                     uniform.offset);
             }
         }
-        for (const image_t& img: source.refl.images) {
+        for (const Image& img: source.refl.images) {
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
                 img.name, img.slot, ImageType::to_str(img.type), ImageSampleType::to_str(img.sample_type));
         }

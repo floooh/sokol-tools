@@ -85,7 +85,7 @@ static void write_uniform(const uniform_t& uniform) {
     L("                  offset: {}\n", uniform.offset);
 }
 
-static void write_image(const image_t& image) {
+static void write_image(const Image& image) {
     L("            -\n");
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);

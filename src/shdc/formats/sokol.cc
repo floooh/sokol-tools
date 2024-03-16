@@ -138,7 +138,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: vs_src->refl.images) {
+        for (const Image& img: vs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -161,7 +161,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const image_t& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
@@ -206,7 +206,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     }
     L("\n");
     L("    Image bind slots, use as index in sg_bindings.vs.images[] or .fs.images[]\n\n");
-    for (const image_t& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.unique_images) {
         L("        SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
     L("\n");
@@ -250,7 +250,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
 }
 
 static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const image_t& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.unique_images) {
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), img.name, img.slot);
     }
 }
@@ -461,8 +461,8 @@ static void write_stage(const char* indent,
             }
         }
     }
-    for (int img_index = 0; img_index < image_t::NUM; img_index++) {
-        const image_t* img = src->refl.find_image_by_slot(img_index);
+    for (int img_index = 0; img_index < Image::NUM; img_index++) {
+        const Image* img = src->refl.find_image_by_slot(img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
@@ -585,7 +585,7 @@ static void write_attr_slot_func(const program_t& prog, const args_t& args, cons
 }
 
 static void write_image_slot_stage(const spirvcross_source_t* src) {
-    for (const image_t& img: src->refl.images) {
+    for (const Image& img: src->refl.images) {
         if (img.slot >= 0) {
             L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
             L("      return {};\n", img.slot);
