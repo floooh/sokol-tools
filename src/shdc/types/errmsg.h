@@ -6,11 +6,11 @@ namespace shdc {
 
 // an error message object with filename, line number and message
 struct ErrMsg {
-    enum type_t {
+    enum Type {
         ERROR,
         WARNING,
     };
-    type_t type = ERROR;
+    Type type = ERROR;
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
