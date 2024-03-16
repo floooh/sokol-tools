@@ -19,14 +19,14 @@ struct snippet_t {
     };
     type_t type = INVALID;
     std::array<uint32_t, slang_t::NUM> options = { };
-    std::map<std::string, image_sample_type_tag_t> image_sample_type_tags;
+    std::map<std::string, ImageSampleTypeTag> image_sample_type_tags;
     std::map<std::string, sampler_type_tag_t> sampler_type_tags;
     std::string name;
     std::vector<int> lines; // resolved zero-based line-indices (including @include_block)
 
     snippet_t();
     snippet_t(type_t t, const std::string& n);
-    const image_sample_type_tag_t* lookup_image_sample_type_tag(const std::string& tex_name) const;
+    const ImageSampleTypeTag* lookup_image_sample_type_tag(const std::string& tex_name) const;
     const sampler_type_tag_t* lookup_sampler_type_tag(const std::string& smp_name) const;
     static const char* type_to_str(type_t t);
     static bool is_vs(type_t t);
@@ -37,7 +37,7 @@ inline snippet_t::snippet_t() { };
 
 inline snippet_t::snippet_t(type_t t, const std::string& n): type(t), name(n) { };
 
-inline const image_sample_type_tag_t* snippet_t::lookup_image_sample_type_tag(const std::string& tex_name) const {
+inline const ImageSampleTypeTag* snippet_t::lookup_image_sample_type_tag(const std::string& tex_name) const {
     auto it = image_sample_type_tags.find(tex_name);
     if (it != image_sample_type_tags.end()) {
         return &image_sample_type_tags.at(tex_name);

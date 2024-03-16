@@ -493,7 +493,7 @@ static bool parse(input_t& inp) {
                 if (!validate_image_sample_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.image_sample_type_tags[tokens[1]] = image_sample_type_tag_t(tokens[1], image_sample_type_t::from_str(tokens[2]), line_index);
+                cur_snippet.image_sample_type_tags[tokens[1]] = ImageSampleTypeTag(tokens[1], image_sample_type_t::from_str(tokens[2]), line_index);
                 add_line = false;
             }
             else if (tokens[0] == sampler_type_tag) {
