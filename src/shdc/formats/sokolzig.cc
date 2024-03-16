@@ -96,7 +96,7 @@ static const char* sokol_backend(Slang::type_t slang) {
     }
 }
 
-static void write_header(const Args& args, const Input& inp, const spirvcross_t& spirvcross) {
+static void write_header(const Args& args, const Input& inp, const Spirvcross& spirvcross) {
     L("//\n");
     L("//  #version:{}# (machine generated, don't edit!)\n", args.gen_version);
     L("//\n");
@@ -175,7 +175,7 @@ static void write_header(const Args& args, const Input& inp, const spirvcross_t&
     }
 }
 
-static void write_vertex_attrs(const Input& inp, const spirvcross_t& spirvcross) {
+static void write_vertex_attrs(const Input& inp, const Spirvcross& spirvcross) {
     for (const SpirvcrossSource& src: spirvcross.sources) {
         if (src.refl.stage == ShaderStage::VS) {
             const Snippet& vs_snippet = inp.snippets[src.snippet_index];
@@ -188,19 +188,19 @@ static void write_vertex_attrs(const Input& inp, const spirvcross_t& spirvcross)
     }
 }
 
-static void write_image_bind_slots(const Input& inp, const spirvcross_t& spirvcross) {
+static void write_image_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
     for (const Image& img: spirvcross.unique_images) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
 }
 
-static void write_sampler_bind_slots(const Input& inp, const spirvcross_t& spirvcross) {
+static void write_sampler_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
     for (const Sampler& smp: spirvcross.unique_samplers) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), smp.name, smp.slot);
     }
 }
 
-static void write_uniform_blocks(const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
     for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
@@ -266,7 +266,7 @@ static void write_uniform_blocks(const Input& inp, const spirvcross_t& spirvcros
 }
 
 static void write_shader_sources_and_blobs(const Input& inp,
-                                           const spirvcross_t& spirvcross,
+                                           const Spirvcross& spirvcross,
                                            const Bytecode& bytecode,
                                            Slang::type_t slang)
 {
@@ -403,7 +403,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const spirvcross_t& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const Spirvcross& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
     const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -443,7 +443,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
 }
 
 ErrMsg sokolzig_t::gen(const Args& args, const Input& inp,
-                     const std::array<spirvcross_t,Slang::NUM>& spirvcross,
+                     const std::array<Spirvcross,Slang::NUM>& spirvcross,
                      const std::array<Bytecode,Slang::NUM>& bytecode)
 {
     // first write everything into a string, and only when no errors occur,

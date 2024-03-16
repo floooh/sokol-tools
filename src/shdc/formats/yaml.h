@@ -10,7 +10,7 @@
 namespace shdc {
 
 struct yaml_t {
-    static ErrMsg gen(const Args& args, const Input& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
+    static ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
 };
 
 } // namespace shdc

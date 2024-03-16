@@ -12,7 +12,7 @@ struct Image {
     ImageType::type_t type = ImageType::INVALID;
     ImageSampleType::type_t sample_type = ImageSampleType::INVALID;
     bool multisampled = false;
-    int unique_index = -1;      // index into spirvcross_t.unique_images
+    int unique_index = -1;      // index into Spirvcross.unique_images
 
     bool equals(const Image& other);
 };

@@ -173,7 +173,7 @@ static bool mtl_link(const std::string& lib_path, const std::string& bin_path, S
     return 0 == xcrun(cmdline, dummy_output, slang);
 }
 
-static Bytecode mtl_compile(const Args& args, const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+static Bytecode mtl_compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
     Bytecode bytecode;
     std::string base_dir;
     std::string base_filename;
@@ -288,7 +288,7 @@ static void d3d_parse_errors(const std::string& output, const Input& inp, int sn
     }
 }
 
-static Bytecode d3d_compile(const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
     Bytecode bytecode;
     if (!load_d3dcompiler_dll()) {
         bytecode.errors.push_back(ErrMsg::warning(inp.base_path, 0, fmt::format("failed to load d3dcompiler_47.dll!")));
@@ -351,7 +351,7 @@ static Bytecode d3d_compile(const Input& inp, const spirvcross_t& spirvcross, Sl
 }
 #endif
 
-Bytecode Bytecode::compile(const Args& args, const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+Bytecode Bytecode::compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
     Bytecode bytecode;
     #if defined(__APPLE__)
     // NOTE: for the iOS simulator case, don't compile bytecode but use source code

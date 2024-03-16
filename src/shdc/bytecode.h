@@ -13,7 +13,7 @@ struct Bytecode {
     std::vector<ErrMsg> errors;
     std::vector<BytecodeBlob> blobs;
 
-    static Bytecode compile(const Args& args, const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang);
+    static Bytecode compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang);
     int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };

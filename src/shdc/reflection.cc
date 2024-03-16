@@ -148,7 +148,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
-        refl_ub.flattened = spirvcross_t::can_flatten_uniform_block(compiler, ub_res);
+        refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             Uniform refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);

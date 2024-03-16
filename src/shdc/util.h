@@ -10,13 +10,13 @@ namespace shdc {
 
 // utility functions for generators
 namespace util {
-    ErrMsg check_errors(const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang);
+    ErrMsg check_errors(const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang);
     const char* slang_file_extension(Slang::type_t c, bool binary);
     const char* uniform_type_str(Uniform::type_t type);
     int uniform_size(Uniform::type_t type, int array_size);
     int roundup(int val, int round_to);
     std::string mod_prefix(const Input& inp);
-    const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const spirvcross_t& spirvcross);
+    const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const Spirvcross& spirvcross);
     const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const Input& inp, const Bytecode& bytecode);
     std::string to_camel_case(const std::string& str);
     std::string to_pascal_case(const std::string& str);

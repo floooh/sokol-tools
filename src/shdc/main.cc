@@ -63,11 +63,11 @@ int main(int argc, const char** argv) {
     }
 
     // cross-translate SPIRV to shader dialects
-    std::array<spirvcross_t,Slang::NUM> spirvcross;
+    std::array<Spirvcross,Slang::NUM> spirvcross;
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::type_t slang = (Slang::type_t)i;
         if (args.slang & Slang::bit(slang)) {
-            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
+            spirvcross[i] = Spirvcross::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }

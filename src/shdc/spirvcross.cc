@@ -24,7 +24,7 @@ using namespace spirv_cross;
 
 namespace shdc {
 
-int spirvcross_t::find_source_by_snippet_index(int snippet_index) const {
+int Spirvcross::find_source_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)sources.size(); i++) {
         if (sources[i].snippet_index == snippet_index) {
             return i;
@@ -192,7 +192,7 @@ static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const Input& i
     return ErrMsg();
 }
 
-bool spirvcross_t::can_flatten_uniform_block(const Compiler& compiler, const Resource& ub_res) {
+bool Spirvcross::can_flatten_uniform_block(const Compiler& compiler, const Resource& ub_res) {
     const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
     SPIRType::BaseType basic_type = SPIRType::Unknown;
     for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
@@ -216,7 +216,7 @@ static void flatten_uniform_blocks(CompilerGLSL& compiler) {
     */
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
-        if (spirvcross_t::can_flatten_uniform_block(compiler, ub_res)) {
+        if (Spirvcross::can_flatten_uniform_block(compiler, ub_res)) {
             compiler.flatten_buffer_block(ub_res.id);
         }
     }
@@ -388,7 +388,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     return res;
 }
 
-static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+static int find_unique_uniform_block_by_name(const Spirvcross& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
         if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
             return i;
@@ -397,7 +397,7 @@ static int find_unique_uniform_block_by_name(const spirvcross_t& spv_cross, cons
     return -1;
 }
 
-static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+static int find_unique_image_by_name(const Spirvcross& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_images.size(); i++) {
         if (spv_cross.unique_images[i].name == name) {
             return i;
@@ -406,7 +406,7 @@ static int find_unique_image_by_name(const spirvcross_t& spv_cross, const std::s
     return -1;
 }
 
-static int find_unique_sampler_by_name(const spirvcross_t& spv_cross, const std::string& name) {
+static int find_unique_sampler_by_name(const Spirvcross& spv_cross, const std::string& name) {
     for (int i = 0; i < (int)spv_cross.unique_samplers.size(); i++) {
         if (spv_cross.unique_samplers[i].name == name) {
             return i;
@@ -416,7 +416,7 @@ static int find_unique_sampler_by_name(const spirvcross_t& spv_cross, const std:
 }
 
 // find all identical uniform blocks across all shaders, and check for collisions
-static bool gather_unique_uniform_blocks(const Input& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_uniform_blocks(const Input& inp, Spirvcross& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (UniformBlock& ub: src.refl.uniform_blocks) {
             int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
@@ -441,7 +441,7 @@ static bool gather_unique_uniform_blocks(const Input& inp, spirvcross_t& spv_cro
 }
 
 // find all identical images across all shaders, and check for collisions
-static bool gather_unique_images(const Input& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_images(const Input& inp, Spirvcross& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (Image& img: src.refl.images) {
             int other_img_index = find_unique_image_by_name(spv_cross, img.name);
@@ -464,7 +464,7 @@ static bool gather_unique_images(const Input& inp, spirvcross_t& spv_cross) {
 }
 
 // find all identical samplers across all shaders, and check for collisions
-static bool gather_unique_samplers(const Input& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_samplers(const Input& inp, Spirvcross& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (Sampler& smp: src.refl.samplers) {
             int other_smp_index = find_unique_sampler_by_name(spv_cross, smp.name);
@@ -493,7 +493,7 @@ struct snippets_refls_t {
     const Reflection fs_refl;
 };
 
-static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program& prog, const spirvcross_t& spv_cross) {
+static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program& prog, const Spirvcross& spv_cross) {
     const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
     const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
     const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
@@ -510,7 +510,7 @@ static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program
 
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
-static ErrMsg validate_linking(const Input& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_linking(const Input& inp, const Spirvcross& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -530,7 +530,7 @@ static ErrMsg validate_linking(const Input& inp, const spirvcross_t& spv_cross) 
 /*
 CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
 
-static ErrMsg validate_image_sample_type_tags(const Input& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_image_sample_type_tags(const Input& inp, const Spirvcross& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -550,7 +550,7 @@ static ErrMsg validate_image_sample_type_tags(const Input& inp, const spirvcross
     return ErrMsg();
 }
 
-static ErrMsg validate_sampler_type_tags(const Input& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_sampler_type_tags(const Input& inp, const Spirvcross& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -571,8 +571,8 @@ static ErrMsg validate_sampler_type_tags(const Input& inp, const spirvcross_t& s
 }
 */
 
-spirvcross_t spirvcross_t::translate(const Input& inp, const Spirv& spirv, Slang::type_t slang) {
-    spirvcross_t spv_cross;
+Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::type_t slang) {
+    Spirvcross spv_cross;
     for (const auto& blob: spirv.blobs) {
         SpirvcrossSource src;
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
@@ -653,8 +653,8 @@ spirvcross_t spirvcross_t::translate(const Input& inp, const Spirv& spirv, Slang
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang) const {
-    fmt::print(stderr, "spirvcross_t ({}):\n", Slang::to_str(slang));
+void Spirvcross::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang) const {
+    fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }

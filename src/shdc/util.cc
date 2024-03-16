@@ -9,7 +9,7 @@ namespace shdc {
 namespace util {
 
 ErrMsg check_errors(const Input& inp,
-                      const spirvcross_t& spirvcross,
+                      const Spirvcross& spirvcross,
                       Slang::type_t slang)
 {
     for (const auto& item: inp.programs) {
@@ -89,7 +89,7 @@ std::string mod_prefix(const Input& inp) {
     }
 }
 
-const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const spirvcross_t& spirvcross) {
+const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const Spirvcross& spirvcross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int src_index = spirvcross.find_source_by_snippet_index(snippet_index);

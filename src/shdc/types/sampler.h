@@ -9,7 +9,7 @@ struct Sampler {
     int slot = -1;
     std::string name;
     SamplerType::type_t type = SamplerType::INVALID;
-    int unique_index = -1;          // index into spirvcross_t.unique_samplers
+    int unique_index = -1;          // index into Spirvcross.unique_samplers
 
     bool equals(const Sampler& other);
 };
