@@ -12,7 +12,7 @@ namespace shdc {
 using namespace util;
 
 static ErrMsg write_stage(const std::string& file_path,
-                            const spirvcross_source_t* src,
+                            const SpirvcrossSource* src,
                             const BytecodeBlob* blob)
 {
     // write text or binary to output file
@@ -47,8 +47,8 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
 {
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
-        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+        const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 

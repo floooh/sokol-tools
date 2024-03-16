@@ -15,7 +15,7 @@ namespace shdc {
 // spirv-cross wrapper
 struct spirvcross_t {
     ErrMsg error;
-    std::vector<spirvcross_source_t> sources;
+    std::vector<SpirvcrossSource> sources;
     // FIXME: those should go into reflection?
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<Image> unique_images;

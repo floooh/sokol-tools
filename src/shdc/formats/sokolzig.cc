@@ -109,8 +109,8 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
 
-        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+        const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         assert(vs_src && fs_src);
         L("//      Shader program '{}':\n", prog.name);
         L("//          Get shader desc: shd.{}ShaderDesc(sg.queryBackend());\n", to_camel_case(fmt::format("{}_{}", mod_prefix(inp), prog.name)));
@@ -176,7 +176,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
 }
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const spirvcross_source_t& src: spirvcross.sources) {
+    for (const SpirvcrossSource& src: spirvcross.sources) {
         if (src.refl.stage == stage_t::VS) {
             const Snippet& vs_snippet = inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
@@ -277,7 +277,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         }
         int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
         assert(src_index >= 0);
-        const spirvcross_source_t& src = spirvcross.sources[src_index];
+        const SpirvcrossSource& src = spirvcross.sources[src_index];
         int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
         const BytecodeBlob* blob = 0;
         if (blob_index != -1) {
@@ -327,7 +327,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
 
 static void write_stage(const char* indent,
                         const char* stage_name,
-                        const spirvcross_source_t* src,
+                        const SpirvcrossSource* src,
                         const std::string& src_name,
                         const BytecodeBlob* blob,
                         const std::string& blob_name,
@@ -404,8 +404,8 @@ static void write_stage(const char* indent,
 }
 
 static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, Slang::type_t slang) {
-    const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
     const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
     const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);

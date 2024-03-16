@@ -89,7 +89,7 @@ std::string mod_prefix(const input_t& inp) {
     }
 }
 
-const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
+const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int src_index = spirvcross.find_source_by_snippet_index(snippet_index);

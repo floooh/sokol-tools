@@ -109,7 +109,7 @@ static void write_image_sampler(const ImageSampler& image_sampler) {
     L("              sampler_name: {}\n", image_sampler.sampler_name);
 }
 
-static void write_source_reflection(const spirvcross_source_t* src) {
+static void write_source_reflection(const SpirvcrossSource* src) {
     L("          entry_point: {}\n", src->refl.entry_point);
     L("          inputs:\n");
     for (const auto& input: src->refl.inputs) {
@@ -172,8 +172,8 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
     L("    programs:\n");
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
-        const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
+        const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
+        const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
         const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 
