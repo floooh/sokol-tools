@@ -493,7 +493,7 @@ struct snippets_refls_t {
     const reflection_t fs_refl;
 };
 
-static snippets_refls_t get_snippets_and_sources(const input_t& inp, const program_t& prog, const spirvcross_t& spv_cross) {
+static snippets_refls_t get_snippets_and_sources(const input_t& inp, const Program& prog, const spirvcross_t& spv_cross) {
     const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
     const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
     const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
@@ -512,7 +512,7 @@ static snippets_refls_t get_snippets_and_sources(const input_t& inp, const progr
 // FIXME: this should also check the attribute's type
 static ErrMsg validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
-        const program_t& prog = prog_item.second;
+        const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
         for (int i = 0; i < VertexAttr::NUM; i++) {
             const VertexAttr& vs_out = res.vs_refl.outputs[i];
@@ -532,7 +532,7 @@ CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
 
 static ErrMsg validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
-        const program_t& prog = prog_item.second;
+        const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
         for (const auto& kvp: res.vs_snippet.image_sample_type_tags) {
             const auto& tag = kvp.second;
@@ -552,7 +552,7 @@ static ErrMsg validate_image_sample_type_tags(const input_t& inp, const spirvcro
 
 static ErrMsg validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
-        const program_t& prog = prog_item.second;
+        const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
         for (const auto& kvp: res.vs_snippet.sampler_type_tags) {
             const auto& tag = kvp.second;

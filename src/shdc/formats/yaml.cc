@@ -171,7 +171,7 @@ static ErrMsg write_shader_sources_and_blobs(const args_t& args,
 {
     L("    programs:\n");
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
         const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);

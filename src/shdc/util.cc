@@ -13,7 +13,7 @@ ErrMsg check_errors(const input_t& inp,
                       slang_t::type_t slang)
 {
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
         int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);

@@ -118,7 +118,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("    Cmdline: {}\n\n", args.cmdline);
     L("    Overview:\n\n");
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
 
         const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
@@ -182,7 +182,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("\n");
     L("    Shader descriptor structs:\n\n");
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         L("        sg_shader {} = sg_make_shader({}{}_shader_desc(sg_query_backend()));\n", prog.name, mod_prefix(inp), prog.name);
     }
     L("\n");
@@ -334,7 +334,7 @@ static void write_common_decls(slang_t::type_t slang, const args_t& args, const 
     L("#endif\n");
     if (args.output_format == Format::SOKOL_IMPL) {
         for (const auto& item: inp.programs) {
-            const program_t& prog = item.second;
+            const Program& prog = item.second;
             L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
             if (args.reflection) {
                 L("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix(inp), prog.name);
@@ -490,7 +490,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -538,7 +538,7 @@ static std::string func_prefix(const args_t& args) {
     }
 }
 
-static void write_shader_desc_func(const program_t& prog, const args_t& args, const input_t& inp,
+static void write_shader_desc_func(const Program& prog, const args_t& args, const input_t& inp,
                                    const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                                    const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
@@ -567,7 +567,7 @@ static void write_shader_desc_func(const program_t& prog, const args_t& args, co
     L("}}\n");
 }
 
-static void write_attr_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_attr_slot_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     assert(vs_src);
 
@@ -604,7 +604,7 @@ static void write_sampler_slot_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_image_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_image_slot_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -625,7 +625,7 @@ static void write_image_slot_func(const program_t& prog, const args_t& args, con
     L("}}\n");
 }
 
-static void write_sampler_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_sampler_slot_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -656,7 +656,7 @@ static void write_uniformblock_slot_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_uniformblock_slot_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_uniformblock_slot_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -687,7 +687,7 @@ static void write_uniformblock_size_stage(const spirvcross_source_t* src, const 
     }
 }
 
-static void write_uniformblock_size_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_uniformblock_size_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -722,7 +722,7 @@ static void write_uniform_offset_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_uniform_offset_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_uniform_offset_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -760,7 +760,7 @@ static void write_uniform_desc_stage(const spirvcross_source_t* src) {
     }
 }
 
-static void write_uniform_desc_func(const program_t& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_uniform_desc_func(const Program& prog, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -841,7 +841,7 @@ ErrMsg sokol_t::gen(const args_t& args, const input_t& inp,
         L("#endif\n");
     }
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         write_shader_desc_func(prog, args, inp, spirvcross, bytecode);
         if (args.reflection) {
             int slang_index = (int)slang_t::first_valid(args.slang);

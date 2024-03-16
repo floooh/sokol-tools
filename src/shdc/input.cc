@@ -486,7 +486,7 @@ static bool parse(input_t& inp) {
                 if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
+                inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
                 add_line = false;
             }
             else if (tokens[0] == image_sample_type_tag) {
@@ -712,7 +712,7 @@ void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
     fmt::print(stderr, "  programs:\n");
     for (const auto& item : programs) {
         const std::string& key = item.first;
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         fmt::print(stderr, "    program {}:\n", key);
         fmt::print(stderr, "      name: {}\n", prog.name);
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);

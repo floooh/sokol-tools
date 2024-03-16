@@ -23,7 +23,7 @@ struct input_t {
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
     std::map<std::string, int> fs_map;      // name-index mapping for @fs snippets
-    std::map<std::string, program_t> programs;    // all @program definitions
+    std::map<std::string, Program> programs;    // all @program definitions
 
     static input_t load_and_parse(const std::string& path, const std::string& module_override);
     ErrMsg error(int index, const std::string& msg) const;

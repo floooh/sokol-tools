@@ -107,7 +107,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
     L("    Overview:\n");
     L("  \n");
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
 
         const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
@@ -416,7 +416,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const program_t& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, slang_t::type_t slang) {
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -493,7 +493,7 @@ ErrMsg sokolrust_t::gen(const args_t& args, const input_t& inp,
 
     // write access functions which return sg::ShaderDesc structs
     for (const auto& item: inp.programs) {
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         L("pub fn {}{}_shader_desc(backend: sg::Backend) -> sg::ShaderDesc {{\n", mod_prefix(inp), prog.name);
         L("    let mut desc = sg::ShaderDesc::new();\n");
         L("    match backend {{\n");
