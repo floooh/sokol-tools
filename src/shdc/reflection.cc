@@ -23,7 +23,7 @@ public:
 
 using namespace spirv_cross;
 
-namespace shdc {
+namespace shdc::refl {
 
 static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
     switch (type.basetype) {
@@ -271,4 +271,4 @@ const Sampler* Reflection::find_sampler_by_name(const std::string& name) const {
     return nullptr;
 }
 
-} // namespace shdc
+} // namespace

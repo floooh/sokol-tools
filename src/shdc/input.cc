@@ -2,7 +2,7 @@
     code for loading and parsing the input .glsl file with custom-tags
 */
 #include "input.h"
-#include "types/uniform.h"
+#include "types/reflection/uniform.h"
 #include "types/option.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +11,8 @@
 #include "pystring.h"
 
 namespace shdc {
+
+using namespace refl;
 
 static std::string load_file_into_str(const std::string& path) {
     FILE* f = fopen(path.c_str(), "rb");
@@ -646,7 +648,7 @@ ErrMsg Input::warning(int index, const std::string& msg) const {
 };
 
 /* print a debug-dump of content to stderr */
-void Input::dump_debug(ErrMsg::msg_format_t err_fmt) const {
+void Input::dump_debug(ErrMsg::Format err_fmt) const {
     fmt::print(stderr, "Input:\n");
     if (out_error.has_error) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));

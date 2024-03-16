@@ -3,7 +3,7 @@
 #include "image_type.h"
 #include "image_sample_type.h"
 
-namespace shdc {
+namespace shdc::refl {
 
 struct Image {
     static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
@@ -25,4 +25,4 @@ inline bool Image::equals(const Image& other) {
         && (multisampled == other.multisampled);
 }
 
-} // namespace shdc
+} // namespace

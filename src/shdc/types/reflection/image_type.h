@@ -1,6 +1,6 @@
 #pragma once
 
-namespace shdc {
+namespace shdc::refl {
 
 // image-type (see sg_image_type)
 struct ImageType {
@@ -24,4 +24,4 @@ inline const char* ImageType::to_str(Enum e) {
     }
 }
 
-} // namespace shdc
+} // namespace

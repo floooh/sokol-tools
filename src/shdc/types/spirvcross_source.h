@@ -11,7 +11,8 @@ struct SpirvcrossSource {
     int snippet_index = -1;
     std::string source_code;
     ErrMsg error;
-    Reflection refl;
+    // FIXME: this doesn't belong here
+    refl::Reflection refl;
 };
 
 } // namespace shdc

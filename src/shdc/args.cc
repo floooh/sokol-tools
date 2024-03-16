@@ -11,7 +11,7 @@
 
 namespace shdc {
 
-typedef enum {
+enum {
     OPTION_HELP = 1,
     OPTION_INPUT,
     OPTION_OUTPUT,
@@ -28,7 +28,7 @@ typedef enum {
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
     OPTION_SAVE_INTERMEDIATE_SPIRV,
-} arg_option_t;
+};
 
 static const getopt_option_t option_list[] = {
     { "help",               'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,         "print this help text", 0},
@@ -282,7 +282,7 @@ void Args::dump_debug() const {
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
-    fmt::print(stderr, "  error_format: {}\n", ErrMsg::msg_format_to_str(error_format));
+    fmt::print(stderr, "  error_format: {}\n", ErrMsg::format_to_str(error_format));
     fmt::print(stderr, "\n");
 }
 

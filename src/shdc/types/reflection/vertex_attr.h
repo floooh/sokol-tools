@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace shdc {
+namespace shdc::refl {
 
 struct VertexAttr {
     static const int NUM = 16;      // must be identical with NUM_VERTEX_ATTRS
@@ -20,4 +20,4 @@ inline bool VertexAttr::equals(const VertexAttr& rhs) const {
            (sem_index == rhs.sem_index);
 }
 
-} // namespace shdc
+} // namespace

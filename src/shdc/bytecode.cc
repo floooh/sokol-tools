@@ -67,7 +67,7 @@ static bool read_binary(const std::string& path, std::vector<uint8_t>& out_blob)
     }
 }
 
-// convert errors from metal compiler format to error_t objects
+// convert errors from metal compiler format to ErrMsg objects
 static void mtl_parse_errors(const std::string& output, const Input& inp, int snippet_index, std::vector<ErrMsg>& out_errors) {
     /*
         format for errors/warnings is:

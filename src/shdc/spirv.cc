@@ -295,7 +295,7 @@ bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::Enum slang)
     return true;
 }
 
-void Spirv::dump_debug(const Input& inp, ErrMsg::msg_format_t err_fmt) const {
+void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
     fmt::print(stderr, "Spirv:\n");
     if (errors.size() > 0) {
         fmt::print(stderr, "  error:\n");

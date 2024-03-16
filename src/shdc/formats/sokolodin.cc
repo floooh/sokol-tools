@@ -10,6 +10,7 @@
 namespace shdc::formats::sokolodin {
 
 using namespace util;
+using namespace refl;
 
 static std::string file_content;
 

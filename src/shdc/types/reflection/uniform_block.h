@@ -3,7 +3,7 @@
 #include <vector>
 #include "uniform.h"
 
-namespace shdc {
+namespace shdc::refl {
 
 struct UniformBlock {
     static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
@@ -36,4 +36,4 @@ inline bool UniformBlock::equals(const UniformBlock& other) const {
     return true;
 }
 
-} // namespace shdc
+} // namespace

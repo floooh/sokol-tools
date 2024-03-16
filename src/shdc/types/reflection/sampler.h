@@ -2,7 +2,7 @@
 #include <string>
 #include "sampler_type.h"
 
-namespace shdc {
+namespace shdc::refl {
 
 struct Sampler {
     static const int NUM = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
@@ -20,4 +20,4 @@ inline bool Sampler::equals(const Sampler& other) {
         && (type == other.type);
 }
 
-} // namespace shdc
+} // namespace

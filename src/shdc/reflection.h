@@ -5,14 +5,14 @@
 #include "spirv_cross.hpp"
 #include "types/slang.h"
 #include "types/snippet.h"
-#include "types/shader_stage.h"
-#include "types/vertex_attr.h"
-#include "types/uniform_block.h"
-#include "types/image.h"
-#include "types/sampler.h"
-#include "types/image_sampler.h"
+#include "types/reflection/shader_stage.h"
+#include "types/reflection/vertex_attr.h"
+#include "types/reflection/uniform_block.h"
+#include "types/reflection/image.h"
+#include "types/reflection/sampler.h"
+#include "types/reflection/image_sampler.h"
 
-namespace shdc {
+namespace shdc::refl {
 
 struct Reflection {
     ShaderStage::Enum stage = ShaderStage::INVALID;

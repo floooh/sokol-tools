@@ -1,6 +1,6 @@
 #pragma once
 
-namespace shdc {
+namespace shdc::refl {
 
 // a shader stage
 struct ShaderStage {
@@ -30,4 +30,4 @@ inline bool ShaderStage::is_fs(ShaderStage::Enum e) {
     return FS == e;
 }
 
-} // namespace shdc
+} // namespace

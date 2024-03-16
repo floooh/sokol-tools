@@ -24,6 +24,8 @@ using namespace spirv_cross;
 
 namespace shdc {
 
+using namespace refl;
+
 int Spirvcross::find_source_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)sources.size(); i++) {
         if (sources[i].snippet_index == snippet_index) {
@@ -486,14 +488,14 @@ static bool gather_unique_samplers(const Input& inp, Spirvcross& spv_cross) {
     return true;
 }
 
-struct snippets_refls_t {
+struct SnippetRefls {
     const Snippet& vs_snippet;
     const Snippet& fs_snippet;
     const Reflection vs_refl;
     const Reflection fs_refl;
 };
 
-static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program& prog, const Spirvcross& spv_cross) {
+static SnippetRefls get_snippets_and_sources(const Input& inp, const Program& prog, const Spirvcross& spv_cross) {
     const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
     const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
     const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
@@ -653,7 +655,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
     return spv_cross;
 }
 
-void Spirvcross::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::Enum slang) const {
+void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
     fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));

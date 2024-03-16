@@ -28,7 +28,7 @@ struct Input {
     static Input load_and_parse(const std::string& path, const std::string& module_override);
     ErrMsg error(int index, const std::string& msg) const;
     ErrMsg warning(int index, const std::string& msg) const;
-    void dump_debug(ErrMsg::msg_format_t err_fmt) const;
+    void dump_debug(ErrMsg::Format err_fmt) const;
 };
 
 } // namespace shdc

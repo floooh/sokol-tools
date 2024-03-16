@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace shdc {
+namespace shdc::refl {
 
 // image-sample-type (see sg_image_sample_type)
 struct ImageSampleType {
@@ -52,4 +52,4 @@ inline const char* ImageSampleType::valid_image_sample_types_as_str() {
     return "float|sint|uint|depth|unfilterable_float";
 }
 
-} // namespace shdc
+} // namespace

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace shdc {
+namespace shdc::refl {
 
 // special combined-image-samplers for GLSL output with GL semantics
 struct ImageSampler {
@@ -22,4 +22,4 @@ inline bool ImageSampler::equals(const ImageSampler& other) {
         && (sampler_name == other.sampler_name);
 }
 
-} // namespace shdc
+} // namespace

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace shdc {
+namespace shdc::refl {
 
 struct Uniform {
     static const int NUM = 16;      // must be identical with SG_MAX_UB_MEMBERS
@@ -66,4 +66,4 @@ inline bool Uniform::equals(const Uniform& other) const {
            (offset == other.offset);
 }
 
-} // namespace shdc
+} // namespace

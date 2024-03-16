@@ -25,7 +25,7 @@ struct Args {
     bool ifdef = false;                 // wrap backend specific shaders into #ifdefs (SOKOL_D3D11 etc...)
     bool save_intermediate_spirv = false;   // save intermediate SPIRV bytecode (glslangvalidator output)
     int gen_version = 1;                // generator-version stamp
-    ErrMsg::msg_format_t error_format = ErrMsg::GCC;  // format for error messages
+    ErrMsg::Format error_format = ErrMsg::GCC;  // format for error messages
 
     static Args parse(int argc, const char** argv);
     void dump_debug() const;

@@ -5,8 +5,9 @@
 #include "fmt/format.h"
 #include "pystring.h"
 
-namespace shdc {
-namespace util {
+namespace shdc::util {
+
+using namespace refl;
 
 ErrMsg check_errors(const Input& inp,
                       const Spirvcross& spirvcross,
@@ -173,5 +174,4 @@ const char* slang_file_extension(Slang::Enum c, bool binary) {
     }
 }
 
-} // namespace util
-} // namespace shdc
+} // namespace

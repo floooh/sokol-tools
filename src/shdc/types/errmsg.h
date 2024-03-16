@@ -16,16 +16,16 @@ struct ErrMsg {
     int line_index = -1;      // line_index is zero-based!
     bool has_error = false;
 
-    enum msg_format_t {
+    enum Format {
         GCC,
         MSVC
     };
 
     static ErrMsg error(const std::string& file, int line, const std::string& msg);
     static ErrMsg warning(const std::string& file, int line, const std::string& msg);
-    std::string as_string(msg_format_t fmt) const;
-    void print(msg_format_t fmt) const;
-    static const char* msg_format_to_str(msg_format_t fmt);
+    std::string as_string(Format fmt) const;
+    void print(Format fmt) const;
+    static const char* format_to_str(Format fmt);
 };
 
 
@@ -49,7 +49,7 @@ inline ErrMsg ErrMsg::warning(const std::string& file, int line, const std::stri
     return err;
 }
 
-inline std::string ErrMsg::as_string(msg_format_t fmt) const {
+inline std::string ErrMsg::as_string(Format fmt) const {
     if (fmt == MSVC) {
         return fmt::format("{}({}): {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
     } else {
@@ -57,11 +57,11 @@ inline std::string ErrMsg::as_string(msg_format_t fmt) const {
     }
 }
 
-inline void ErrMsg::print(msg_format_t fmt) const {
+inline void ErrMsg::print(Format fmt) const {
     fmt::print("{}\n", as_string(fmt));
 }
 
-inline const char* ErrMsg::msg_format_to_str(msg_format_t fmt) {
+inline const char* ErrMsg::format_to_str(Format fmt) {
     switch (fmt) {
         case GCC: return "gcc";
         case MSVC: return "msvc";

@@ -1,7 +1,7 @@
 #pragma once
 #include  <string>
 
-namespace shdc {
+namespace shdc::refl {
 
 struct SamplerType {
     enum Enum {
@@ -42,4 +42,4 @@ inline const char* SamplerType::valid_sampler_types_as_str() {
     return "filtering|comparison|nonfiltering";
 }
 
-} // namespace shdc
+} // namespace
