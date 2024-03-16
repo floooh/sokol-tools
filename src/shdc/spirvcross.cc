@@ -281,8 +281,8 @@ static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob,
     options.vulkan_semantics = false;
     options.enable_420pack_extension = false;
     options.emit_uniform_buffer_as_plain_uniforms = true;
-    options.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
-    options.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+    options.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
+    options.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
@@ -303,8 +303,8 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
-    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
-    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
+    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
     CompilerHLSL::Options hlslOptions;
     switch (slang) {
@@ -334,8 +334,8 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
-    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & option_t::FIXUP_CLIPSPACE));
-    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & option_t::FLIP_VERT_Y));
+    commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
+    commonOptions.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
     compiler.set_common_options(commonOptions);
     CompilerMSL::Options mslOptions;
     switch (slang) {

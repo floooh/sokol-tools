@@ -303,7 +303,7 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
         return false;
     }
     for (int i = 1; i < (int)tokens.size(); i++) {
-        if (option_t::from_string(tokens[i]) == option_t::INVALID) {
+        if (Option::from_string(tokens[i]) == Option::INVALID) {
             inp.out_error = inp.error(line_index, fmt::format("unknown option '{}' (must be 'fixup_clipspace', 'flip_vert_y')", tokens[i]));
             return false;
         }
@@ -396,7 +396,7 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    uint32_t option_bit = Option::from_string(tokens[i]);
                     cur_snippet.options[slang_t::GLSL410] |= option_bit;
                     cur_snippet.options[slang_t::GLSL430] |= option_bit;
                     cur_snippet.options[slang_t::GLSL300ES] |= option_bit;
@@ -408,7 +408,7 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    uint32_t option_bit = Option::from_string(tokens[i]);
                     cur_snippet.options[slang_t::HLSL4] |= option_bit;
                     cur_snippet.options[slang_t::HLSL5] |= option_bit;
                 }
@@ -419,7 +419,7 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
+                    uint32_t option_bit = Option::from_string(tokens[i]);
                     cur_snippet.options[slang_t::METAL_MACOS] |= option_bit;
                     cur_snippet.options[slang_t::METAL_IOS] |= option_bit;
                     cur_snippet.options[slang_t::METAL_SIM] |= option_bit;

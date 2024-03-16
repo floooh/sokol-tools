@@ -4,7 +4,7 @@
 namespace shdc {
 
 // per-shader compile options
-struct option_t {
+struct Option {
     enum type_t {
         INVALID = 0,
         FIXUP_CLIPSPACE = (1<<0),
@@ -13,7 +13,7 @@ struct option_t {
     static type_t from_string(const std::string& str);
 };
 
-inline option_t::type_t option_t::from_string(const std::string& str) {
+inline Option::type_t Option::from_string(const std::string& str) {
     if (str == "fixup_clipspace") {
         return FIXUP_CLIPSPACE;
     } else if (str == "flip_vert_y") {
