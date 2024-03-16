@@ -163,7 +163,7 @@ static void write_source_reflection(const spirvcross_source_t* src) {
     }
 }
 
-static errmsg_t write_shader_sources_and_blobs(const args_t& args,
+static ErrMsg write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
@@ -194,13 +194,13 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         write_source_reflection(fs_src);
     }
 
-    return errmsg_t();
+    return ErrMsg();
 }
 
-errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode)
+ErrMsg yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     // first generate the bare-output files
-    errmsg_t output_err = bare_t::gen(args, inp, spirvcross, bytecode);
+    ErrMsg output_err = bare_t::gen(args, inp, spirvcross, bytecode);
     if (output_err.has_error) {
         return output_err;
     }
@@ -212,7 +212,7 @@ errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<sp
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
             }
@@ -230,12 +230,12 @@ errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<sp
     const std::string file_path = fmt::format("{}_{}reflection.yaml", args.output, mod_prefix(inp));
     FILE* f = fopen(file_path.c_str(), "w");
     if (!f) {
-        return errmsg_t::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);
 
-    return errmsg_t();
+    return ErrMsg();
 }
 
 }

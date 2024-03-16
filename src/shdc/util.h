@@ -10,7 +10,7 @@ namespace shdc {
 
 // utility functions for generators
 namespace util {
-    errmsg_t check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
+    ErrMsg check_errors(const input_t& inp, const spirvcross_t& spirvcross, slang_t::type_t slang);
     const char* slang_file_extension(slang_t::type_t c, bool binary);
     const char* uniform_type_str(uniform_t::type_t type);
     int uniform_size(uniform_t::type_t type, int array_size);

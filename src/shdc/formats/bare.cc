@@ -11,14 +11,14 @@ namespace shdc {
 
 using namespace util;
 
-static errmsg_t write_stage(const std::string& file_path,
+static ErrMsg write_stage(const std::string& file_path,
                             const spirvcross_source_t* src,
                             const BytecodeBlob* blob)
 {
     // write text or binary to output file
     FILE* f = fopen(file_path.c_str(), "wb");
     if (!f) {
-        return errmsg_t::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
+        return ErrMsg::error(file_path, 0, fmt::format("failed to open output file '{}'", file_path));
     }
     const void* write_data;
     size_t write_count;
@@ -33,13 +33,13 @@ static errmsg_t write_stage(const std::string& file_path,
     }
     size_t written = fwrite(write_data, 1, write_count, f);
     if (written != write_count) {
-        return errmsg_t::error(file_path, 0, fmt::format("failed to write output file '{}'", file_path));
+        return ErrMsg::error(file_path, 0, fmt::format("failed to write output file '{}'", file_path));
     }
     fclose(f);
-    return errmsg_t();
+    return ErrMsg();
 }
 
-static errmsg_t write_shader_sources_and_blobs(const args_t& args,
+static ErrMsg write_shader_sources_and_blobs(const args_t& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
                                                const bytecode_t& bytecode,
@@ -56,7 +56,7 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, util::slang_file_extension(slang, vs_blob));
         const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, util::slang_file_extension(slang, fs_blob));
 
-        errmsg_t err;
+        ErrMsg err;
         err = write_stage(file_path_vs, vs_src, vs_blob);
         if (err.has_error) {
             return err;
@@ -67,17 +67,17 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         }
     }
 
-    return errmsg_t();
+    return ErrMsg();
 }
 
-errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
+ErrMsg bare_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
             }
@@ -88,7 +88,7 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
         }
     }
 
-    return errmsg_t();
+    return ErrMsg();
 }
 
 } // namespace shdc

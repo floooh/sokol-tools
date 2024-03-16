@@ -8,7 +8,7 @@
 namespace shdc {
 namespace util {
 
-errmsg_t check_errors(const input_t& inp,
+ErrMsg check_errors(const input_t& inp,
                       const spirvcross_t& spirvcross,
                       slang_t::type_t slang)
 {
@@ -30,7 +30,7 @@ errmsg_t check_errors(const input_t& inp,
         }
     }
     // all ok
-    return errmsg_t();
+    return ErrMsg();
 }
 
 const char* uniform_type_str(uniform_t::type_t type) {

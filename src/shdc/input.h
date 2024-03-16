@@ -11,7 +11,7 @@ namespace shdc {
 
 // pre-parsed GLSL source file, with content split into snippets
 struct input_t {
-    errmsg_t out_error;
+    ErrMsg out_error;
     std::string base_path;              // path to base file
     std::string module;                 // optional module name
     std::vector<std::string> filenames; // all source files, base is first entry
@@ -26,9 +26,9 @@ struct input_t {
     std::map<std::string, program_t> programs;    // all @program definitions
 
     static input_t load_and_parse(const std::string& path, const std::string& module_override);
-    errmsg_t error(int index, const std::string& msg) const;
-    errmsg_t warning(int index, const std::string& msg) const;
-    void dump_debug(errmsg_t::msg_format_t err_fmt) const;
+    ErrMsg error(int index, const std::string& msg) const;
+    ErrMsg warning(int index, const std::string& msg) const;
+    void dump_debug(ErrMsg::msg_format_t err_fmt) const;
 };
 
 } // namespace shdc

@@ -522,7 +522,7 @@ static bool parse(input_t& inp) {
 
 static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, input_t& inp) {
     if (tokens.size() != 2) {
-        inp.out_error = errmsg_t::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
+        inp.out_error = ErrMsg::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
         return false;
     }
     return true;
@@ -544,10 +544,10 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         // failure?
         if (str.empty()) {
             if (inp.base_path == path) {
-                inp.out_error = errmsg_t::error(path, 0, fmt::format("Failed to open input file '{}'", path));
+                inp.out_error = ErrMsg::error(path, 0, fmt::format("Failed to open input file '{}'", path));
             }
             else {
-                inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
+                inp.out_error = ErrMsg::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
             }
             return false;
         }
@@ -555,7 +555,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
     // check for include cycles
     for (const std::string& filename : inp.filenames) {
         if (filename == path_used) {
-            inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Detected @include file cycle: '{}'", path_used));
+            inp.out_error = ErrMsg::error(inp.filenames.back(), parent_line_index, fmt::format("Detected @include file cycle: '{}'", path_used));
             return false;
         }
     }
@@ -565,7 +565,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
 
     // remove comments before splitting into lines
     if (!remove_comments(str)) {
-        inp.out_error = errmsg_t::error(path_used, 0, fmt::format("(FIXME) Error during removing comments in '{}'", path_used));
+        inp.out_error = ErrMsg::error(path_used, 0, fmt::format("(FIXME) Error during removing comments in '{}'", path_used));
     }
 
     // split source file into lines
@@ -628,25 +628,25 @@ input_t input_t::load_and_parse(const std::string& path, const std::string& modu
     return inp;
 }
 
-errmsg_t input_t::error(int index, const std::string& msg) const {
+ErrMsg input_t::error(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
         const line_t& line = lines[index];
-        return errmsg_t::error(filenames[line.filename], line.index, msg);
+        return ErrMsg::error(filenames[line.filename], line.index, msg);
     } else {
-        return errmsg_t::error(base_path, 0, msg);
+        return ErrMsg::error(base_path, 0, msg);
     }
 };
-errmsg_t input_t::warning(int index, const std::string& msg) const {
+ErrMsg input_t::warning(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
         const line_t& line = lines[index];
-        return errmsg_t::warning(filenames[line.filename], line.index, msg);
+        return ErrMsg::warning(filenames[line.filename], line.index, msg);
     } else {
-        return errmsg_t::warning(base_path, 0, msg);
+        return ErrMsg::warning(base_path, 0, msg);
     }
 };
 
 /* print a debug-dump of content to stderr */
-void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
+void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
     fmt::print(stderr, "input_t:\n");
     if (out_error.has_error) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));

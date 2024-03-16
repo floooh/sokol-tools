@@ -44,8 +44,8 @@ int main(int argc, const char** argv) {
             }
             if (!spirv[i].errors.empty()) {
                 bool has_errors = false;
-                for (const errmsg_t& err: spirv[i].errors) {
-                    if (err.type == errmsg_t::ERROR) {
+                for (const ErrMsg& err: spirv[i].errors) {
+                    if (err.type == ErrMsg::ERROR) {
                         has_errors = true;
                     }
                     err.print(args.error_format);
@@ -90,8 +90,8 @@ int main(int argc, const char** argv) {
                 }
                 if (!bytecode[i].errors.empty()) {
                     bool has_errors = false;
-                    for (const errmsg_t& err: bytecode[i].errors) {
-                        if (err.type == errmsg_t::ERROR) {
+                    for (const ErrMsg& err: bytecode[i].errors) {
+                        if (err.type == ErrMsg::ERROR) {
                             has_errors = true;
                         }
                         err.print(args.error_format);
@@ -105,7 +105,7 @@ int main(int argc, const char** argv) {
     }
 
     // generate output files
-    errmsg_t output_err;
+    ErrMsg output_err;
     switch (args.output_format) {
         case format_t::BARE:
             output_err = bare_t::gen(args, inp, spirvcross, bytecode);

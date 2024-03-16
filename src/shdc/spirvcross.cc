@@ -166,7 +166,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, snippet_t::type_t type, st
     }
 }
 
-static errmsg_t validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const spirv_blob_t& blob) {
+static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const spirv_blob_t& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
@@ -174,22 +174,22 @@ static errmsg_t validate_uniform_blocks_and_separate_image_samplers(const input_
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
             const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
             if ((m_type.basetype != SPIRType::Float) && (m_type.basetype != SPIRType::Int)) {
-                return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
+                return ErrMsg::error(inp.base_path, 0, fmt::format("uniform block '{}': uniform blocks can only contain float or int base types", ub_res.name));
             }
             if (m_type.array.size() > 0) {
                 if (m_type.vecsize != 4) {
-                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be of type vec4[], ivec4[] or mat4[]", ub_res.name));
+                    return ErrMsg::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be of type vec4[], ivec4[] or mat4[]", ub_res.name));
                 }
                 if (m_type.array.size() > 1) {
-                    return errmsg_t::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be 1-dimensional", ub_res.name));
+                    return ErrMsg::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be 1-dimensional", ub_res.name));
                 }
             }
         }
     }
     if (res.sampled_images.size() > 0) {
-        return errmsg_t::error(inp.base_path, 0, fmt::format("combined image sampler '{}' detected, please use separate textures and samplers", res.sampled_images[0].name));
+        return ErrMsg::error(inp.base_path, 0, fmt::format("combined image sampler '{}' detected, please use separate textures and samplers", res.sampled_images[0].name));
     }
-    return errmsg_t();
+    return ErrMsg();
 }
 
 bool spirvcross_t::can_flatten_uniform_block(const Compiler& compiler, const Resource& ub_res) {
@@ -426,7 +426,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
                     ub.unique_index = other_ub_index;
                 }
                 else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
+                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
                     return false;
                 }
             }
@@ -450,7 +450,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
                     // identical image already exists, take note of the index
                     img.unique_index = other_img_index;
                 } else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return false;
                 }
             } else {
@@ -473,7 +473,7 @@ static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) 
                     // identical sampler already exists, take note of the index
                     smp.unique_index = other_smp_index;
                 } else {
-                    spv_cross.error = errmsg_t::error(inp.base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
+                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
                     return false;
                 }
             } else {
@@ -510,7 +510,7 @@ static snippets_refls_t get_snippets_and_sources(const input_t& inp, const progr
 
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
-static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -524,13 +524,13 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
             }
         }
     }
-    return errmsg_t();
+    return ErrMsg();
 }
 
 /*
 CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
 
-static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -547,10 +547,10 @@ static errmsg_t validate_image_sample_type_tags(const input_t& inp, const spirvc
             }
         }
     }
-    return errmsg_t();
+    return ErrMsg();
 }
 
-static errmsg_t validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -567,7 +567,7 @@ static errmsg_t validate_sampler_type_tags(const input_t& inp, const spirvcross_
             }
         }
     }
-    return errmsg_t();
+    return ErrMsg();
 }
 */
 
@@ -631,7 +631,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         }
     }
     // check that vertex-shader outputs match their fragment shader inputs
-    errmsg_t err;
+    ErrMsg err;
     err = validate_linking(inp, spv_cross);
     if (err.has_error) {
         spv_cross.error = err;
@@ -653,7 +653,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     return spv_cross;
 }
 
-void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
+void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slang) const {
     fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));

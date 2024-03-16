@@ -442,7 +442,7 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
     L("{}desc.label = \"{}{}_shader\";\n", indent, mod_prefix(inp), prog.name);
 }
 
-errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
+ErrMsg sokolzig_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
@@ -456,7 +456,7 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
             }
@@ -498,11 +498,11 @@ errmsg_t sokolzig_t::gen(const args_t& args, const input_t& inp,
     // write result into output file
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
-        return errmsg_t::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);
-    return errmsg_t();
+    return ErrMsg();
 }
 
 } // namespace shdc

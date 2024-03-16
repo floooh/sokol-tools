@@ -14,7 +14,7 @@ namespace shdc {
 
 // spirv-cross wrapper
 struct spirvcross_t {
-    errmsg_t error;
+    ErrMsg error;
     std::vector<spirvcross_source_t> sources;
     // FIXME: those should go into reflection?
     std::vector<uniform_block_t> unique_uniform_blocks;
@@ -24,7 +24,7 @@ struct spirvcross_t {
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);
     int find_source_by_snippet_index(int snippet_index) const;
-    void dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const;
+    void dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slang) const;
 };
 
 

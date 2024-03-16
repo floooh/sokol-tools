@@ -231,10 +231,10 @@ args_t args_t::parse(int argc, const char** argv) {
                     break;
                 case OPTION_ERRFMT:
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
-                        args.error_format = errmsg_t::GCC;
+                        args.error_format = ErrMsg::GCC;
                     }
                     else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
-                        args.error_format = errmsg_t::MSVC;
+                        args.error_format = ErrMsg::MSVC;
                     }
                     else {
                         fmt::print(stderr, "sokol-shdc: unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
@@ -282,7 +282,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
-    fmt::print(stderr, "  error_format: {}\n", errmsg_t::msg_format_to_str(error_format));
+    fmt::print(stderr, "  error_format: {}\n", ErrMsg::msg_format_to_str(error_format));
     fmt::print(stderr, "\n");
 }
 

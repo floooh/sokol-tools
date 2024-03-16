@@ -787,7 +787,7 @@ static void write_uniform_desc_func(const program_t& prog, const args_t& args, c
 
 }
 
-errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
+ErrMsg sokol_t::gen(const args_t& args, const input_t& inp,
                      const std::array<spirvcross_t,slang_t::NUM>& spirvcross,
                      const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
@@ -796,14 +796,14 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     file_content.clear();
 
     L("#pragma once\n");
-    errmsg_t err;
+    ErrMsg err;
     bool comment_header_written = false;
     bool common_decls_written = false;
     bool guard_written = false;
     for (int i = 0; i < slang_t::NUM; i++) {
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
-            errmsg_t err = check_errors(inp, spirvcross[i], slang);
+            ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
                 return err;
             }
@@ -868,11 +868,11 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
     // write result into output file
     FILE* f = fopen(args.output.c_str(), "w");
     if (!f) {
-        return errmsg_t::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);
-    return errmsg_t();
+    return ErrMsg();
 }
 
 } // namespace shdc
