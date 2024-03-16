@@ -9,7 +9,7 @@ struct image_t {
     static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
     int slot = -1;
     std::string name;
-    image_type_t::type_t type = image_type_t::INVALID;
+    ImageType::type_t type = ImageType::INVALID;
     ImageSampleType::type_t sample_type = ImageSampleType::INVALID;
     bool multisampled = false;
     int unique_index = -1;      // index into spirvcross_t.unique_images

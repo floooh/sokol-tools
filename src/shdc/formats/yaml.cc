@@ -90,7 +90,7 @@ static void write_image(const image_t& image) {
     L("              slot: {}\n", image.slot);
     L("              name: {}\n", image.name);
     L("              multisampled: {}\n", image.multisampled);
-    L("              type: {}\n", image_type_t::to_str(image.type));
+    L("              type: {}\n", ImageType::to_str(image.type));
     L("              sample_type: {}\n", ImageSampleType::to_str(image.sample_type));
 }
 

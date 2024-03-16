@@ -51,12 +51,12 @@ static const char* uniform_type_to_flattened_sokol_type_str(uniform_t::type_t ty
     }
 }
 
-static const char* img_type_to_sokol_type_str(image_type_t::type_t type) {
+static const char* img_type_to_sokol_type_str(ImageType::type_t type) {
     switch (type) {
-        case image_type_t::_2D:     return "._2D";
-        case image_type_t::CUBE:    return ".CUBE";
-        case image_type_t::_3D:     return "._3D";
-        case image_type_t::ARRAY:   return ".ARRAY";
+        case ImageType::_2D:     return "._2D";
+        case ImageType::CUBE:    return ".CUBE";
+        case ImageType::_3D:     return "._3D";
+        case ImageType::ARRAY:   return ".ARRAY";
         default: return "INVALID";
     }
 }

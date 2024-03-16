@@ -60,21 +60,21 @@ static uniform_t::type_t spirtype_to_uniform_type(const SPIRType& type) {
     return uniform_t::INVALID;
 }
 
-static image_type_t::type_t spirtype_to_image_type(const SPIRType& type) {
+static ImageType::type_t spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
-            return image_type_t::ARRAY;
+            return ImageType::ARRAY;
         }
     } else {
         switch (type.image.dim) {
-            case spv::Dim2D:    return image_type_t::_2D;
-            case spv::DimCube:  return image_type_t::CUBE;
-            case spv::Dim3D:    return image_type_t::_3D;
+            case spv::Dim2D:    return ImageType::_2D;
+            case spv::DimCube:  return ImageType::CUBE;
+            case spv::Dim3D:    return ImageType::_3D;
             default: break;
         }
     }
     // fallthrough: invalid type
-    return image_type_t::INVALID;
+    return ImageType::INVALID;
 }
 
 static ImageSampleType::type_t spirtype_to_image_sample_type(const SPIRType& type) {

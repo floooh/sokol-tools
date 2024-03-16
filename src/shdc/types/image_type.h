@@ -3,7 +3,7 @@
 namespace shdc {
 
 // image-type (see sg_image_type)
-struct image_type_t {
+struct ImageType {
     enum type_t {
         INVALID,
         _2D,
@@ -14,7 +14,7 @@ struct image_type_t {
     static const char* to_str(type_t t);
 };
 
-inline const char* image_type_t::to_str(type_t t) {
+inline const char* ImageType::to_str(type_t t) {
     switch (t) {
         case _2D:   return "2d";
         case CUBE:  return "cube";
