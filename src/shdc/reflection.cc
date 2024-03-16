@@ -193,7 +193,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
     }
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
-        image_sampler_t refl_img_smp;
+        ImageSampler refl_img_smp;
         refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
         refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
@@ -244,8 +244,8 @@ const sampler_t* reflection_t::find_sampler_by_slot(int slot) const {
     return nullptr;
 }
 
-const image_sampler_t* reflection_t::find_image_sampler_by_slot(int slot) const {
-    for (const image_sampler_t& img_smp: this->image_samplers) {
+const ImageSampler* reflection_t::find_image_sampler_by_slot(int slot) const {
+    for (const ImageSampler& img_smp: this->image_samplers) {
         if (img_smp.slot == slot) {
             return &img_smp;
         }

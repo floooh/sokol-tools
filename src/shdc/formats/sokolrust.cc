@@ -139,7 +139,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const image_sampler_t& img_smp: vs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: vs_src->refl.image_samplers) {
             L("                Image Sampler Pair '{}':\n", img_smp.name);
             L("                    Image: {}\n", img_smp.image_name);
             L("                    Sampler: {}\n", img_smp.sampler_name);
@@ -168,7 +168,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const image_sampler_t& img_smp: fs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: fs_src->refl.image_samplers) {
             L("                Image Sampler Pair '{}':\n", img_smp.name);
             L("                    Image: {}\n", img_smp.image_name);
             L("                    Sampler: {}\n", img_smp.sampler_name);
@@ -403,8 +403,8 @@ static void write_stage(const char* indent,
             L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
-    for (int img_smp_index = 0; img_smp_index < image_sampler_t::NUM; img_smp_index++) {
-        const image_sampler_t* img_smp = src->refl.find_image_sampler_by_slot(img_smp_index);
+    for (int img_smp_index = 0; img_smp_index < ImageSampler::NUM; img_smp_index++) {
+        const ImageSampler* img_smp = src->refl.find_image_sampler_by_slot(img_smp_index);
         if (img_smp) {
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
             L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_image_by_name(img_smp->image_name)->slot);

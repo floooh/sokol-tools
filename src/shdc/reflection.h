@@ -22,7 +22,7 @@ struct reflection_t {
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
     std::vector<sampler_t> samplers;
-    std::vector<image_sampler_t> image_samplers;
+    std::vector<ImageSampler> image_samplers;
 
     static reflection_t parse(const spirv_cross::Compiler& compiler, const snippet_t& snippet, slang_t::type_t slang);
 
@@ -31,7 +31,7 @@ struct reflection_t {
     const image_t* find_image_by_name(const std::string& name) const;
     const sampler_t* find_sampler_by_slot(int slot) const;
     const sampler_t* find_sampler_by_name(const std::string& name) const;
-    const image_sampler_t* find_image_sampler_by_slot(int slot) const;
+    const ImageSampler* find_image_sampler_by_slot(int slot) const;
 };
 
 } // namespace reflection

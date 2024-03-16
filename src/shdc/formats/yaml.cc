@@ -101,7 +101,7 @@ static void write_sampler(const sampler_t& sampler) {
     L("              sampler_type: {}\n", sampler_type_t::to_str(sampler.type));
 }
 
-static void write_image_sampler(const image_sampler_t& image_sampler) {
+static void write_image_sampler(const ImageSampler& image_sampler) {
     L("            -\n");
     L("              slot: {}\n", image_sampler.slot);
     L("              name: {}\n", image_sampler.name);

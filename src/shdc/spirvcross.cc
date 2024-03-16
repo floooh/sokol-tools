@@ -700,7 +700,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slan
         for (const sampler_t& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);
         }
-        for (const image_sampler_t& img_smp: source.refl.image_samplers) {
+        for (const ImageSampler& img_smp: source.refl.image_samplers) {
             fmt::print(stderr, "      image sampler: {}, slot: {}, image: {}, sampler: {}\n",
                 img_smp.name, img_smp.slot, img_smp.image_name, img_smp.sampler_name);
         }
