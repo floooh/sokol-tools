@@ -571,7 +571,7 @@ static ErrMsg validate_sampler_type_tags(const Input& inp, const spirvcross_t& s
 }
 */
 
-spirvcross_t spirvcross_t::translate(const Input& inp, const spirv_t& spirv, Slang::type_t slang) {
+spirvcross_t spirvcross_t::translate(const Input& inp, const Spirv& spirv, Slang::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         SpirvcrossSource src;

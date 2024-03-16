@@ -21,7 +21,7 @@ struct spirvcross_t {
     std::vector<Image> unique_images;
     std::vector<Sampler> unique_samplers;
 
-    static spirvcross_t translate(const Input& inp, const spirv_t& spirv, Slang::type_t slang);
+    static spirvcross_t translate(const Input& inp, const Spirv& spirv, Slang::type_t slang);
     static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);
     int find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang) const;

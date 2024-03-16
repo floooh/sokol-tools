@@ -13,11 +13,11 @@
 
 namespace shdc {
 
-void spirv_t::initialize_spirv_tools() {
+void Spirv::initialize_spirv_tools() {
     glslang::InitializeProcess();
 }
 
-void spirv_t::finalize_spirv_tools() {
+void Spirv::finalize_spirv_tools() {
     glslang::FinalizeProcess();
 }
 
@@ -164,7 +164,7 @@ static void spirv_optimize(Slang::type_t slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const Input& inp, int snippet_index, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const Input& inp, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -233,8 +233,8 @@ static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& s
 }
 
 // compile all shader-snippets into SPIRV bytecode
-spirv_t spirv_t::compile_glsl(const Input& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
-    spirv_t out_spirv;
+Spirv Spirv::compile_glsl(const Input& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
+    Spirv out_spirv;
 
     // compile shader-snippets
     int snippet_index = 0;
@@ -262,7 +262,7 @@ spirv_t spirv_t::compile_glsl(const Input& inp, Slang::type_t slang, const std::
     return out_spirv;
 }
 
-bool spirv_t::write_to_file(const Args& args, const Input& inp, Slang::type_t slang) {
+bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::type_t slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
@@ -295,8 +295,8 @@ bool spirv_t::write_to_file(const Args& args, const Input& inp, Slang::type_t sl
     return true;
 }
 
-void spirv_t::dump_debug(const Input& inp, ErrMsg::msg_format_t err_fmt) const {
-    fmt::print(stderr, "spirv_t:\n");
+void Spirv::dump_debug(const Input& inp, ErrMsg::msg_format_t err_fmt) const {
+    fmt::print(stderr, "Spirv:\n");
     if (errors.size() > 0) {
         fmt::print(stderr, "  error:\n");
         for (const ErrMsg& err: errors) {

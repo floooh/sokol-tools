@@ -12,7 +12,7 @@
 using namespace shdc;
 
 int main(int argc, const char** argv) {
-    spirv_t::initialize_spirv_tools();
+    Spirv::initialize_spirv_tools();
 
     // parse command line args
     Args args = Args::parse(argc, argv);
@@ -34,11 +34,11 @@ int main(int argc, const char** argv) {
     }
 
     // compile source snippets to SPIRV blobs
-    std::array<spirv_t,Slang::NUM> spirv;
+    std::array<Spirv,Slang::NUM> spirv;
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::type_t slang = (Slang::type_t)i;
         if (args.slang & Slang::bit(slang)) {
-            spirv[i] = spirv_t::compile_glsl(inp, slang, args.defines);
+            spirv[i] = Spirv::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
@@ -135,6 +135,6 @@ int main(int argc, const char** argv) {
     }
 
     // success
-    spirv_t::finalize_spirv_tools();
+    Spirv::finalize_spirv_tools();
     return 0;
 }
