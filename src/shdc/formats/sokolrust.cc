@@ -231,8 +231,7 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
                 } else {
                     L("    pub {}: [{}]{}", uniform.name, uniform.array_count, inp.ctype_map.at(uniform.type_as_glsl()));
                 }
-            }
-            else {
+            } else {
                 // default type names (float)
                 if (uniform.array_count == 1) {
                     switch (uniform.type) {
@@ -317,8 +316,7 @@ static void write_shader_sources_and_blobs(const Input& inp,
                 }
             }
             L("\n];\n");
-        }
-        else {
+        } else {
             /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
             std::string c_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), snippet.name, Slang::to_str(slang)));
             const size_t len = src.source_code.length() + 1;
@@ -348,14 +346,12 @@ static void write_stage(const char* indent,
     if (blob) {
         L("{}desc.{}.bytecode.ptr = &{} as *const _ as *const _;\n", indent, stage_name, blob_name);
         L("{}desc.{}.bytecode.size = {};\n", indent, stage_name, blob->data.size());
-    }
-    else {
+    } else {
         L("{}desc.{}.source = &{} as *const _ as *const _;\n", indent, stage_name, src_name);
         const char* d3d11_tgt = nullptr;
         if (slang == Slang::HLSL4) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
-        }
-        else if (slang == Slang::HLSL5) {
+        } else if (slang == Slang::HLSL5) {
             d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_5_0" : "ps_5_0";
         }
         if (d3d11_tgt) {
@@ -374,8 +370,7 @@ static void write_stage(const char* indent,
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, ub_index, ub->struct_name);
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0]._type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
                     L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
-                }
-                else {
+                } else {
                     for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                         const Uniform& u = ub->uniforms[u_index];
                         L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
@@ -425,14 +420,12 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     std::string vs_blob_name, fs_blob_name;
     if (vs_blob) {
         vs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
-    }
-    else {
+    } else {
         vs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
     }
     if (fs_blob) {
         fs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
-    }
-    else {
+    } else {
         fs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
     }
 
@@ -442,8 +435,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
         if (attr.slot >= 0) {
             if (Slang::is_glsl(slang)) {
                 L("{}desc.attrs[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.name);
-            }
-            else if (Slang::is_hlsl(slang)) {
+            } else if (Slang::is_hlsl(slang)) {
                 L("{}desc.attrs[{}].sem_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.sem_name);
                 L("{}desc.attrs[{}].sem_index = {};\n", indent, attr_index, attr.sem_index);
             }

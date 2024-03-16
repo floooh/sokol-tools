@@ -51,33 +51,28 @@ static bool remove_comments(std::string& str) {
                     in_winged_comment = true;
                     str[pos - 1] = ' ';
                     str[pos] = ' ';
-                }
-                else if (c == '*') {
+                } else if (c == '*') {
                     // start of a block comment
                     in_block_comment = true;
                     str[pos - 1] = ' ';
                     str[pos] = ' ';
                 }
                 maybe_start = false;
-            }
-            else {
+            } else {
                 if (c == '/') {
                     // maybe start of a winged or block comment
                     maybe_start = true;
                 }
             }
-        }
-        else if (in_winged_comment || in_block_comment) {
+        } else if (in_winged_comment || in_block_comment) {
             if (in_winged_comment) {
                 if ((c == '\r') || (c == '\n')) {
                     // end of line reached
                     in_winged_comment = false;
-                }
-                else {
+                } else {
                     str[pos] = ' ';
                 }
-            }
-            else {
+            } else {
                 // in block comment (preserve newlines)
                 if ((c != '\r') && (c != '\n')) {
                     str[pos] = ' ';
@@ -88,8 +83,7 @@ static bool remove_comments(std::string& str) {
                         in_block_comment = false;
                     }
                     maybe_end = false;
-                }
-                else {
+                } else {
                     if (c == '*') {
                         // potential end of block comment
                         maybe_end = true;
@@ -374,8 +368,7 @@ static bool parse(Input& inp) {
                     return false;
                 }
                 inp.module = tokens[1];
-            }
-            else if (tokens[0] == ctype_tag) {
+            } else if (tokens[0] == ctype_tag) {
                 if (!validate_ctype_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
@@ -384,16 +377,14 @@ static bool parse(Input& inp) {
                     return false;
                 }
                 inp.ctype_map[tokens[1]] = tokens[2];
-            }
-            else if (tokens[0] == header_tag) {
+            } else if (tokens[0] == header_tag) {
                 if (!validate_header_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 std::vector<std::string> skip_first_token = tokens;
                 skip_first_token.erase(skip_first_token.begin());
                 inp.headers.push_back(pystring::join(" ", skip_first_token));
-            }
-            else if (tokens[0] == glsl_options_tag) {
+            } else if (tokens[0] == glsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
@@ -404,8 +395,7 @@ static bool parse(Input& inp) {
                     cur_snippet.options[Slang::GLSL300ES] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == hlsl_options_tag) {
+            } else if (tokens[0] == hlsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
@@ -415,8 +405,7 @@ static bool parse(Input& inp) {
                     cur_snippet.options[Slang::HLSL5] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == msl_options_tag) {
+            } else if (tokens[0] == msl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
@@ -427,32 +416,28 @@ static bool parse(Input& inp) {
                     cur_snippet.options[Slang::METAL_SIM] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == block_tag) {
+            } else if (tokens[0] == block_tag) {
                 if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 cur_snippet = Snippet(Snippet::BLOCK, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == vs_tag) {
+            } else if (tokens[0] == vs_tag) {
                 if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 cur_snippet = Snippet(Snippet::VS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == fs_tag) {
+            } else if (tokens[0] == fs_tag) {
                 if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 cur_snippet = Snippet(Snippet::FS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == inclblock_tag) {
+            } else if (tokens[0] == inclblock_tag) {
                 if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
@@ -461,8 +446,7 @@ static bool parse(Input& inp) {
                     cur_snippet.lines.push_back(line_index);
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == end_tag) {
+            } else if (tokens[0] == end_tag) {
                 if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
@@ -483,29 +467,25 @@ static bool parse(Input& inp) {
                 cur_snippet = Snippet();
                 add_line = false;
                 in_snippet = false;
-            }
-            else if (tokens[0] == prog_tag) {
+            } else if (tokens[0] == prog_tag) {
                 if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
                 add_line = false;
-            }
-            else if (tokens[0] == image_sample_type_tag) {
+            } else if (tokens[0] == image_sample_type_tag) {
                 if (!validate_image_sample_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
                 cur_snippet.image_sample_type_tags[tokens[1]] = ImageSampleTypeTag(tokens[1], ImageSampleType::from_str(tokens[2]), line_index);
                 add_line = false;
-            }
-            else if (tokens[0] == sampler_type_tag) {
+            } else if (tokens[0] == sampler_type_tag) {
                 if (!validate_sampler_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
                 cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
                 add_line = false;
-            }
-            else if (tokens[0][0] == '@') {
+            } else if (tokens[0][0] == '@') {
                 inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
             }
@@ -547,8 +527,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         if (str.empty()) {
             if (inp.base_path == path) {
                 inp.out_error = ErrMsg::error(path, 0, fmt::format("Failed to open input file '{}'", path));
-            }
-            else {
+            } else {
                 inp.out_error = ErrMsg::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
             }
             return false;
@@ -593,13 +572,11 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 if (!load_and_preprocess(include_filename, include_dirs, inp, line_index)) {
                     return false;
                 }
-            }
-            else {
+            } else {
                 // otherwise process file as normal
                 inp.lines.push_back({line, filename_index, line_index});
             }
-        }
-        else {
+        } else {
             // this is an empty line, but add it anyway so the error line
             // indices are always correct
             inp.lines.push_back({ line, filename_index, line_index});
@@ -652,8 +629,7 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
     fmt::print(stderr, "Input:\n");
     if (out_error.has_error) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
-    }
-    else {
+    } else {
         fmt::print(stderr, "  error: not set\n");
     }
     fmt::print(stderr, "  base_path: {}\n", base_path);

@@ -41,8 +41,7 @@ int roundup(int val, int round_to) {
 std::string mod_prefix(const Input& inp) {
     if (inp.module.empty()) {
         return "";
-    }
-    else {
+    } else {
         return fmt::format("{}_", inp.module);
     }
 }
@@ -53,8 +52,7 @@ const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string&
     int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
     if (src_index >= 0) {
         return &spirvcross.sources[src_index];
-    }
-    else {
+    } else {
         return nullptr;
     }
 }
@@ -65,8 +63,7 @@ const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_
     int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
     if (blob_index >= 0) {
         return &bytecode.blobs[blob_index];
-    }
-    else {
+    } else {
         return nullptr;
     }
 }

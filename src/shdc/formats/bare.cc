@@ -25,8 +25,7 @@ static ErrMsg write_stage(const std::string& file_path,
     if (blob) {
         write_data = blob->data.data();
         write_count = blob->data.size();
-    }
-    else {
+    } else {
         assert(src);
         write_data = src->source_code.data();
         write_count = src->source_code.length();

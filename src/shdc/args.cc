@@ -141,8 +141,7 @@ static void validate(Args& args) {
         if (!args.tmpdir.empty()) {
             args.tmpdir += "/";
         }
-    }
-    else {
+    } else {
         if (!pystring::endswith(args.tmpdir, "/")) {
             args.tmpdir += "/";
         }
@@ -150,8 +149,7 @@ static void validate(Args& args) {
     if (err) {
         args.valid = false;
         args.exit_code = 10;
-    }
-    else {
+    } else {
         args.valid = true;
         args.exit_code = 0;
     }
@@ -170,8 +168,7 @@ Args Args::parse(int argc, const char** argv) {
     getopt_context_t ctx;
     if (getopt_create_context(&ctx, argc, argv, option_list) < 0) {
         fmt::print(stderr, "error in getopt_create_context()\n");
-    }
-    else {
+    } else {
         int opt = 0;
         while ((opt = getopt_next(&ctx)) != -1) {
             switch (opt) {
@@ -232,11 +229,9 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_ERRFMT:
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
                         args.error_format = ErrMsg::GCC;
-                    }
-                    else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
+                    } else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
                         args.error_format = ErrMsg::MSVC;
-                    }
-                    else {
+                    } else {
                         fmt::print(stderr, "sokol-shdc: unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;

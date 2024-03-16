@@ -82,8 +82,7 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
                 for (int i = 3; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
                         msg = tokens[i];
-                    }
-                    else {
+                    } else {
                         msg = fmt::format("{}:{}", msg, tokens[i]);
                     }
                 }
@@ -97,12 +96,10 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
             if (ok) {
                 if (tokens[0] == "ERROR") {
                     out_errors.push_back(inp.error(line_index, msg));
-                }
-                else {
+                } else {
                     out_errors.push_back(inp.warning(line_index, msg));
                 }
-            }
-            else {
+            } else {
                 // some error during parsing, still create an error object so the error isn't lost in the void
                 out_errors.push_back(inp.error(0, line));
             }
@@ -303,8 +300,7 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
             fmt::print(stderr, "    {}\n", err.as_string(err_fmt));
         }
         fmt::print(stderr, "\n");
-    }
-    else {
+    } else {
         fmt::print(stderr, "  errors: none\n\n");
     }
     for (const SpirvBlob& blob : blobs) {

@@ -36,8 +36,7 @@ static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
                     case 3: return Uniform::FLOAT3;
                     case 4: return Uniform::FLOAT4;
                 }
-            }
-            else {
+            } else {
                 // a matrix
                 if ((type.vecsize == 4) && (type.columns == 4)) {
                     return Uniform::MAT4;

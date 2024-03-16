@@ -39,8 +39,7 @@ static bool write_source(const std::string& source_code, const std::string path)
         fwrite(source_code.c_str(), source_code.length(), 1, f);
         fclose(f);
         return true;
-    }
-    else {
+    } else {
         return false;
     }
 }
@@ -60,8 +59,7 @@ static bool read_binary(const std::string& path, std::vector<uint8_t>& out_blob)
             out_blob = std::move(blob);
         }
         return true;
-    }
-    else {
+    } else {
         out_blob.clear();
         return false;
     }
@@ -97,8 +95,7 @@ static void mtl_parse_errors(const std::string& output, const Input& inp, int sn
                 for (int i = 4; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
                         msg = tokens[i];
-                    }
-                    else {
+                    } else {
                         msg = fmt::format("{}:{}", msg, tokens[i]);
                     }
                 }
@@ -111,12 +108,10 @@ static void mtl_parse_errors(const std::string& output, const Input& inp, int sn
             if (ok) {
                 if (tokens[3] == " error") {
                     out_errors.push_back(inp.error(line_index, msg));
-                }
-                else {
+                } else {
                     out_errors.push_back(inp.warning(line_index, msg));
                 }
-            }
-            else {
+            } else {
                 // some error during parsing, output the original line so it isn't lost
                 out_errors.push_back(inp.error(0, msg));
             }
@@ -129,8 +124,7 @@ static int xcrun(const std::string& cmdline, std::string& output, Slang::Enum sl
     std::string cmd = "xcrun ";
     if (slang == Slang::METAL_MACOS) {
         cmd += "--sdk macosx ";
-    }
-    else {
+    } else {
         cmd += "--sdk iphoneos ";
     }
     cmd += cmdline;
@@ -158,8 +152,7 @@ static bool mtl_cc(const std::string& src_path, const std::string& out_dia, cons
     cmdline += out_air;
     if (slang == Slang::METAL_MACOS) {
         cmdline += " -mmacosx-version-min=10.11 -std=osx-metal1.1 ";
-    }
-    else {
+    } else {
         cmdline += " -miphoneos-version-min=9.0 -std=ios-metal1.1 ";
     }
     cmdline += src_path;
@@ -265,8 +258,7 @@ static void d3d_parse_errors(const std::string& output, const Input& inp, int sn
                 for (int i = 2; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
                         msg = tokens[i];
-                    }
-                    else {
+                    } else {
                         msg = fmt::format("{}:{}", msg, tokens[i]);
                     }
                 }
@@ -276,12 +268,10 @@ static void d3d_parse_errors(const std::string& output, const Input& inp, int sn
         if (ok) {
             if (pystring::startswith(tokens[1], " error")) {
                 out_errors.push_back(ErrMsg::error(inp.base_path, 0, msg));
-            }
-            else {
+            } else {
                 out_errors.push_back(ErrMsg::warning(inp.base_path, 0, msg));
             }
-        }
-        else {
+        } else {
             // some error during parsing, output the original line so it isn't lost
             out_errors.push_back(ErrMsg::error(inp.base_path, 0, line));
         }
@@ -302,16 +292,13 @@ static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slan
         if (slang == Slang::HLSL4) {
             if (snippet.type == Snippet::VS) {
                 compile_target = "vs_4_0";
-            }
-            else {
+            } else {
                 compile_target = "ps_4_0";
             }
-        }
-        else {
+        } else {
             if (snippet.type == Snippet::VS) {
                 compile_target = "vs_5_0";
-            }
-            else {
+            } else {
                 compile_target = "ps_5_0";
             }
         }

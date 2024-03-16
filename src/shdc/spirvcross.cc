@@ -204,8 +204,7 @@ bool Spirvcross::can_flatten_uniform_block(const Compiler& compiler, const Resou
             if ((basic_type != SPIRType::Float) && (basic_type != SPIRType::Int)) {
                 return false;
             }
-        }
-        else if (basic_type != m_type.basetype) {
+        } else if (basic_type != m_type.basetype) {
             return false;
         }
     }
@@ -426,13 +425,11 @@ static bool gather_unique_uniform_blocks(const Input& inp, Spirvcross& spv_cross
                 if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
                     // identical uniform block already exists, take note of the index
                     ub.unique_index = other_ub_index;
-                }
-                else {
+                } else {
                     spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
                     return false;
                 }
-            }
-            else {
+            } else {
                 // a new unique uniform block
                 ub.unique_index = (int) spv_cross.unique_uniform_blocks.size();
                 spv_cross.unique_uniform_blocks.push_back(ub);
@@ -607,8 +604,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
         if (src.valid) {
             assert(src.snippet_index == blob.snippet_index);
             spv_cross.sources.push_back(std::move(src));
-        }
-        else {
+        } else {
             const int line_index = snippet.lines[0];
             std::string err_msg;
             if (src.error.has_error) {
@@ -659,8 +655,7 @@ void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
     fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
-    }
-    else {
+    } else {
         fmt::print(stderr, "  error: not set\n");
     }
     std::vector<std::string> lines;
