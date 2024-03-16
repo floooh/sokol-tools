@@ -12,7 +12,7 @@ namespace shdc {
 // glsl-to-spirv compiler wrapper
 struct spirv_t {
     std::vector<ErrMsg> errors;
-    std::vector<spirv_blob_t> blobs;
+    std::vector<SpirvBlob> blobs;
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();

@@ -218,7 +218,7 @@ static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& s
     spv_options.validate = false;
     spv_options.emitNonSemanticShaderDebugInfo = false;
     spv_options.emitNonSemanticShaderDebugSource = false;
-    out_spirv.blobs.push_back(spirv_blob_t(snippet_index));
+    out_spirv.blobs.push_back(SpirvBlob(snippet_index));
     out_spirv.blobs.back().source = src;
     glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
@@ -267,7 +267,7 @@ bool spirv_t::write_to_file(const args_t& args, const input_t& inp, Slang::type_
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
     std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
-    for (const spirv_blob_t& blob: blobs) {
+    for (const SpirvBlob& blob: blobs) {
         const Snippet& snippet = inp.snippets[blob.snippet_index];
         {
             const std::string path = fmt::format("{}{}.spv", base_path, snippet.name);
@@ -307,7 +307,7 @@ void spirv_t::dump_debug(const input_t& inp, ErrMsg::msg_format_t err_fmt) const
     else {
         fmt::print(stderr, "  errors: none\n\n");
     }
-    for (const spirv_blob_t& blob : blobs) {
+    for (const SpirvBlob& blob : blobs) {
         fmt::print(stderr, "  source for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);

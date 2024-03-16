@@ -166,7 +166,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::type_t type, std:
     }
 }
 
-static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const spirv_blob_t& blob) {
+static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const SpirvBlob& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
@@ -256,7 +256,7 @@ static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& by
     return reflection_t::parse(compiler, snippet, slang);
 }
 
-static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static spirvcross_source_t to_glsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -299,7 +299,7 @@ static spirvcross_source_t to_glsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static spirvcross_source_t to_hlsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -330,7 +330,7 @@ static spirvcross_source_t to_hlsl(const input_t& inp, const spirv_blob_t& blob,
     return res;
 }
 
-static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static spirvcross_source_t to_msl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -362,7 +362,7 @@ static spirvcross_source_t to_msl(const input_t& inp, const spirv_blob_t& blob, 
     return res;
 }
 
-static spirvcross_source_t to_wgsl(const input_t& inp, const spirv_blob_t& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static spirvcross_source_t to_wgsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, snippet.type, slang);
