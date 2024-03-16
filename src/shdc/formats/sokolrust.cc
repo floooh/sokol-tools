@@ -61,7 +61,7 @@ static const char* img_type_to_sokol_type_str(ImageType::Enum type) {
     }
 }
 
-static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::type_t type) {
+static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::Enum type) {
     switch (type) {
         case ImageSampleType::FLOAT:               return "sg::ImageSampleType::Float";
         case ImageSampleType::DEPTH:               return "sg::ImageSampleType::Depth";

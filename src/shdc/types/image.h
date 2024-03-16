@@ -10,7 +10,7 @@ struct Image {
     int slot = -1;
     std::string name;
     ImageType::Enum type = ImageType::INVALID;
-    ImageSampleType::type_t sample_type = ImageSampleType::INVALID;
+    ImageSampleType::Enum sample_type = ImageSampleType::INVALID;
     bool multisampled = false;
     int unique_index = -1;      // index into Spirvcross.unique_images
 

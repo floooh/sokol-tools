@@ -77,7 +77,7 @@ static ImageType::Enum spirtype_to_image_type(const SPIRType& type) {
     return ImageType::INVALID;
 }
 
-static ImageSampleType::type_t spirtype_to_image_sample_type(const SPIRType& type) {
+static ImageSampleType::Enum spirtype_to_image_sample_type(const SPIRType& type) {
     if (type.image.depth) {
         return ImageSampleType::DEPTH;
     } else {

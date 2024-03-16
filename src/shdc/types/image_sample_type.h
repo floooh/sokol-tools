@@ -5,7 +5,7 @@ namespace shdc {
 
 // image-sample-type (see sg_image_sample_type)
 struct ImageSampleType {
-    enum type_t {
+    enum Enum {
         INVALID,
         FLOAT,
         SINT,
@@ -14,14 +14,14 @@ struct ImageSampleType {
         UNFILTERABLE_FLOAT,
     };
 
-    static const char* to_str(type_t t);
-    static ImageSampleType::type_t from_str(const std::string& str);
+    static const char* to_str(Enum e);
+    static ImageSampleType::Enum from_str(const std::string& str);
     static bool is_valid_str(const std::string& str);
     static const char* valid_image_sample_types_as_str();
 };
 
-inline const char* ImageSampleType::to_str(type_t t) {
-    switch (t) {
+inline const char* ImageSampleType::to_str(Enum e) {
+    switch (e) {
         case FLOAT:  return "float";
         case SINT:   return "sint";
         case UINT:   return "uint";
@@ -31,7 +31,7 @@ inline const char* ImageSampleType::to_str(type_t t) {
     }
 }
 
-inline ImageSampleType::type_t ImageSampleType::from_str(const std::string& str) {
+inline ImageSampleType::Enum ImageSampleType::from_str(const std::string& str) {
     if (str == "float") return FLOAT;
     else if (str == "sint") return SINT;
     else if (str == "uint") return UINT;
