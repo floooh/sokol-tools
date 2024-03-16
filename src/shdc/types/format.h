@@ -4,7 +4,7 @@
 namespace shdc {
 
 // the output format
-struct format_t	{
+struct Format	{
     enum type_t {
         SOKOL = 0,
         SOKOL_DECL,
@@ -23,7 +23,7 @@ struct format_t	{
     static type_t from_str(const std::string& str);
 };
 
-inline const char* format_t::to_str(type_t f) {
+inline const char* Format::to_str(type_t f) {
     switch (f) {
         case SOKOL:         return "sokol";
         case SOKOL_DECL:    return "sokol_decl";
@@ -38,7 +38,7 @@ inline const char* format_t::to_str(type_t f) {
     }
 }
 
-inline format_t::type_t format_t::from_str(const std::string& str) {
+inline Format::type_t Format::from_str(const std::string& str) {
     if (str == "sokol") {
         return SOKOL;
     } else if (str == "sokol_decl") {

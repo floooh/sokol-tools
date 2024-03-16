@@ -320,7 +320,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
 }
 
 static void write_common_decls(slang_t::type_t slang, const args_t& args, const input_t& inp, const spirvcross_t& spirvcross) {
-    if (args.output_format == format_t::SOKOL_IMPL) {
+    if (args.output_format == Format::SOKOL_IMPL) {
         L("#if !defined(SOKOL_GFX_INCLUDED)\n");
         L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
         L("#endif\n");
@@ -332,7 +332,7 @@ static void write_common_decls(slang_t::type_t slang, const args_t& args, const 
     L("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
     L("  #endif\n");
     L("#endif\n");
-    if (args.output_format == format_t::SOKOL_IMPL) {
+    if (args.output_format == Format::SOKOL_IMPL) {
         for (const auto& item: inp.programs) {
             const program_t& prog = item.second;
             L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
@@ -530,7 +530,7 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
 }
 
 static std::string func_prefix(const args_t& args) {
-    if (args.output_format != format_t::SOKOL_IMPL) {
+    if (args.output_format != Format::SOKOL_IMPL) {
         return std::string("static inline ");
     }
     else {
@@ -817,10 +817,10 @@ ErrMsg sokol_t::gen(const args_t& args, const input_t& inp,
             }
             if (!guard_written) {
                 guard_written = true;
-                if (args.output_format == format_t::SOKOL_DECL) {
+                if (args.output_format == Format::SOKOL_DECL) {
                     L("#if !defined(SOKOL_SHDC_DECL)\n");
                 }
-                else if (args.output_format == format_t::SOKOL_IMPL) {
+                else if (args.output_format == Format::SOKOL_IMPL) {
                     L("#if defined(SOKOL_SHDC_IMPL)\n");
                 }
             }
@@ -835,7 +835,7 @@ ErrMsg sokol_t::gen(const args_t& args, const input_t& inp,
     }
 
     // write access functions which return sg_shader_desc pointers
-    if (args.output_format != format_t::SOKOL_IMPL) {
+    if (args.output_format != Format::SOKOL_IMPL) {
         L("#if !defined(SOKOL_GFX_INCLUDED)\n");
         L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
         L("#endif\n");
@@ -857,10 +857,10 @@ ErrMsg sokol_t::gen(const args_t& args, const input_t& inp,
     }
 
     if (guard_written) {
-        if (args.output_format == format_t::SOKOL_DECL) {
+        if (args.output_format == Format::SOKOL_DECL) {
             L("#endif /* SOKOL_SHDC_DECL */\n");
         }
-        else if (args.output_format == format_t::SOKOL_IMPL) {
+        else if (args.output_format == Format::SOKOL_IMPL) {
             L("#endif /* SOKOL_SHDC_IMPL */\n");
         }
     }

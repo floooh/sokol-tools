@@ -209,8 +209,8 @@ args_t args_t::parse(int argc, const char** argv) {
                     args.reflection = true;
                     break;
                 case OPTION_FORMAT:
-                    args.output_format = format_t::from_str(ctx.current_opt_arg);
-                    if (args.output_format == format_t::INVALID) {
+                    args.output_format = Format::from_str(ctx.current_opt_arg);
+                    if (args.output_format == Format::INVALID) {
                         fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
@@ -278,7 +278,7 @@ void args_t::dump_debug() const {
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  module: '{}'\n", module);
     fmt::print(stderr, "  defines: '{}'\n", pystring::join(":", defines));
-    fmt::print(stderr, "  output_format: '{}'\n", format_t::to_str(output_format));
+    fmt::print(stderr, "  output_format: '{}'\n", Format::to_str(output_format));
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);

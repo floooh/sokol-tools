@@ -107,22 +107,22 @@ int main(int argc, const char** argv) {
     // generate output files
     ErrMsg output_err;
     switch (args.output_format) {
-        case format_t::BARE:
+        case Format::BARE:
             output_err = bare_t::gen(args, inp, spirvcross, bytecode);
             break;
-        case format_t::BARE_YAML:
+        case Format::BARE_YAML:
             output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
             break;
-        case format_t::SOKOL_ZIG:
+        case Format::SOKOL_ZIG:
             output_err = sokolzig_t::gen(args, inp, spirvcross, bytecode);
             break;
-        case format_t::SOKOL_NIM:
+        case Format::SOKOL_NIM:
             output_err = sokolnim_t::gen(args, inp, spirvcross, bytecode);
             break;
-        case format_t::SOKOL_ODIN:
+        case Format::SOKOL_ODIN:
             output_err = sokolodin_t::gen(args, inp, spirvcross, bytecode);
             break;
-        case format_t::SOKOL_RUST:
+        case Format::SOKOL_RUST:
             output_err = sokolrust_t::gen(args, inp, spirvcross, bytecode);
             break;
         default:
