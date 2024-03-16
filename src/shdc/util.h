@@ -17,7 +17,7 @@ namespace util {
     int roundup(int val, int round_to);
     std::string mod_prefix(const input_t& inp);
     const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross);
-    const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode);
+    const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const Bytecode& bytecode);
     std::string to_camel_case(const std::string& str);
     std::string to_pascal_case(const std::string& str);
     std::string to_ada_case(const std::string& str);

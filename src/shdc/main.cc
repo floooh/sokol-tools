@@ -79,12 +79,12 @@ int main(int argc, const char** argv) {
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    std::array<bytecode_t, Slang::NUM> bytecode;
+    std::array<Bytecode, Slang::NUM> bytecode;
     if (args.byte_code) {
         for (int i = 0; i < Slang::NUM; i++) {
             Slang::type_t slang = (Slang::type_t)i;
             if (args.slang & Slang::bit(slang)) {
-                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
+                bytecode[i] = Bytecode::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();
                 }

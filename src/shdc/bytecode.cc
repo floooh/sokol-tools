@@ -20,7 +20,7 @@
 
 namespace shdc {
 
-int bytecode_t::find_blob_by_snippet_index(int snippet_index) const {
+int Bytecode::find_blob_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)blobs.size(); i++) {
         if (blobs[i].snippet_index == snippet_index) {
             return i;
@@ -173,8 +173,8 @@ static bool mtl_link(const std::string& lib_path, const std::string& bin_path, S
     return 0 == xcrun(cmdline, dummy_output, slang);
 }
 
-static bytecode_t mtl_compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
-    bytecode_t bytecode;
+static Bytecode mtl_compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+    Bytecode bytecode;
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
@@ -288,8 +288,8 @@ static void d3d_parse_errors(const std::string& output, const input_t& inp, int 
     }
 }
 
-static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
-    bytecode_t bytecode;
+static Bytecode d3d_compile(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+    Bytecode bytecode;
     if (!load_d3dcompiler_dll()) {
         bytecode.errors.push_back(ErrMsg::warning(inp.base_path, 0, fmt::format("failed to load d3dcompiler_47.dll!")));
         return bytecode;
@@ -351,8 +351,8 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
 }
 #endif
 
-bytecode_t bytecode_t::compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
-    bytecode_t bytecode;
+Bytecode Bytecode::compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+    Bytecode bytecode;
     #if defined(__APPLE__)
     // NOTE: for the iOS simulator case, don't compile bytecode but use source code
     if ((slang == Slang::METAL_MACOS) || (slang == Slang::METAL_IOS)) {
@@ -367,8 +367,8 @@ bytecode_t bytecode_t::compile(const Args& args, const input_t& inp, const spirv
     return bytecode;
 }
 
-void bytecode_t::dump_debug() const {
-    fmt::print(stderr, "bytecode_t::dump_debug(): FIXME!\n");
+void Bytecode::dump_debug() const {
+    fmt::print(stderr, "Bytecode::dump_debug(): FIXME!\n");
 }
 
 } // namespace shdc

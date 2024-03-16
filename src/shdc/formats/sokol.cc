@@ -355,7 +355,7 @@ static void write_common_decls(Slang::type_t slang, const Args& args, const inpu
 
 static void write_shader_sources_and_blobs(const input_t& inp,
                                            const spirvcross_t& spirvcross,
-                                           const bytecode_t& bytecode,
+                                           const Bytecode& bytecode,
                                            Slang::type_t slang)
 {
     for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
@@ -490,7 +490,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const bytecode_t& bytecode, Slang::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
     const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -540,7 +540,7 @@ static std::string func_prefix(const Args& args) {
 
 static void write_shader_desc_func(const Program& prog, const Args& args, const input_t& inp,
                                    const std::array<spirvcross_t,Slang::NUM>& spirvcross,
-                                   const std::array<bytecode_t,Slang::NUM>& bytecode)
+                                   const std::array<Bytecode,Slang::NUM>& bytecode)
 {
     L("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     for (int i = 0; i < Slang::NUM; i++) {
@@ -789,7 +789,7 @@ static void write_uniform_desc_func(const Program& prog, const Args& args, const
 
 ErrMsg sokol_t::gen(const Args& args, const input_t& inp,
                      const std::array<spirvcross_t,Slang::NUM>& spirvcross,
-                     const std::array<bytecode_t,Slang::NUM>& bytecode)
+                     const std::array<Bytecode,Slang::NUM>& bytecode)
 {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)

@@ -9,15 +9,13 @@
 
 namespace shdc {
 
-struct bytecode_t {
+struct Bytecode {
     std::vector<ErrMsg> errors;
     std::vector<BytecodeBlob> blobs;
 
-    static bytecode_t compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang);
+    static Bytecode compile(const Args& args, const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang);
     int find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
-
-
 
 } // namespace shdc

@@ -101,7 +101,7 @@ const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string&
     }
 }
 
-const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode) {
+const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const Bytecode& bytecode) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);

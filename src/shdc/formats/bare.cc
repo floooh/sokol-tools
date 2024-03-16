@@ -42,7 +42,7 @@ static ErrMsg write_stage(const std::string& file_path,
 static ErrMsg write_shader_sources_and_blobs(const Args& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
-                                               const bytecode_t& bytecode,
+                                               const Bytecode& bytecode,
                                                Slang::type_t slang)
 {
     for (const auto& item: inp.programs) {
@@ -72,7 +72,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
 
 ErrMsg bare_t::gen(const Args& args, const input_t& inp,
                      const std::array<spirvcross_t,Slang::NUM>& spirvcross,
-                     const std::array<bytecode_t,Slang::NUM>& bytecode)
+                     const std::array<Bytecode,Slang::NUM>& bytecode)
 {
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::type_t slang = (Slang::type_t) i;

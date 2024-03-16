@@ -166,7 +166,7 @@ static void write_source_reflection(const SpirvcrossSource* src) {
 static ErrMsg write_shader_sources_and_blobs(const Args& args,
                                                const input_t& inp,
                                                const spirvcross_t& spirvcross,
-                                               const bytecode_t& bytecode,
+                                               const Bytecode& bytecode,
                                                Slang::type_t slang)
 {
     L("    programs:\n");
@@ -197,7 +197,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
     return ErrMsg();
 }
 
-ErrMsg yaml_t::gen(const Args& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<bytecode_t,Slang::NUM>& bytecode)
+ErrMsg yaml_t::gen(const Args& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode)
 {
     // first generate the bare-output files
     ErrMsg output_err = bare_t::gen(args, inp, spirvcross, bytecode);
