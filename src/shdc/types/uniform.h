@@ -5,7 +5,7 @@ namespace shdc {
 
 struct Uniform {
     static const int NUM = 16;      // must be identical with SG_MAX_UB_MEMBERS
-    enum type_t {
+    enum Type {
         INVALID,
         FLOAT,
         FLOAT2,
@@ -18,17 +18,17 @@ struct Uniform {
         MAT4,
     };
     std::string name;
-    type_t type = INVALID;
+    Type type = INVALID;
     int array_count = 1;
     int offset = 0;
 
-    static const char* type_to_str(type_t t);
+    static const char* type_to_str(Type t);
     static bool is_valid_glsl_uniform_type(const std::string& str);
     static const char* valid_glsl_uniform_types_as_str();
     bool equals(const Uniform& other) const;
 };
 
-inline const char* Uniform::type_to_str(type_t t) {
+inline const char* Uniform::type_to_str(Type t) {
     switch (t) {
         case FLOAT:     return "float";
         case FLOAT2:    return "float2";

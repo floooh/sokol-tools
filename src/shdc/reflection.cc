@@ -25,7 +25,7 @@ using namespace spirv_cross;
 
 namespace shdc {
 
-static Uniform::type_t spirtype_to_uniform_type(const SPIRType& type) {
+static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
     switch (type.basetype) {
         case SPIRType::Float:
             if (type.columns == 1) {

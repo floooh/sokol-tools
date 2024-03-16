@@ -19,7 +19,7 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
-static const char* uniform_type_to_sokol_type_str(Uniform::type_t type) {
+static const char* uniform_type_to_sokol_type_str(Uniform::Type type) {
     switch (type) {
         case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
         case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
@@ -34,7 +34,7 @@ static const char* uniform_type_to_sokol_type_str(Uniform::type_t type) {
     }
 }
 
-static const char* uniform_type_to_flattened_sokol_type_str(Uniform::type_t type) {
+static const char* uniform_type_to_flattened_sokol_type_str(Uniform::Type type) {
     switch (type) {
         case Uniform::FLOAT:
         case Uniform::FLOAT2:

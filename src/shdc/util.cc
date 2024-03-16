@@ -33,7 +33,7 @@ ErrMsg check_errors(const Input& inp,
     return ErrMsg();
 }
 
-const char* uniform_type_str(Uniform::type_t type) {
+const char* uniform_type_str(Uniform::Type type) {
     switch (type) {
         case Uniform::FLOAT: return "float";
         case Uniform::FLOAT2: return "vec2";
@@ -44,7 +44,7 @@ const char* uniform_type_str(Uniform::type_t type) {
     }
 }
 
-int uniform_size(Uniform::type_t type, int array_size) {
+int uniform_size(Uniform::Type type, int array_size) {
     if (array_size > 1) {
         switch (type) {
             case Uniform::FLOAT4:

@@ -24,7 +24,7 @@ static Uniform as_flattened_uniform(const UniformBlock& block) {
     assert(block.flattened);
     assert(!block.uniforms.empty());
 
-    const Uniform::type_t type = [&block](){
+    const Uniform::Type type = [&block](){
         switch (block.uniforms[0].type) {
             case Uniform::FLOAT:
             case Uniform::FLOAT2:
