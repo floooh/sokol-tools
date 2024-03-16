@@ -5,7 +5,7 @@
 
 namespace shdc {
 
-struct uniform_block_t {
+struct UniformBlock {
     static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
     int slot = -1;
     int size = 0;
@@ -15,11 +15,11 @@ struct uniform_block_t {
     int unique_index = -1;      // index into spirvcross_t.unique_uniform_blocks
     bool flattened = false;
 
-    bool equals(const uniform_block_t& other) const;
+    bool equals(const UniformBlock& other) const;
 };
 
 // FIXME: hmm is this correct??
-inline bool uniform_block_t::equals(const uniform_block_t& other) const {
+inline bool UniformBlock::equals(const UniformBlock& other) const {
     if ((slot != other.slot) ||
         (size != other.size) ||
         (struct_name != other.struct_name) ||

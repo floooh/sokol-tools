@@ -20,7 +20,7 @@ static std::string file_content;
 #define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
 #endif
 
-static uniform_t as_flattened_uniform(const uniform_block_t& block) {
+static uniform_t as_flattened_uniform(const UniformBlock& block) {
     assert(block.flattened);
     assert(!block.uniforms.empty());
 
@@ -58,7 +58,7 @@ static void write_attribute(const VertexAttr& att) {
 }
 
 static void write_uniform(const uniform_t& uniform);
-static void write_uniform_block(const uniform_block_t& uniform_block) {
+static void write_uniform_block(const UniformBlock& uniform_block) {
     L("            -\n");
     L("              slot: {}\n", uniform_block.slot);
     L("              size: {}\n", uniform_block.size);

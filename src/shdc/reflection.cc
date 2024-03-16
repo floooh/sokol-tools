@@ -106,9 +106,9 @@ reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippe
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
     switch (compiler.get_execution_model()) {
-        case spv::ExecutionModelVertex:   refl.stage = stage_t::VS; break;
-        case spv::ExecutionModelFragment: refl.stage = stage_t::FS; break;
-        default: refl.stage = stage_t::INVALID; break;
+        case spv::ExecutionModelVertex:   refl.stage = ShaderStage::VS; break;
+        case spv::ExecutionModelFragment: refl.stage = ShaderStage::FS; break;
+        default: refl.stage = ShaderStage::INVALID; break;
     }
 
     // find entry point
@@ -139,7 +139,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippe
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
         std::string n = compiler.get_name(ub_res.id);
-        uniform_block_t refl_ub;
+        UniformBlock refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
@@ -217,8 +217,8 @@ reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippe
     return refl;
 }
 
-const uniform_block_t* reflection_t::find_uniform_block_by_slot(int slot) const {
-    for (const uniform_block_t& ub: this->uniform_blocks) {
+const UniformBlock* reflection_t::find_uniform_block_by_slot(int slot) const {
+    for (const UniformBlock& ub: this->uniform_blocks) {
         if (ub.slot == slot) {
             return &ub;
         }

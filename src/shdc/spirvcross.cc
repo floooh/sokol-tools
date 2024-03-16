@@ -418,7 +418,7 @@ static int find_unique_sampler_by_name(const spirvcross_t& spv_cross, const std:
 // find all identical uniform blocks across all shaders, and check for collisions
 static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
-        for (uniform_block_t& ub: src.refl.uniform_blocks) {
+        for (UniformBlock& ub: src.refl.uniform_blocks) {
             int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
             if (other_ub_index >= 0) {
                 if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
@@ -669,7 +669,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang)
             fmt::print(stderr, "      {}\n", line);
         }
         fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
-        fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
+        fmt::print(stderr, "      stage: {}\n", ShaderStage::to_str(source.refl.stage));
         fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
         fmt::print(stderr, "      inputs:\n");
         for (const VertexAttr& attr: source.refl.inputs) {
@@ -683,7 +683,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang)
                 fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
             }
         }
-        for (const uniform_block_t& ub: source.refl.uniform_blocks) {
+        for (const UniformBlock& ub: source.refl.uniform_blocks) {
             fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
             for (const uniform_t& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",

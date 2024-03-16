@@ -17,7 +17,7 @@ struct spirvcross_t {
     ErrMsg error;
     std::vector<SpirvcrossSource> sources;
     // FIXME: those should go into reflection?
-    std::vector<uniform_block_t> unique_uniform_blocks;
+    std::vector<UniformBlock> unique_uniform_blocks;
     std::vector<Image> unique_images;
     std::vector<Sampler> unique_samplers;
 

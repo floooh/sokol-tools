@@ -126,7 +126,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
                 L("#                   ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
         }
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: vs_src->refl.uniform_blocks) {
             L("#               Uniform block '{}':\n", ub.struct_name);
             L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
@@ -149,7 +149,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("#                   Sampler: {}\n", img_smp.sampler_name);
         }
         L("#           Fragment shader: {}\n", prog.fs_name);
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: fs_src->refl.uniform_blocks) {
             L("#               Uniform block '{}':\n", ub.struct_name);
             L("#                   Nim struct: {}\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
             L("#                   Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
@@ -183,7 +183,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const SpirvcrossSource& src: spirvcross.sources) {
-        if (src.refl.stage == stage_t::VS) {
+        if (src.refl.stage == ShaderStage::VS) {
             const Snippet& vs_snippet = inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
@@ -213,7 +213,7 @@ static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spi
 }
 
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
-    for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
+    for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), ub.struct_name));
         L("const {}* = {}\n", slotName, ub.slot);
         L("type {}* {{.packed.}} = object\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
@@ -367,8 +367,8 @@ static void write_stage(const char* indent,
     }
     assert(src);
     L("{}result.{}.entry = \"{}\"\n", indent, stage_name, src->refl.entry_point);
-    for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = src->refl.find_uniform_block_by_slot(ub_index);
+    for (int ub_index = 0; ub_index < UniformBlock::NUM; ub_index++) {
+        const UniformBlock* ub = src->refl.find_uniform_block_by_slot(ub_index);
         if (ub) {
             L("{}result.{}.uniformBlocks[{}].size = {}\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}result.{}.uniformBlocks[{}].layout = uniformLayoutStd140\n", indent, stage_name, ub_index);

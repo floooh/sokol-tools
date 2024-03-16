@@ -122,7 +122,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
                 L("//                  ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
         }
-        for (const uniform_block_t& ub: vs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: vs_src->refl.uniform_blocks) {
             L("//              Uniform block '{}':\n", ub.struct_name);
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
@@ -145,7 +145,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("//                  Sampler: {}\n", img_smp.sampler_name);
         }
         L("//          Fragment shader: {}\n", prog.fs_name);
-        for (const uniform_block_t& ub: fs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: fs_src->refl.uniform_blocks) {
             L("//              Uniform block '{}':\n", ub.struct_name);
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
@@ -177,7 +177,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
 
 static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
     for (const SpirvcrossSource& src: spirvcross.sources) {
-        if (src.refl.stage == stage_t::VS) {
+        if (src.refl.stage == ShaderStage::VS) {
             const Snippet& vs_snippet = inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
@@ -201,7 +201,7 @@ static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spi
 }
 
 static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
-    for (const uniform_block_t& ub: spirvcross.unique_uniform_blocks) {
+    for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
@@ -352,8 +352,8 @@ static void write_stage(const char* indent,
     }
     assert(src);
     L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src->refl.entry_point);
-    for (int ub_index = 0; ub_index < uniform_block_t::NUM; ub_index++) {
-        const uniform_block_t* ub = src->refl.find_uniform_block_by_slot(ub_index);
+    for (int ub_index = 0; ub_index < UniformBlock::NUM; ub_index++) {
+        const UniformBlock* ub = src->refl.find_uniform_block_by_slot(ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = .STD140;\n", indent, stage_name, ub_index);

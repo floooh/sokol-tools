@@ -3,7 +3,7 @@
 namespace shdc {
 
 // a shader stage
-struct stage_t {
+struct ShaderStage {
     enum type_t {
         INVALID,
         VS,
@@ -14,7 +14,7 @@ struct stage_t {
     static bool is_fs(type_t t);
 };
 
-inline const char* stage_t::to_str(stage_t::type_t t) {
+inline const char* ShaderStage::to_str(ShaderStage::type_t t) {
     switch (t) {
         case VS: return "VS";
         case FS: return "FS";
@@ -22,11 +22,11 @@ inline const char* stage_t::to_str(stage_t::type_t t) {
     }
 }
 
-inline bool stage_t::is_vs(stage_t::type_t t) {
+inline bool ShaderStage::is_vs(ShaderStage::type_t t) {
     return VS == t;
 }
 
-inline bool stage_t::is_fs(stage_t::type_t t) {
+inline bool ShaderStage::is_fs(ShaderStage::type_t t) {
     return FS == t;
 }
 
