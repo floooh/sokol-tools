@@ -6,7 +6,7 @@
 #include "types/slang.h"
 #include "types/snippet.h"
 #include "types/stage.h"
-#include "types/attr.h"
+#include "types/vertex_attr.h"
 #include "types/uniform_block.h"
 #include "types/image.h"
 #include "types/sampler.h"
@@ -17,8 +17,8 @@ namespace shdc {
 struct reflection_t {
     stage_t::type_t stage = stage_t::INVALID;
     std::string entry_point;
-    std::array<attr_t, attr_t::NUM> inputs;
-    std::array<attr_t, attr_t::NUM> outputs;
+    std::array<VertexAttr, VertexAttr::NUM> inputs;
+    std::array<VertexAttr, VertexAttr::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<image_t> images;
     std::vector<sampler_t> samplers;

@@ -1,9 +1,12 @@
 /*
     code for loading and parsing the input .glsl file with custom-tags
 */
-#include "shdc.h"
+#include "input.h"
+#include "types/uniform.h"
+#include "types/option.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "fmt/format.h"
 #include "pystring.h"
 
@@ -625,10 +628,27 @@ input_t input_t::load_and_parse(const std::string& path, const std::string& modu
     return inp;
 }
 
+errmsg_t input_t::error(int index, const std::string& msg) const {
+    if (index < (int)lines.size()) {
+        const line_t& line = lines[index];
+        return errmsg_t::error(filenames[line.filename], line.index, msg);
+    } else {
+        return errmsg_t::error(base_path, 0, msg);
+    }
+};
+errmsg_t input_t::warning(int index, const std::string& msg) const {
+    if (index < (int)lines.size()) {
+        const line_t& line = lines[index];
+        return errmsg_t::warning(filenames[line.filename], line.index, msg);
+    } else {
+        return errmsg_t::warning(base_path, 0, msg);
+    }
+};
+
 /* print a debug-dump of content to stderr */
 void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "input_t:\n");
-    if (out_error.valid) {
+    if (out_error.has_error) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
     }
     else {

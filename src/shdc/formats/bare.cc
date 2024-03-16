@@ -1,7 +1,8 @@
 /*
     Generate bare output in text or binary format
 */
-#include "shdc.h"
+#include "bare.h"
+#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>
@@ -10,29 +11,9 @@ namespace shdc {
 
 using namespace util;
 
-const char* bare_t::slang_file_extension(slang_t::type_t c, bool binary) {
-    switch (c) {
-        case slang_t::GLSL410:
-        case slang_t::GLSL430:
-        case slang_t::GLSL300ES:
-            return ".glsl";
-        case slang_t::HLSL4:
-        case slang_t::HLSL5:
-            return binary ? ".fxc" : ".hlsl";
-        case slang_t::METAL_MACOS:
-        case slang_t::METAL_IOS:
-        case slang_t::METAL_SIM:
-            return binary ? ".metallib" : ".metal";
-        case slang_t::WGSL:
-            return ".wgsl";
-        default:
-            return "";
-    }
-}
-
 static errmsg_t write_stage(const std::string& file_path,
                             const spirvcross_source_t* src,
-                            const bytecode_blob_t* blob)
+                            const BytecodeBlob* blob)
 {
     // write text or binary to output file
     FILE* f = fopen(file_path.c_str(), "wb");
@@ -68,20 +49,20 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         const program_t& prog = item.second;
         const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-        const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
-        const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
+        const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
+        const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 
         const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang));
-        const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, bare_t::slang_file_extension(slang, vs_blob));
-        const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, bare_t::slang_file_extension(slang, fs_blob));
+        const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, util::slang_file_extension(slang, vs_blob));
+        const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, util::slang_file_extension(slang, fs_blob));
 
         errmsg_t err;
         err = write_stage(file_path_vs, vs_src, vs_blob);
-        if (err.valid) {
+        if (err.has_error) {
             return err;
         }
         err = write_stage(file_path_fs, fs_src, fs_blob);
-        if (err.valid) {
+        if (err.has_error) {
             return err;
         }
     }
@@ -97,11 +78,11 @@ errmsg_t bare_t::gen(const args_t& args, const input_t& inp,
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
             errmsg_t err = check_errors(inp, spirvcross[i], slang);
-            if (err.valid) {
+            if (err.has_error) {
                 return err;
             }
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
-            if (err.valid) {
+            if (err.has_error) {
                 return err;
             }
         }

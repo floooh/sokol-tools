@@ -1,7 +1,8 @@
 /*
     Generate output header in C for sokol_gfx.h
 */
-#include "shdc.h"
+#include "sokol.h"
+#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>
@@ -127,7 +128,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
         L("            Vertex shader: {}\n", prog.vs_name);
         L("                Attribute slots:\n");
         const snippet_t& vs_snippet = inp.snippets[vs_src->snippet_index];
-        for (const attr_t& attr: vs_src->refl.inputs) {
+        for (const VertexAttr& attr: vs_src->refl.inputs) {
             if (attr.slot >= 0) {
                 L("                    ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
@@ -192,7 +193,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("        sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){{\n");
             L("            .layout = {{\n");
             L("                .attrs = {{\n");
-            for (const attr_t& attr: src.refl.inputs) {
+            for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
                     L("                    [ATTR_{}{}_{}] = {{ ... }},\n", mod_prefix(inp), vs_snippet.name, attr.name);
                 }
@@ -239,7 +240,7 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
     for (const spirvcross_source_t& src: spirvcross.sources) {
         if (src.refl.stage == stage_t::VS) {
             const snippet_t& vs_snippet = inp.snippets[src.snippet_index];
-            for (const attr_t& attr: src.refl.inputs) {
+            for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
                     L("#define ATTR_{}{}_{} ({})\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
                 }
@@ -366,7 +367,7 @@ static void write_shader_sources_and_blobs(const input_t& inp,
         assert(src_index >= 0);
         const spirvcross_source_t& src = spirvcross.sources[src_index];
         int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
-        const bytecode_blob_t* blob = 0;
+        const BytecodeBlob* blob = 0;
         if (blob_index != -1) {
             blob = &bytecode.blobs[blob_index];
         }
@@ -416,7 +417,7 @@ static void write_stage(const char* indent,
                         const char* stage_name,
                         const spirvcross_source_t* src,
                         const std::string& src_name,
-                        const bytecode_blob_t* blob,
+                        const BytecodeBlob* blob,
                         const std::string& blob_name,
                         slang_t::type_t slang)
 {
@@ -493,8 +494,8 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
     const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
-    const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
-    const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
+    const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
+    const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
     std::string vs_src_name, fs_src_name;
     std::string vs_blob_name, fs_blob_name;
     if (vs_blob) {
@@ -511,8 +512,8 @@ static void write_shader_desc_init(const char* indent, const program_t& prog, co
     }
 
     /* write shader desc */
-    for (int attr_index = 0; attr_index < attr_t::NUM; attr_index++) {
-        const attr_t& attr = vs_src->refl.inputs[attr_index];
+    for (int attr_index = 0; attr_index < VertexAttr::NUM; attr_index++) {
+        const VertexAttr& attr = vs_src->refl.inputs[attr_index];
         if (attr.slot >= 0) {
             if (slang_t::is_glsl(slang)) {
                 L("{}desc.attrs[{}].name = \"{}\";\n", indent, attr_index, attr.name);
@@ -572,7 +573,7 @@ static void write_attr_slot_func(const program_t& prog, const args_t& args, cons
 
     L("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)attr_name;\n");
-    for (const attr_t& attr: vs_src->refl.inputs) {
+    for (const VertexAttr& attr: vs_src->refl.inputs) {
         if (attr.slot >= 0) {
             L("  if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
             L("    return {};\n", attr.slot);
@@ -803,7 +804,7 @@ errmsg_t sokol_t::gen(const args_t& args, const input_t& inp,
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
             errmsg_t err = check_errors(inp, spirvcross[i], slang);
-            if (err.valid) {
+            if (err.has_error) {
                 return err;
             }
             if (!comment_header_written) {

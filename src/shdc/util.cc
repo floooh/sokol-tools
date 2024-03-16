@@ -1,7 +1,7 @@
 /*
     Utility functions shared by output generators
  */
-#include "shdc.h"
+#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 
@@ -101,7 +101,7 @@ const spirvcross_source_t* find_spirvcross_source_by_shader_name(const std::stri
     }
 }
 
-const bytecode_blob_t* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode) {
+const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const bytecode_t& bytecode) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
@@ -151,6 +151,26 @@ std::string replace_C_comment_tokens(const std::string& str) {
     std::string s = pystring::replace(str, comment_start_old, comment_start_new);
     s = pystring::replace(s, comment_end_old, comment_end_new);
     return s;
+}
+
+const char* slang_file_extension(slang_t::type_t c, bool binary) {
+    switch (c) {
+        case slang_t::GLSL410:
+        case slang_t::GLSL430:
+        case slang_t::GLSL300ES:
+            return ".glsl";
+        case slang_t::HLSL4:
+        case slang_t::HLSL5:
+            return binary ? ".fxc" : ".hlsl";
+        case slang_t::METAL_MACOS:
+        case slang_t::METAL_IOS:
+        case slang_t::METAL_SIM:
+            return binary ? ".metallib" : ".metal";
+        case slang_t::WGSL:
+            return ".wgsl";
+        default:
+            return "";
+    }
 }
 
 } // namespace util

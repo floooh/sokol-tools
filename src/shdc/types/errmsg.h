@@ -14,7 +14,7 @@ struct errmsg_t {
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
-    bool valid = false;
+    bool has_error = false;
 
     enum msg_format_t {
         GCC,
@@ -35,7 +35,7 @@ inline errmsg_t errmsg_t::error(const std::string& file, int line, const std::st
     err.file = file;
     err.msg = msg;
     err.line_index = line;
-    err.valid = true;
+    err.has_error = true;
     return err;
 }
 
@@ -45,7 +45,7 @@ inline errmsg_t errmsg_t::warning(const std::string& file, int line, const std::
     err.file = file;
     err.msg = msg;
     err.line_index = line;
-    err.valid = true;
+    err.has_error = true;
     return err;
 }
 

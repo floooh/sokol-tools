@@ -1,7 +1,9 @@
 /*
     Generate bare output in text or binary format
 */
-#include "shdc.h"
+#include "yaml.h"
+#include "bare.h"
+#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>
@@ -47,7 +49,7 @@ static uniform_t as_flattened_uniform(const uniform_block_t& block) {
     return uniform;
 }
 
-static void write_attribute(const attr_t& att) {
+static void write_attribute(const VertexAttr& att) {
     L("            -\n");
     L("              slot: {}\n", att.slot);
     L("              name: {}\n", att.name);
@@ -172,12 +174,12 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
         const program_t& prog = item.second;
         const spirvcross_source_t* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
         const spirvcross_source_t* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-        const bytecode_blob_t* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
-        const bytecode_blob_t* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
+        const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
+        const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
 
         const std::string file_path_base = fmt::format("{}_{}{}_{}", args.output, mod_prefix(inp), prog.name, slang_t::to_str(slang));
-        const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, bare_t::slang_file_extension(slang, vs_blob));
-        const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, bare_t::slang_file_extension(slang, fs_blob));
+        const std::string file_path_vs = fmt::format("{}_vs{}", file_path_base, util::slang_file_extension(slang, vs_blob));
+        const std::string file_path_fs = fmt::format("{}_fs{}", file_path_base, util::slang_file_extension(slang, fs_blob));
 
         L("      -\n");
         L("        name: {}\n", prog.name);
@@ -197,8 +199,12 @@ static errmsg_t write_shader_sources_and_blobs(const args_t& args,
 
 errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<spirvcross_t,slang_t::NUM>& spirvcross, const std::array<bytecode_t,slang_t::NUM>& bytecode)
 {
-    // first write everything into a string, and only when no errors occur,
-    // dump this into a file (so we don't have half-written files lying around)
+    // first generate the bare-output files
+    errmsg_t output_err = bare_t::gen(args, inp, spirvcross, bytecode);
+    if (output_err.has_error) {
+        return output_err;
+    }
+
     file_content.clear();
 
     L("shaders:\n");
@@ -207,14 +213,14 @@ errmsg_t yaml_t::gen(const args_t& args, const input_t& inp, const std::array<sp
         slang_t::type_t slang = (slang_t::type_t) i;
         if (args.slang & slang_t::bit(slang)) {
             errmsg_t err = check_errors(inp, spirvcross[i], slang);
-            if (err.valid) {
+            if (err.has_error) {
                 return err;
             }
 
             L("  -\n");
             L("    slang: {}\n", slang_t::to_str(slang));
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
-            if (err.valid) {
+            if (err.has_error) {
                 return err;
             }
         }

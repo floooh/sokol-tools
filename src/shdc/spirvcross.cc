@@ -3,7 +3,8 @@
     uniform block reflection information, wrapper around
     https://github.com/KhronosGroup/SPIRV-Cross
 */
-#include "shdc.h"
+#include "spirvcross.h"
+#include "types/option.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include "spirv_hlsl.hpp"
@@ -513,9 +514,9 @@ static errmsg_t validate_linking(const input_t& inp, const spirvcross_t& spv_cro
     for (const auto& prog_item: inp.programs) {
         const program_t& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
-        for (int i = 0; i < attr_t::NUM; i++) {
-            const attr_t& vs_out = res.vs_refl.outputs[i];
-            const attr_t& fs_inp = res.fs_refl.inputs[i];
+        for (int i = 0; i < VertexAttr::NUM; i++) {
+            const VertexAttr& vs_out = res.vs_refl.outputs[i];
+            const VertexAttr& fs_inp = res.fs_refl.inputs[i];
             if (!vs_out.equals(fs_inp)) {
                 return inp.error(prog.line_index,
                     fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
@@ -578,7 +579,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         const snippet_t& snippet = inp.snippets[blob.snippet_index];
         assert((snippet.type == snippet_t::VS) || (snippet.type == snippet_t::FS));
         spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
-        if (spv_cross.error.valid) {
+        if (spv_cross.error.has_error) {
             return spv_cross;
         }
         switch (slang) {
@@ -608,7 +609,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
         else {
             const int line_index = snippet.lines[0];
             std::string err_msg;
-            if (src.error.valid) {
+            if (src.error.has_error) {
                 err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", slang_t::to_str(slang), src.error.msg);
             } else {
                 err_msg = fmt::format("Failed to cross-compile to {}\n", slang_t::to_str(slang));
@@ -632,19 +633,19 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
     // check that vertex-shader outputs match their fragment shader inputs
     errmsg_t err;
     err = validate_linking(inp, spv_cross);
-    if (err.valid) {
+    if (err.has_error) {
         spv_cross.error = err;
         return spv_cross;
     }
     // check that explicit image-sampler-type-tags and sampler-type-tags use existing image and sampler names
     /* FIXME this doesn't work with conditional compilation via #ifdef!
     err = validate_image_sample_type_tags(inp, spv_cross);
-    if (err.valid) {
+    if (err.has_error) {
         spv_cross.error = err;
         return spv_cross;
     }
     err = validate_sampler_type_tags(inp, spv_cross);
-    if (err.valid) {
+    if (err.has_error) {
         spv_cross.error = err;
         return spv_cross;
     }
@@ -654,7 +655,7 @@ spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, s
 
 void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t slang) const {
     fmt::print(stderr, "spirvcross_t ({}):\n", slang_t::to_str(slang));
-    if (error.valid) {
+    if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     }
     else {
@@ -671,13 +672,13 @@ void spirvcross_t::dump_debug(errmsg_t::msg_format_t err_fmt, slang_t::type_t sl
         fmt::print(stderr, "      stage: {}\n", stage_t::to_str(source.refl.stage));
         fmt::print(stderr, "      entry: {}\n", source.refl.entry_point);
         fmt::print(stderr, "      inputs:\n");
-        for (const attr_t& attr: source.refl.inputs) {
+        for (const VertexAttr& attr: source.refl.inputs) {
             if (attr.slot >= 0) {
                 fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
             }
         }
         fmt::print(stderr, "      outputs:\n");
-        for (const attr_t& attr: source.refl.outputs) {
+        for (const VertexAttr& attr: source.refl.outputs) {
             if (attr.slot >= 0) {
                 fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
             }

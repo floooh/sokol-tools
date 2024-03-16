@@ -1,7 +1,8 @@
 /*
     Code for reflection parsing.
 */
-#include "shdc.h"
+#include "reflection.h"
+#include "spirvcross.h"
 
 // workaround for Compiler.comparison_ids being protected
 class UnprotectedCompiler: spirv_cross::Compiler {
@@ -120,7 +121,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
     }
     // stage inputs and outputs
     for (const Resource& res_attr: shd_resources.stage_inputs) {
-        attr_t refl_attr;
+        VertexAttr refl_attr;
         refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";
@@ -128,7 +129,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
         refl.inputs[refl_attr.slot] = refl_attr;
     }
     for (const Resource& res_attr: shd_resources.stage_outputs) {
-        attr_t refl_attr;
+        VertexAttr refl_attr;
         refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";

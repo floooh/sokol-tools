@@ -9,7 +9,7 @@
     targets, but not for running in the simulator, in this case,
     shaders are compiled at runtime from source code.
 */
-#include "shdc.h"
+#include "bytecode.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h> // popen etc...
@@ -213,7 +213,7 @@ static bytecode_t mtl_compile(const args_t& args, const input_t& inp, const spir
             mtl_parse_errors(output, inp, src.snippet_index, bytecode.errors);
         }
 
-        bytecode_blob_t blob;
+        BytecodeBlob blob;
         blob.valid = true;
         blob.snippet_index = src.snippet_index;
         blob.data = std::move(data);
@@ -334,7 +334,7 @@ static bytecode_t d3d_compile(const input_t& inp, const spirvcross_t& spirvcross
         if (output && (output->GetBufferSize() > 0)) {
             std::vector<uint8_t> data(output->GetBufferSize());
             memcpy(data.data(), output->GetBufferPointer(), output->GetBufferSize());
-            bytecode_blob_t blob;
+            BytecodeBlob blob;
             blob.valid = true;
             blob.snippet_index = src.snippet_index;
             blob.data = std::move(data);

@@ -1,7 +1,13 @@
 /*
     sokol-shdc main source file.
 */
-#include "shdc.h"
+#include "formats/bare.h"
+#include "formats/sokol.h"
+#include "formats/sokolnim.h"
+#include "formats/sokolodin.h"
+#include "formats/sokolrust.h"
+#include "formats/sokolzig.h"
+#include "formats/yaml.h"
 
 using namespace shdc;
 
@@ -22,7 +28,7 @@ int main(int argc, const char** argv) {
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
-    if (inp.out_error.valid) {
+    if (inp.out_error.has_error) {
         inp.out_error.print(args.error_format);
         return 10;
     }
@@ -65,7 +71,7 @@ int main(int argc, const char** argv) {
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }
-            if (spirvcross[i].error.valid) {
+            if (spirvcross[i].error.has_error) {
                 spirvcross[i].error.print(args.error_format);
                 return 10;
             }
@@ -105,10 +111,6 @@ int main(int argc, const char** argv) {
             output_err = bare_t::gen(args, inp, spirvcross, bytecode);
             break;
         case format_t::BARE_YAML:
-            output_err = bare_t::gen(args, inp, spirvcross, bytecode);
-            if (output_err.valid) {
-                break;
-            }
             output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
             break;
         case format_t::SOKOL_ZIG:
@@ -127,7 +129,7 @@ int main(int argc, const char** argv) {
             output_err = sokol_t::gen(args, inp, spirvcross, bytecode);
             break;
     }
-    if (output_err.valid) {
+    if (output_err.has_error) {
         output_err.print(args.error_format);
         return 10;
     }

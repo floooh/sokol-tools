@@ -1,10 +1,11 @@
 /*
     parse command line arguments
 */
+#include "args.h"
+#include "types/slang.h"
 #include <vector>
 #include <stdio.h>
 #include "fmt/format.h"
-#include "shdc.h"
 #include "getopt/getopt.h"
 #include "pystring.h"
 
