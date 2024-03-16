@@ -4,7 +4,7 @@
 namespace shdc {
 
 // image-sample-type (see sg_image_sample_type)
-struct image_sample_type_t {
+struct ImageSampleType {
     enum type_t {
         INVALID,
         FLOAT,
@@ -15,12 +15,12 @@ struct image_sample_type_t {
     };
 
     static const char* to_str(type_t t);
-    static image_sample_type_t::type_t from_str(const std::string& str);
+    static ImageSampleType::type_t from_str(const std::string& str);
     static bool is_valid_str(const std::string& str);
     static const char* valid_image_sample_types_as_str();
 };
 
-inline const char* image_sample_type_t::to_str(type_t t) {
+inline const char* ImageSampleType::to_str(type_t t) {
     switch (t) {
         case FLOAT:  return "float";
         case SINT:   return "sint";
@@ -31,7 +31,7 @@ inline const char* image_sample_type_t::to_str(type_t t) {
     }
 }
 
-inline image_sample_type_t::type_t image_sample_type_t::from_str(const std::string& str) {
+inline ImageSampleType::type_t ImageSampleType::from_str(const std::string& str) {
     if (str == "float") return FLOAT;
     else if (str == "sint") return SINT;
     else if (str == "uint") return UINT;
@@ -40,7 +40,7 @@ inline image_sample_type_t::type_t image_sample_type_t::from_str(const std::stri
     else return INVALID;
 }
 
-inline bool image_sample_type_t::is_valid_str(const std::string& str) {
+inline bool ImageSampleType::is_valid_str(const std::string& str) {
     return (str == "float")
         || (str == "sint")
         || (str == "uint")
@@ -48,7 +48,7 @@ inline bool image_sample_type_t::is_valid_str(const std::string& str) {
         || (str == "unfilterable_float");
 }
 
-inline const char* image_sample_type_t::valid_image_sample_types_as_str() {
+inline const char* ImageSampleType::valid_image_sample_types_as_str() {
     return "float|sint|uint|depth|unfilterable_float";
 }
 

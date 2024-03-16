@@ -61,13 +61,13 @@ static const char* img_type_to_sokol_type_str(image_type_t::type_t type) {
     }
 }
 
-static const char* img_basetype_to_sokol_sampletype_str(image_sample_type_t::type_t type) {
+static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::type_t type) {
     switch (type) {
-        case image_sample_type_t::FLOAT: return ".FLOAT";
-        case image_sample_type_t::DEPTH: return ".DEPTH";
-        case image_sample_type_t::SINT:  return ".SINT";
-        case image_sample_type_t::UINT:  return ".UINT";
-        case image_sample_type_t::UNFILTERABLE_FLOAT:  return ".UNFILTERABLE_FLOAT";
+        case ImageSampleType::FLOAT: return ".FLOAT";
+        case ImageSampleType::DEPTH: return ".DEPTH";
+        case ImageSampleType::SINT:  return ".SINT";
+        case ImageSampleType::UINT:  return ".UINT";
+        case ImageSampleType::UNFILTERABLE_FLOAT:  return ".UNFILTERABLE_FLOAT";
         default: return "INVALID";
     }
 }

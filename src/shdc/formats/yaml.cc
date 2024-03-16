@@ -91,7 +91,7 @@ static void write_image(const image_t& image) {
     L("              name: {}\n", image.name);
     L("              multisampled: {}\n", image.multisampled);
     L("              type: {}\n", image_type_t::to_str(image.type));
-    L("              sample_type: {}\n", image_sample_type_t::to_str(image.sample_type));
+    L("              sample_type: {}\n", ImageSampleType::to_str(image.sample_type));
 }
 
 static void write_sampler(const sampler_t& sampler) {

@@ -695,7 +695,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slan
         }
         for (const image_t& img: source.refl.images) {
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
-                img.name, img.slot, image_type_t::to_str(img.type), image_sample_type_t::to_str(img.sample_type));
+                img.name, img.slot, image_type_t::to_str(img.type), ImageSampleType::to_str(img.sample_type));
         }
         for (const sampler_t& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);

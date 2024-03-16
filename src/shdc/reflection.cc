@@ -77,21 +77,21 @@ static image_type_t::type_t spirtype_to_image_type(const SPIRType& type) {
     return image_type_t::INVALID;
 }
 
-static image_sample_type_t::type_t spirtype_to_image_sample_type(const SPIRType& type) {
+static ImageSampleType::type_t spirtype_to_image_sample_type(const SPIRType& type) {
     if (type.image.depth) {
-        return image_sample_type_t::DEPTH;
+        return ImageSampleType::DEPTH;
     } else {
         switch (type.basetype) {
             case SPIRType::Int:
             case SPIRType::Short:
             case SPIRType::SByte:
-                return image_sample_type_t::SINT;
+                return ImageSampleType::SINT;
             case SPIRType::UInt:
             case SPIRType::UShort:
             case SPIRType::UByte:
-                return image_sample_type_t::UINT;
+                return ImageSampleType::UINT;
             default:
-                return image_sample_type_t::FLOAT;
+                return ImageSampleType::FLOAT;
         }
     }
 }
@@ -170,7 +170,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
-            refl_img.sample_type = image_sample_type_t::DEPTH;
+            refl_img.sample_type = ImageSampleType::DEPTH;
         } else {
             refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }

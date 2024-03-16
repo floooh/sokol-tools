@@ -6,15 +6,15 @@ namespace shdc {
 
 struct ImageSampleTypeTag {
     std::string tex_name;
-    image_sample_type_t::type_t type = image_sample_type_t::INVALID;
+    ImageSampleType::type_t type = ImageSampleType::INVALID;
     int line_index = 0;
     ImageSampleTypeTag();
-    ImageSampleTypeTag(const std::string& n, image_sample_type_t::type_t t, int l);
+    ImageSampleTypeTag(const std::string& n, ImageSampleType::type_t t, int l);
 };
 
 inline ImageSampleTypeTag::ImageSampleTypeTag() { };
 
-inline ImageSampleTypeTag::ImageSampleTypeTag(const std::string& n, image_sample_type_t::type_t t, int l):
+inline ImageSampleTypeTag::ImageSampleTypeTag(const std::string& n, ImageSampleType::type_t t, int l):
     tex_name(n),
     type(t),
     line_index(l)
