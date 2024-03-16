@@ -10,7 +10,7 @@
 namespace shdc {
 
 // pre-parsed GLSL source file, with content split into snippets
-struct input_t {
+struct Input {
     ErrMsg out_error;
     std::string base_path;              // path to base file
     std::string module;                 // optional module name
@@ -25,7 +25,7 @@ struct input_t {
     std::map<std::string, int> fs_map;      // name-index mapping for @fs snippets
     std::map<std::string, Program> programs;    // all @program definitions
 
-    static input_t load_and_parse(const std::string& path, const std::string& module_override);
+    static Input load_and_parse(const std::string& path, const std::string& module_override);
     ErrMsg error(int index, const std::string& msg) const;
     ErrMsg warning(int index, const std::string& msg) const;
     void dump_debug(ErrMsg::msg_format_t err_fmt) const;

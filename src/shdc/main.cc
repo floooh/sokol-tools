@@ -24,7 +24,7 @@ int main(int argc, const char** argv) {
     }
 
     // load the source and parse tagged blocks
-    input_t inp = input_t::load_and_parse(args.input, args.module);
+    Input inp = Input::load_and_parse(args.input, args.module);
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }

@@ -115,7 +115,7 @@ static const std::string include_tag = "@include";
 static const std::string image_sample_type_tag = "@image_sample_type";
 static const std::string sampler_type_tag = "@sampler_type";
 
-static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, input_t& inp) {
+static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, Input& inp) {
     // Returns true if it saw no errors, even if it did nothing.
     // If it sees #pragma sokol, it modifies both `toks` and `line`
     // in-place so that they no longer contain them.
@@ -149,7 +149,7 @@ static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &
 }
 
 // validate source tags for errors, on error returns false and sets error object in inp
-static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@module tag must have exactly one arg (@lib name)");
         return false;
@@ -165,7 +165,7 @@ static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_
     return true;
 }
 
-static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 3) {
         inp.out_error = inp.error(line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
         return false;
@@ -181,7 +181,7 @@ static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_s
     return true;
 }
 
-static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() < 2) {
         inp.out_error = inp.error(line_index, "@header tag must have at least one arg (@header ...)");
         return false;
@@ -193,7 +193,7 @@ static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_
     return true;
 }
 
-static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@block tag must have exactly one arg (@block name).");
         return false;
@@ -209,7 +209,7 @@ static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_s
     return true;
 }
 
-static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@vs tag must have exactly one arg (@vs name).");
         return false;
@@ -225,7 +225,7 @@ static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snip
     return true;
 }
 
-static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@fs tag must have exactly one arg (@fs name).");
         return false;
@@ -241,7 +241,7 @@ static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snip
     return true;
 }
 
-static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
         return false;
@@ -257,7 +257,7 @@ static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool 
     return true;
 }
 
-static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 1) {
         inp.out_error = inp.error(line_index, "@end tag must be the only word in a line.");
         return false;
@@ -269,7 +269,7 @@ static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_sni
     return true;
 }
 
-static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 4) {
         inp.out_error = inp.error(line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
         return false;
@@ -293,7 +293,7 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
     return true;
 }
 
-static bool validate_options_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
+static bool validate_options_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 2) {
         inp.out_error = inp.error(line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
         return false;
@@ -311,7 +311,7 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const S
     return true;
 }
 
-static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
+static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 3) {
         inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have at least 2 arg (@image_sample_type [texture] {})", ImageSampleType::valid_image_sample_types_as_str()));
         return false;
@@ -331,7 +331,7 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
     return true;
 }
 
-static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, input_t& inp) {
+static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 3) {
         inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
         return false;
@@ -356,7 +356,7 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
 */
-static bool parse(input_t& inp) {
+static bool parse(Input& inp) {
     bool in_snippet = false;
     bool add_line = false;
     Snippet cur_snippet;
@@ -520,7 +520,7 @@ static bool parse(input_t& inp) {
     return true;
 }
 
-static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, input_t& inp) {
+static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = ErrMsg::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
         return false;
@@ -529,7 +529,7 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
 }
 
 static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs,
-                                input_t& inp, int parent_line_index) {
+                                Input& inp, int parent_line_index) {
     std::string path_used = path;
     std::string str = load_file_into_str(path_used);
     if (str.empty()) {
@@ -608,16 +608,16 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
     return true;
 }
 
-/* load file and parse into an input_t object,
+/* load file and parse into an Input object,
    check valid and error fields in returned object
 */
-input_t input_t::load_and_parse(const std::string& path, const std::string& module_override) {
+Input Input::load_and_parse(const std::string& path, const std::string& module_override) {
     std::string dir;
     std::string filename;
     pystring::os::path::split(dir, filename, path);
     std::vector<std::string> include_dirs = { dir };
 
-    input_t inp;
+    Input inp;
     inp.base_path = path;
     if (load_and_preprocess(path, include_dirs, inp, 0)) {
         parse(inp);
@@ -628,7 +628,7 @@ input_t input_t::load_and_parse(const std::string& path, const std::string& modu
     return inp;
 }
 
-ErrMsg input_t::error(int index, const std::string& msg) const {
+ErrMsg Input::error(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
         const Line& line = lines[index];
         return ErrMsg::error(filenames[line.filename], line.index, msg);
@@ -636,7 +636,7 @@ ErrMsg input_t::error(int index, const std::string& msg) const {
         return ErrMsg::error(base_path, 0, msg);
     }
 };
-ErrMsg input_t::warning(int index, const std::string& msg) const {
+ErrMsg Input::warning(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
         const Line& line = lines[index];
         return ErrMsg::warning(filenames[line.filename], line.index, msg);
@@ -646,8 +646,8 @@ ErrMsg input_t::warning(int index, const std::string& msg) const {
 };
 
 /* print a debug-dump of content to stderr */
-void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
-    fmt::print(stderr, "input_t:\n");
+void Input::dump_debug(ErrMsg::msg_format_t err_fmt) const {
+    fmt::print(stderr, "Input:\n");
     if (out_error.has_error) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
     }

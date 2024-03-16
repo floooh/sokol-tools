@@ -10,7 +10,7 @@
 namespace shdc {
 
 struct sokolnim_t {
-    static ErrMsg gen(const Args& args, const input_t& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
+    static ErrMsg gen(const Args& args, const Input& inp, const std::array<spirvcross_t,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
 };
 
 } // namespace shdc

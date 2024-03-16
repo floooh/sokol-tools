@@ -166,7 +166,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::type_t type, std:
     }
 }
 
-static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const input_t& inp, const SpirvBlob& blob) {
+static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const Input& inp, const SpirvBlob& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
@@ -256,7 +256,7 @@ static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& by
     return reflection_t::parse(compiler, snippet, slang);
 }
 
-static SpirvcrossSource to_glsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -299,7 +299,7 @@ static SpirvcrossSource to_glsl(const input_t& inp, const SpirvBlob& blob, Slang
     return res;
 }
 
-static SpirvcrossSource to_hlsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -330,7 +330,7 @@ static SpirvcrossSource to_hlsl(const input_t& inp, const SpirvBlob& blob, Slang
     return res;
 }
 
-static SpirvcrossSource to_msl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -362,7 +362,7 @@ static SpirvcrossSource to_msl(const input_t& inp, const SpirvBlob& blob, Slang:
     return res;
 }
 
-static SpirvcrossSource to_wgsl(const input_t& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, snippet.type, slang);
@@ -416,7 +416,7 @@ static int find_unique_sampler_by_name(const spirvcross_t& spv_cross, const std:
 }
 
 // find all identical uniform blocks across all shaders, and check for collisions
-static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_uniform_blocks(const Input& inp, spirvcross_t& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (UniformBlock& ub: src.refl.uniform_blocks) {
             int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
@@ -441,7 +441,7 @@ static bool gather_unique_uniform_blocks(const input_t& inp, spirvcross_t& spv_c
 }
 
 // find all identical images across all shaders, and check for collisions
-static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_images(const Input& inp, spirvcross_t& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (Image& img: src.refl.images) {
             int other_img_index = find_unique_image_by_name(spv_cross, img.name);
@@ -464,7 +464,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
 }
 
 // find all identical samplers across all shaders, and check for collisions
-static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) {
+static bool gather_unique_samplers(const Input& inp, spirvcross_t& spv_cross) {
     for (SpirvcrossSource& src: spv_cross.sources) {
         for (Sampler& smp: src.refl.samplers) {
             int other_smp_index = find_unique_sampler_by_name(spv_cross, smp.name);
@@ -493,7 +493,7 @@ struct snippets_refls_t {
     const reflection_t fs_refl;
 };
 
-static snippets_refls_t get_snippets_and_sources(const input_t& inp, const Program& prog, const spirvcross_t& spv_cross) {
+static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program& prog, const spirvcross_t& spv_cross) {
     const int vs_snippet_index = inp.vs_map.at(prog.vs_name);
     const int fs_snippet_index = inp.fs_map.at(prog.fs_name);
     const int vs_src_index = spv_cross.find_source_by_snippet_index(vs_snippet_index);
@@ -510,7 +510,7 @@ static snippets_refls_t get_snippets_and_sources(const input_t& inp, const Progr
 
 // check that the vertex shader outputs match the fragment shader inputs for each program
 // FIXME: this should also check the attribute's type
-static ErrMsg validate_linking(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_linking(const Input& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -530,7 +530,7 @@ static ErrMsg validate_linking(const input_t& inp, const spirvcross_t& spv_cross
 /*
 CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
 
-static ErrMsg validate_image_sample_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_image_sample_type_tags(const Input& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -550,7 +550,7 @@ static ErrMsg validate_image_sample_type_tags(const input_t& inp, const spirvcro
     return ErrMsg();
 }
 
-static ErrMsg validate_sampler_type_tags(const input_t& inp, const spirvcross_t& spv_cross) {
+static ErrMsg validate_sampler_type_tags(const Input& inp, const spirvcross_t& spv_cross) {
     for (const auto& prog_item: inp.programs) {
         const Program& prog = prog_item.second;
         const auto res = get_snippets_and_sources(inp, prog, spv_cross);
@@ -571,7 +571,7 @@ static ErrMsg validate_sampler_type_tags(const input_t& inp, const spirvcross_t&
 }
 */
 
-spirvcross_t spirvcross_t::translate(const input_t& inp, const spirv_t& spirv, Slang::type_t slang) {
+spirvcross_t spirvcross_t::translate(const Input& inp, const spirv_t& spirv, Slang::type_t slang) {
     spirvcross_t spv_cross;
     for (const auto& blob: spirv.blobs) {
         SpirvcrossSource src;

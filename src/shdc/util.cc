@@ -8,7 +8,7 @@
 namespace shdc {
 namespace util {
 
-ErrMsg check_errors(const input_t& inp,
+ErrMsg check_errors(const Input& inp,
                       const spirvcross_t& spirvcross,
                       Slang::type_t slang)
 {
@@ -80,7 +80,7 @@ int roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
-std::string mod_prefix(const input_t& inp) {
+std::string mod_prefix(const Input& inp) {
     if (inp.module.empty()) {
         return "";
     }
@@ -89,7 +89,7 @@ std::string mod_prefix(const input_t& inp) {
     }
 }
 
-const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const input_t& inp, const spirvcross_t& spirvcross) {
+const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const spirvcross_t& spirvcross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
@@ -101,7 +101,7 @@ const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string&
     }
 }
 
-const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const input_t& inp, const Bytecode& bytecode) {
+const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const Input& inp, const Bytecode& bytecode) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
     int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);

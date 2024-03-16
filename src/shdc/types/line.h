@@ -6,7 +6,7 @@ namespace shdc {
 // mapping each line to included filename and line index
 struct Line {
     std::string line;       // line content
-    int filename = 0;       // index into input_t filenames
+    int filename = 0;       // index into Input filenames
     int index = 0;          // line index == line nr - 1
 
     Line();

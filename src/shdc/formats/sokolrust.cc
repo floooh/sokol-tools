@@ -96,7 +96,7 @@ static const char* sokol_backend(Slang::type_t slang) {
     }
 }
 
-static void write_header(const Args& args, const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_header(const Args& args, const Input& inp, const spirvcross_t& spirvcross) {
     L("/*\n");
     L("    #version:{}# (machine generated, don't edit!)\n", args.gen_version);
     L("  \n");
@@ -181,7 +181,7 @@ static void write_header(const Args& args, const input_t& inp, const spirvcross_
     }
 }
 
-static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_vertex_attrs(const Input& inp, const spirvcross_t& spirvcross) {
     for (const SpirvcrossSource& src: spirvcross.sources) {
         if (src.refl.stage == ShaderStage::VS) {
             const Snippet& vs_snippet = inp.snippets[src.snippet_index];
@@ -194,19 +194,19 @@ static void write_vertex_attrs(const input_t& inp, const spirvcross_t& spirvcros
     }
 }
 
-static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_image_bind_slots(const Input& inp, const spirvcross_t& spirvcross) {
     for (const Image& img: spirvcross.unique_images) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
     }
 }
 
-static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
+static void write_sampler_bind_slots(const Input& inp, const spirvcross_t& spirvcross) {
     for (const Sampler& smp: spirvcross.unique_samplers) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(smp.name), smp.slot);
     }
 }
 
-static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
+static void write_uniform_blocks(const Input& inp, const spirvcross_t& spirvcross, Slang::type_t slang) {
     for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
         L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
 
@@ -276,7 +276,7 @@ static void write_uniform_blocks(const input_t& inp, const spirvcross_t& spirvcr
     }
 }
 
-static void write_shader_sources_and_blobs(const input_t& inp,
+static void write_shader_sources_and_blobs(const Input& inp,
                                            const spirvcross_t& spirvcross,
                                            const Bytecode& bytecode,
                                            Slang::type_t slang)
@@ -416,7 +416,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const input_t& inp, const spirvcross_t& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const spirvcross_t& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
     const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -455,7 +455,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     L("{}desc.label = b\"{}{}_shader\\0\".as_ptr() as *const _;\n", indent, mod_prefix(inp), prog.name);
 }
 
-ErrMsg sokolrust_t::gen(const Args& args, const input_t& inp,
+ErrMsg sokolrust_t::gen(const Args& args, const Input& inp,
                      const std::array<spirvcross_t,Slang::NUM>& spirvcross,
                      const std::array<Bytecode,Slang::NUM>& bytecode)
 {

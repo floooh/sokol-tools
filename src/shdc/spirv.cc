@@ -25,7 +25,7 @@ void spirv_t::finalize_spirv_tools() {
 extern const TBuiltInResource DefaultTBuiltInResource;
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const Snippet& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
+static std::string merge_source(const Input& inp, const Snippet& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
     if (Slang::is_glsl(slang)) {
         src += "#define SOKOL_GLSL (1)\n";
@@ -49,7 +49,7 @@ static std::string merge_source(const input_t& inp, const Snippet& snippet, Slan
 }
 
 /* convert a glslang info-log string to ErrMsg's and append to out_errors */
-static void infolog_to_errors(const std::string& log, const input_t& inp, int snippet_index, std::vector<ErrMsg>& out_errors) {
+static void infolog_to_errors(const std::string& log, const Input& inp, int snippet_index, std::vector<ErrMsg>& out_errors) {
     /*
         format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
         And a last line we need to ignore: "ERROR: N compilation errors. ..."
@@ -164,7 +164,7 @@ static void spirv_optimize(Slang::type_t slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const input_t& inp, int snippet_index, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const Input& inp, int snippet_index, spirv_t& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -233,7 +233,7 @@ static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& s
 }
 
 // compile all shader-snippets into SPIRV bytecode
-spirv_t spirv_t::compile_glsl(const input_t& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
+spirv_t spirv_t::compile_glsl(const Input& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
     spirv_t out_spirv;
 
     // compile shader-snippets
@@ -262,7 +262,7 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, Slang::type_t slang, const std
     return out_spirv;
 }
 
-bool spirv_t::write_to_file(const Args& args, const input_t& inp, Slang::type_t slang) {
+bool spirv_t::write_to_file(const Args& args, const Input& inp, Slang::type_t slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
@@ -295,7 +295,7 @@ bool spirv_t::write_to_file(const Args& args, const input_t& inp, Slang::type_t 
     return true;
 }
 
-void spirv_t::dump_debug(const input_t& inp, ErrMsg::msg_format_t err_fmt) const {
+void spirv_t::dump_debug(const Input& inp, ErrMsg::msg_format_t err_fmt) const {
     fmt::print(stderr, "spirv_t:\n");
     if (errors.size() > 0) {
         fmt::print(stderr, "  error:\n");
