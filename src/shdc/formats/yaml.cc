@@ -98,7 +98,7 @@ static void write_sampler(const sampler_t& sampler) {
     L("            -\n");
     L("              slot: {}\n", sampler.slot);
     L("              name: {}\n", sampler.name);
-    L("              sampler_type: {}\n", sampler_type_t::to_str(sampler.type));
+    L("              sampler_type: {}\n", SamplerType::to_str(sampler.type));
 }
 
 static void write_image_sampler(const ImageSampler& image_sampler) {

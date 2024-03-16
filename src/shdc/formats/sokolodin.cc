@@ -72,11 +72,11 @@ static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::type_t 
     }
 }
 
-static const char* smp_type_to_sokol_type_str(sampler_type_t::type_t type) {
+static const char* smp_type_to_sokol_type_str(SamplerType::type_t type) {
     switch (type) {
-        case sampler_type_t::FILTERING:     return ".FILTERING";
-        case sampler_type_t::COMPARISON:    return ".COMPARISON";
-        case sampler_type_t::NONFILTERING:  return ".NONFILTERING";
+        case SamplerType::FILTERING:     return ".FILTERING";
+        case SamplerType::COMPARISON:    return ".COMPARISON";
+        case SamplerType::NONFILTERING:  return ".NONFILTERING";
         default: return "INVALID";
     }
 }

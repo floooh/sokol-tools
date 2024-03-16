@@ -185,9 +185,9 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
-            refl_smp.type = sampler_type_t::COMPARISON;
+            refl_smp.type = SamplerType::COMPARISON;
         } else {
-            refl_smp.type = sampler_type_t::FILTERING;
+            refl_smp.type = SamplerType::FILTERING;
         }
         refl.samplers.push_back(refl_smp);
     }

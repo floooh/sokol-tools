@@ -333,7 +333,7 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
 
 static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
     if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", sampler_type_t::valid_sampler_types_as_str()));
+        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
     if ((cur_snippet.type != snippet_t::VS) && (cur_snippet.type != snippet_t::FS)) {
@@ -344,8 +344,8 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
         inp.out_error = inp.error(line_index, "duplicate @sampler_type (sampler name must be unique)");
         return false;
     }
-    if (!sampler_type_t::is_valid_str(tokens[2])) {
-        inp.out_error = inp.error(line_index, fmt::format("second arg of @sampler_type tag must be one of {}", sampler_type_t::valid_sampler_types_as_str()));
+    if (!SamplerType::is_valid_str(tokens[2])) {
+        inp.out_error = inp.error(line_index, fmt::format("second arg of @sampler_type tag must be one of {}", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
     return true;
@@ -500,7 +500,7 @@ static bool parse(input_t& inp) {
                 if (!validate_sampler_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], sampler_type_t::from_str(tokens[2]), line_index);
+                cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
                 add_line = false;
             }
             else if (tokens[0][0] == '@') {
@@ -684,7 +684,7 @@ void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
             }
             fmt::print(stderr, "      sampler type tags:\n");
             for (const auto& [key, val]: snippet.sampler_type_tags) {
-                fmt::print(stderr, "        {}: {} (line: {})\n", key, sampler_type_t::to_str(val.type), val.line_index);
+                fmt::print(stderr, "        {}: {} (line: {})\n", key, SamplerType::to_str(val.type), val.line_index);
             }
             fmt::print(stderr, "      lines:\n");
             int line_nr = 1;

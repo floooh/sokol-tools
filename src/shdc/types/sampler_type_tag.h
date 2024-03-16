@@ -6,15 +6,15 @@ namespace shdc {
 
 struct SamplerTypeTag {
     std::string smp_name;
-    sampler_type_t::type_t type = sampler_type_t::INVALID;
+    SamplerType::type_t type = SamplerType::INVALID;
     int line_index = 0;
     SamplerTypeTag();
-    SamplerTypeTag(const std::string& n, sampler_type_t::type_t t, int l);
+    SamplerTypeTag(const std::string& n, SamplerType::type_t t, int l);
 };
 
 inline SamplerTypeTag::SamplerTypeTag() { };
 
-inline SamplerTypeTag::SamplerTypeTag(const std::string& n, sampler_type_t::type_t t, int l):
+inline SamplerTypeTag::SamplerTypeTag(const std::string& n, SamplerType::type_t t, int l):
     smp_name(n),
     type(t),
     line_index(l)
