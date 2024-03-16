@@ -125,7 +125,7 @@ static void mtl_parse_errors(const std::string& output, const Input& inp, int sn
 }
 
 // run a command line program via xcrun, capture its output and exit code
-static int xcrun(const std::string& cmdline, std::string& output, Slang::type_t slang) {
+static int xcrun(const std::string& cmdline, std::string& output, Slang::Enum slang) {
     std::string cmd = "xcrun ";
     if (slang == Slang::METAL_MACOS) {
         cmd += "--sdk macosx ";
@@ -150,7 +150,7 @@ static int xcrun(const std::string& cmdline, std::string& output, Slang::type_t 
 }
 
 // run the metal compiler pass
-static bool mtl_cc(const std::string& src_path, const std::string& out_dia, const std::string& out_air, Slang::type_t slang, std::string& output) {
+static bool mtl_cc(const std::string& src_path, const std::string& out_dia, const std::string& out_air, Slang::Enum slang, std::string& output) {
     std::string cmdline;
     cmdline =  "metal -arch air64 -emit-llvm -ffast-math -c -serialize-diagnostics ";
     cmdline += out_dia;
@@ -167,13 +167,13 @@ static bool mtl_cc(const std::string& src_path, const std::string& out_dia, cons
 }
 
 // run the metal linker pass
-static bool mtl_link(const std::string& lib_path, const std::string& bin_path, Slang::type_t slang) {
+static bool mtl_link(const std::string& lib_path, const std::string& bin_path, Slang::Enum slang) {
     std::string dummy_output;
     std::string cmdline = fmt::format("metallib -o {} {}", bin_path, lib_path);
     return 0 == xcrun(cmdline, dummy_output, slang);
 }
 
-static Bytecode mtl_compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
+static Bytecode mtl_compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
     Bytecode bytecode;
     std::string base_dir;
     std::string base_filename;
@@ -288,7 +288,7 @@ static void d3d_parse_errors(const std::string& output, const Input& inp, int sn
     }
 }
 
-static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
+static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
     Bytecode bytecode;
     if (!load_d3dcompiler_dll()) {
         bytecode.errors.push_back(ErrMsg::warning(inp.base_path, 0, fmt::format("failed to load d3dcompiler_47.dll!")));
@@ -351,7 +351,7 @@ static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slan
 }
 #endif
 
-Bytecode Bytecode::compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
+Bytecode Bytecode::compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
     Bytecode bytecode;
     #if defined(__APPLE__)
     // NOTE: for the iOS simulator case, don't compile bytecode but use source code

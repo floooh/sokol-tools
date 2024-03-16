@@ -10,7 +10,7 @@ namespace util {
 
 ErrMsg check_errors(const Input& inp,
                       const Spirvcross& spirvcross,
-                      Slang::type_t slang)
+                      Slang::Enum slang)
 {
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
@@ -153,7 +153,7 @@ std::string replace_C_comment_tokens(const std::string& str) {
     return s;
 }
 
-const char* slang_file_extension(Slang::type_t c, bool binary) {
+const char* slang_file_extension(Slang::Enum c, bool binary) {
     switch (c) {
         case Slang::GLSL410:
         case Slang::GLSL430:

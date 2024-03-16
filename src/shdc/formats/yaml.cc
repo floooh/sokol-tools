@@ -167,7 +167,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
                                                const Input& inp,
                                                const Spirvcross& spirvcross,
                                                const Bytecode& bytecode,
-                                               Slang::type_t slang)
+                                               Slang::Enum slang)
 {
     L("    programs:\n");
     for (const auto& item: inp.programs) {
@@ -210,7 +210,7 @@ ErrMsg yaml_t::gen(const Args& args, const Input& inp, const std::array<Spirvcro
     L("shaders:\n");
 
     for (int i = 0; i < Slang::NUM; i++) {
-        Slang::type_t slang = (Slang::type_t) i;
+        Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {

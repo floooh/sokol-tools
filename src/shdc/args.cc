@@ -93,8 +93,8 @@ static bool parse_slang(Args& args, const char* str) {
     for (const auto& item : splits) {
         bool item_valid = false;
         for (int i = 0; i < Slang::NUM; i++) {
-            if (item == Slang::to_str((Slang::type_t)i)) {
-                args.slang |= Slang::bit((Slang::type_t)i);
+            if (item == Slang::to_str((Slang::Enum)i)) {
+                args.slang |= Slang::bit((Slang::Enum)i);
                 item_valid = true;
                 break;
             }

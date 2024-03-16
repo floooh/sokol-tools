@@ -50,7 +50,7 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
     }
 }
 
-static void fix_bind_slots(Compiler& compiler, Snippet::type_t type, Slang::type_t slang) {
+static void fix_bind_slots(Compiler& compiler, Snippet::type_t type, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
     // uniform buffers
@@ -234,7 +234,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static Reflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::type_t slang) {
+static Reflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::Enum slang) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -256,7 +256,7 @@ static Reflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& byte
     return Reflection::parse(compiler, snippet, slang);
 }
 
-static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
@@ -299,7 +299,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     return res;
 }
 
-static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerHLSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -330,7 +330,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     return res;
 }
 
-static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
     CompilerMSL compiler(blob.bytecode);
     CompilerGLSL::Options commonOptions;
     commonOptions.emit_line_directives = false;
@@ -362,7 +362,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::t
     return res;
 }
 
-static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
+static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, snippet.type, slang);
@@ -571,7 +571,7 @@ static ErrMsg validate_sampler_type_tags(const Input& inp, const Spirvcross& spv
 }
 */
 
-Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::type_t slang) {
+Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::Enum slang) {
     Spirvcross spv_cross;
     for (const auto& blob: spirv.blobs) {
         SpirvcrossSource src;
@@ -653,7 +653,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::ty
     return spv_cross;
 }
 
-void Spirvcross::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::type_t slang) const {
+void Spirvcross::dump_debug(ErrMsg::msg_format_t err_fmt, Slang::Enum slang) const {
     fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
     if (error.has_error) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));

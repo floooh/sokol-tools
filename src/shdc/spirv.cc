@@ -25,7 +25,7 @@ void Spirv::finalize_spirv_tools() {
 extern const TBuiltInResource DefaultTBuiltInResource;
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const Input& inp, const Snippet& snippet, Slang::type_t slang, const std::vector<std::string>& defines) {
+static std::string merge_source(const Input& inp, const Snippet& snippet, Slang::Enum slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
     if (Slang::is_glsl(slang)) {
         src += "#define SOKOL_GLSL (1)\n";
@@ -116,7 +116,7 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
     bounded for-loops are converted to what looks like an unbounded loop
     ("for (;;) { }") to WebGL
 */
-static void spirv_optimize(Slang::type_t slang, std::vector<uint32_t>& spirv) {
+static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
     if (slang == Slang::WGSL) {
         return;
     }
@@ -164,7 +164,7 @@ static void spirv_optimize(Slang::type_t slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& src, const Input& inp, int snippet_index, Spirv& out_spirv) {
+static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src, const Input& inp, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -233,7 +233,7 @@ static bool compile(EShLanguage stage, Slang::type_t slang, const std::string& s
 }
 
 // compile all shader-snippets into SPIRV bytecode
-Spirv Spirv::compile_glsl(const Input& inp, Slang::type_t slang, const std::vector<std::string>& defines) {
+Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
     Spirv out_spirv;
 
     // compile shader-snippets
@@ -262,7 +262,7 @@ Spirv Spirv::compile_glsl(const Input& inp, Slang::type_t slang, const std::vect
     return out_spirv;
 }
 
-bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::type_t slang) {
+bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::Enum slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);

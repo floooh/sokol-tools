@@ -100,7 +100,7 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, Slang::type_t slang) {
+Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, Slang::Enum slang) {
     Reflection refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();

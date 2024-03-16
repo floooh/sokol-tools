@@ -36,7 +36,7 @@ int main(int argc, const char** argv) {
     // compile source snippets to SPIRV blobs
     std::array<Spirv,Slang::NUM> spirv;
     for (int i = 0; i < Slang::NUM; i++) {
-        Slang::type_t slang = (Slang::type_t)i;
+        Slang::Enum slang = (Slang::Enum)i;
         if (args.slang & Slang::bit(slang)) {
             spirv[i] = Spirv::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
@@ -65,7 +65,7 @@ int main(int argc, const char** argv) {
     // cross-translate SPIRV to shader dialects
     std::array<Spirvcross,Slang::NUM> spirvcross;
     for (int i = 0; i < Slang::NUM; i++) {
-        Slang::type_t slang = (Slang::type_t)i;
+        Slang::Enum slang = (Slang::Enum)i;
         if (args.slang & Slang::bit(slang)) {
             spirvcross[i] = Spirvcross::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
@@ -82,7 +82,7 @@ int main(int argc, const char** argv) {
     std::array<Bytecode, Slang::NUM> bytecode;
     if (args.byte_code) {
         for (int i = 0; i < Slang::NUM; i++) {
-            Slang::type_t slang = (Slang::type_t)i;
+            Slang::Enum slang = (Slang::Enum)i;
             if (args.slang & Slang::bit(slang)) {
                 bytecode[i] = Bytecode::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {

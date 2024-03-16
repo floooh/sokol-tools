@@ -81,7 +81,7 @@ static const char* smp_type_to_sokol_type_str(SamplerType::type_t type) {
     }
 }
 
-static const char* sokol_backend(Slang::type_t slang) {
+static const char* sokol_backend(Slang::Enum slang) {
     switch (slang) {
         case Slang::GLSL410:      return "backendGlcore";
         case Slang::GLSL430:      return "backendGlcore";
@@ -212,7 +212,7 @@ static void write_sampler_bind_slots(const Input& inp, const Spirvcross& spirvcr
     L("\n");
 }
 
-static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::type_t slang) {
+static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
     for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), ub.struct_name));
         L("const {}* = {}\n", slotName, ub.slot);
@@ -274,7 +274,7 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
 static void write_shader_sources_and_blobs(const Input& inp,
                                            const Spirvcross& spirvcross,
                                            const Bytecode& bytecode,
-                                           Slang::type_t slang)
+                                           Slang::Enum slang)
 {
     for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
         const Snippet& snippet = inp.snippets[snippet_index];
@@ -347,7 +347,7 @@ static void write_stage(const char* indent,
                         const std::string& src_name,
                         const BytecodeBlob* blob,
                         const std::string& blob_name,
-                        Slang::type_t slang)
+                        Slang::Enum slang)
 {
     if (blob) {
         L("{}result.{}.bytecode = {}\n", indent, stage_name, blob_name);
@@ -418,7 +418,7 @@ static void write_stage(const char* indent,
     }
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const Spirvcross& spirvcross, const Bytecode& bytecode, Slang::type_t slang) {
+static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const Spirvcross& spirvcross, const Bytecode& bytecode, Slang::Enum slang) {
     const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
     const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
     assert(vs_src && fs_src);
@@ -469,7 +469,7 @@ ErrMsg sokolnim_t::gen(const Args& args, const Input& inp,
     bool comment_header_written = false;
     bool common_decls_written = false;
     for (int i = 0; i < Slang::NUM; i++) {
-        Slang::type_t slang = (Slang::type_t) i;
+        Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
             if (err.has_error) {
@@ -496,7 +496,7 @@ ErrMsg sokolnim_t::gen(const Args& args, const Input& inp,
         L("proc {}*(backend: sg.Backend): sg.ShaderDesc =\n", to_camel_case(fmt::format("{}_{}_shader_desc", mod_prefix(inp), prog.name)));
         L("  case backend:\n");
         for (int i = 0; i < Slang::NUM; i++) {
-            Slang::type_t slang = (Slang::type_t) i;
+            Slang::Enum slang = (Slang::Enum) i;
             if (args.slang & Slang::bit(slang)) {
                 L("    of {}:\n", sokol_backend(slang));
                 write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);

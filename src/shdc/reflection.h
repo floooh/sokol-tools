@@ -24,7 +24,7 @@ struct Reflection {
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
 
-    static Reflection parse(const spirv_cross::Compiler& compiler, const Snippet& snippet, Slang::type_t slang);
+    static Reflection parse(const spirv_cross::Compiler& compiler, const Snippet& snippet, Slang::Enum slang);
 
     const UniformBlock* find_uniform_block_by_slot(int slot) const;
     const Image* find_image_by_slot(int slot) const;

@@ -16,8 +16,8 @@ struct Spirv {
 
     static void initialize_spirv_tools();
     static void finalize_spirv_tools();
-    static Spirv compile_glsl(const Input& inp, Slang::type_t slang, const std::vector<std::string>& defines);
-    bool write_to_file(const Args& args, const Input& inp, Slang::type_t slang);
+    static Spirv compile_glsl(const Input& inp, Slang::Enum slang, const std::vector<std::string>& defines);
+    bool write_to_file(const Args& args, const Input& inp, Slang::Enum slang);
     void dump_debug(const Input& inp, ErrMsg::msg_format_t err_fmt) const;
 };
 
