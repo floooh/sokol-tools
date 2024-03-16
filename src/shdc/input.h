@@ -15,7 +15,7 @@ struct input_t {
     std::string base_path;              // path to base file
     std::string module;                 // optional module name
     std::vector<std::string> filenames; // all source files, base is first entry
-    std::vector<line_t> lines;          // input source files split into lines
+    std::vector<Line> lines;          // input source files split into lines
     std::vector<snippet_t> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> ctype_map;    // @ctype uniform type definitions
     std::vector<std::string> headers;       // @header statements

@@ -362,7 +362,7 @@ static bool parse(input_t& inp) {
     snippet_t cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
-    for (const line_t& line_info : inp.lines) {
+    for (const Line& line_info : inp.lines) {
         const std::string& line = line_info.line;
         add_line = in_snippet;
         pystring::split(line, tokens);
@@ -630,7 +630,7 @@ input_t input_t::load_and_parse(const std::string& path, const std::string& modu
 
 ErrMsg input_t::error(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
-        const line_t& line = lines[index];
+        const Line& line = lines[index];
         return ErrMsg::error(filenames[line.filename], line.index, msg);
     } else {
         return ErrMsg::error(base_path, 0, msg);
@@ -638,7 +638,7 @@ ErrMsg input_t::error(int index, const std::string& msg) const {
 };
 ErrMsg input_t::warning(int index, const std::string& msg) const {
     if (index < (int)lines.size()) {
-        const line_t& line = lines[index];
+        const Line& line = lines[index];
         return ErrMsg::warning(filenames[line.filename], line.index, msg);
     } else {
         return ErrMsg::warning(base_path, 0, msg);
@@ -659,7 +659,7 @@ void input_t::dump_debug(ErrMsg::msg_format_t err_fmt) const {
     {
         fmt::print(stderr, "  lines:\n");
         int filename = -1;
-        for (const line_t& line : lines) {
+        for (const Line& line : lines) {
             if (filename != line.filename) {
                 fmt::print(stderr, "    {}:\n", filenames[line.filename]);
                 filename = line.filename;
