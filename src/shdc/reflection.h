@@ -14,7 +14,7 @@
 
 namespace shdc {
 
-struct reflection_t {
+struct Reflection {
     ShaderStage::type_t stage = ShaderStage::INVALID;
     std::string entry_point;
     std::array<VertexAttr, VertexAttr::NUM> inputs;
@@ -24,7 +24,7 @@ struct reflection_t {
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
 
-    static reflection_t parse(const spirv_cross::Compiler& compiler, const Snippet& snippet, Slang::type_t slang);
+    static Reflection parse(const spirv_cross::Compiler& compiler, const Snippet& snippet, Slang::type_t slang);
 
     const UniformBlock* find_uniform_block_by_slot(int slot) const;
     const Image* find_image_by_slot(int slot) const;

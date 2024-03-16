@@ -234,7 +234,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::type_t slang) {
+static Reflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::type_t slang) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -253,7 +253,7 @@ static reflection_t to_glsl_and_parse_reflection(const std::vector<uint32_t>& by
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
-    return reflection_t::parse(compiler, snippet, slang);
+    return Reflection::parse(compiler, snippet, slang);
 }
 
 static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::type_t slang, uint32_t opt_mask, const Snippet& snippet) {
@@ -294,7 +294,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     if (!src.empty()) {
         res.valid = true;
         res.source_code = std::move(src);
-        res.refl = reflection_t::parse(compiler, snippet, slang);
+        res.refl = Reflection::parse(compiler, snippet, slang);
     }
     return res;
 }
@@ -489,8 +489,8 @@ static bool gather_unique_samplers(const Input& inp, spirvcross_t& spv_cross) {
 struct snippets_refls_t {
     const Snippet& vs_snippet;
     const Snippet& fs_snippet;
-    const reflection_t vs_refl;
-    const reflection_t fs_refl;
+    const Reflection vs_refl;
+    const Reflection fs_refl;
 };
 
 static snippets_refls_t get_snippets_and_sources(const Input& inp, const Program& prog, const spirvcross_t& spv_cross) {

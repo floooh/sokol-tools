@@ -100,8 +100,8 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippet, Slang::type_t slang) {
-    reflection_t refl;
+Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, Slang::type_t slang) {
+    Reflection refl;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
@@ -217,7 +217,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const Snippet& snippe
     return refl;
 }
 
-const UniformBlock* reflection_t::find_uniform_block_by_slot(int slot) const {
+const UniformBlock* Reflection::find_uniform_block_by_slot(int slot) const {
     for (const UniformBlock& ub: this->uniform_blocks) {
         if (ub.slot == slot) {
             return &ub;
@@ -226,7 +226,7 @@ const UniformBlock* reflection_t::find_uniform_block_by_slot(int slot) const {
     return nullptr;
 }
 
-const Image* reflection_t::find_image_by_slot(int slot) const {
+const Image* Reflection::find_image_by_slot(int slot) const {
     for (const Image& img: this->images) {
         if (img.slot == slot) {
             return &img;
@@ -235,7 +235,7 @@ const Image* reflection_t::find_image_by_slot(int slot) const {
     return nullptr;
 }
 
-const Sampler* reflection_t::find_sampler_by_slot(int slot) const {
+const Sampler* Reflection::find_sampler_by_slot(int slot) const {
     for (const Sampler& smp: this->samplers) {
         if (smp.slot == slot) {
             return &smp;
@@ -244,7 +244,7 @@ const Sampler* reflection_t::find_sampler_by_slot(int slot) const {
     return nullptr;
 }
 
-const ImageSampler* reflection_t::find_image_sampler_by_slot(int slot) const {
+const ImageSampler* Reflection::find_image_sampler_by_slot(int slot) const {
     for (const ImageSampler& img_smp: this->image_samplers) {
         if (img_smp.slot == slot) {
             return &img_smp;
@@ -253,7 +253,7 @@ const ImageSampler* reflection_t::find_image_sampler_by_slot(int slot) const {
     return nullptr;
 }
 
-const Image* reflection_t::find_image_by_name(const std::string& name) const {
+const Image* Reflection::find_image_by_name(const std::string& name) const {
     for (const Image& img: this->images) {
         if (img.name == name) {
             return &img;
@@ -262,7 +262,7 @@ const Image* reflection_t::find_image_by_name(const std::string& name) const {
     return nullptr;
 }
 
-const Sampler* reflection_t::find_sampler_by_name(const std::string& name) const {
+const Sampler* Reflection::find_sampler_by_name(const std::string& name) const {
     for (const Sampler& smp: this->samplers) {
         if (smp.name == name) {
             return &smp;
