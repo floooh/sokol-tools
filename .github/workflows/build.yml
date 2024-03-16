@@ -7,7 +7,7 @@ jobs:
         runs-on: windows-latest
         steps:
         - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v4
           with:
             submodules: true
         - name: build debug
@@ -20,7 +20,7 @@ jobs:
         runs-on: macos-latest
         steps:
         - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v4
           with:
             submodules: true
         - name: build debug
@@ -33,7 +33,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
         - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v4
           with:
             submodules: true
         - name: build debug
