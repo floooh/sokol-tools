@@ -180,7 +180,7 @@ reflection_t reflection_t::parse(const Compiler& compiler, const snippet_t& snip
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
-        sampler_t refl_smp;
+        Sampler refl_smp;
         refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
         refl_smp.name = smp_res.name;
         // HACK ALERT!
@@ -235,8 +235,8 @@ const Image* reflection_t::find_image_by_slot(int slot) const {
     return nullptr;
 }
 
-const sampler_t* reflection_t::find_sampler_by_slot(int slot) const {
-    for (const sampler_t& smp: this->samplers) {
+const Sampler* reflection_t::find_sampler_by_slot(int slot) const {
+    for (const Sampler& smp: this->samplers) {
         if (smp.slot == slot) {
             return &smp;
         }
@@ -262,8 +262,8 @@ const Image* reflection_t::find_image_by_name(const std::string& name) const {
     return nullptr;
 }
 
-const sampler_t* reflection_t::find_sampler_by_name(const std::string& name) const {
-    for (const sampler_t& smp: this->samplers) {
+const Sampler* reflection_t::find_sampler_by_name(const std::string& name) const {
+    for (const Sampler& smp: this->samplers) {
         if (smp.name == name) {
             return &smp;
         }

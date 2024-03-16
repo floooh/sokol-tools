@@ -19,7 +19,7 @@ struct spirvcross_t {
     // FIXME: those should go into reflection?
     std::vector<uniform_block_t> unique_uniform_blocks;
     std::vector<Image> unique_images;
-    std::vector<sampler_t> unique_samplers;
+    std::vector<Sampler> unique_samplers;
 
     static spirvcross_t translate(const input_t& inp, const spirv_t& spirv, slang_t::type_t slang);
     static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);

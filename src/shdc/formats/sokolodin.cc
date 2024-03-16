@@ -134,7 +134,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    Multisampled: {}\n", img.multisampled);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const sampler_t& smp: vs_src->refl.samplers) {
+        for (const Sampler& smp: vs_src->refl.samplers) {
             L("                Sampler '{}':\n", smp.name);
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
@@ -157,7 +157,7 @@ static void write_header(const args_t& args, const input_t& inp, const spirvcros
             L("                    Multisampled: {}\n", img.multisampled);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const sampler_t& smp: fs_src->refl.samplers) {
+        for (const Sampler& smp: fs_src->refl.samplers) {
             L("                Sampler '{}':\n", smp.name);
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
@@ -195,7 +195,7 @@ static void write_image_bind_slots(const input_t& inp, const spirvcross_t& spirv
 }
 
 static void write_sampler_bind_slots(const input_t& inp, const spirvcross_t& spirvcross) {
-    for (const sampler_t& smp: spirvcross.unique_samplers) {
+    for (const Sampler& smp: spirvcross.unique_samplers) {
         L("SLOT_{}{} :: {}\n", mod_prefix(inp), smp.name, smp.slot);
     }
 }
@@ -377,8 +377,8 @@ static void write_stage(const char* indent,
             L("{}desc.{}.images[{}].sample_type = {}\n", indent, stage_name, img_index, img_basetype_to_sokol_sampletype_str(img->sample_type));
         }
     }
-    for (int smp_index = 0; smp_index < sampler_t::NUM; smp_index++) {
-        const sampler_t* smp = src->refl.find_sampler_by_slot(smp_index);
+    for (int smp_index = 0; smp_index < Sampler::NUM; smp_index++) {
+        const Sampler* smp = src->refl.find_sampler_by_slot(smp_index);
         if (smp) {
             L("{}desc.{}.samplers[{}].used = true\n", indent, stage_name, smp_index);
             L("{}desc.{}.samplers[{}].sampler_type = {}\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));

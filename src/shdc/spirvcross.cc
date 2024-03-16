@@ -466,7 +466,7 @@ static bool gather_unique_images(const input_t& inp, spirvcross_t& spv_cross) {
 // find all identical samplers across all shaders, and check for collisions
 static bool gather_unique_samplers(const input_t& inp, spirvcross_t& spv_cross) {
     for (spirvcross_source_t& src: spv_cross.sources) {
-        for (sampler_t& smp: src.refl.samplers) {
+        for (Sampler& smp: src.refl.samplers) {
             int other_smp_index = find_unique_sampler_by_name(spv_cross, smp.name);
             if (other_smp_index >= 0) {
                 if (smp.equals(spv_cross.unique_samplers[other_smp_index])) {
@@ -697,7 +697,7 @@ void spirvcross_t::dump_debug(ErrMsg::msg_format_t err_fmt, slang_t::type_t slan
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
                 img.name, img.slot, ImageType::to_str(img.type), ImageSampleType::to_str(img.sample_type));
         }
-        for (const sampler_t& smp: source.refl.samplers) {
+        for (const Sampler& smp: source.refl.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);
         }
         for (const ImageSampler& img_smp: source.refl.image_samplers) {

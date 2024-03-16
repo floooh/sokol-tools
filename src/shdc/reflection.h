@@ -21,7 +21,7 @@ struct reflection_t {
     std::array<VertexAttr, VertexAttr::NUM> outputs;
     std::vector<uniform_block_t> uniform_blocks;
     std::vector<Image> images;
-    std::vector<sampler_t> samplers;
+    std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
 
     static reflection_t parse(const spirv_cross::Compiler& compiler, const snippet_t& snippet, slang_t::type_t slang);
@@ -29,8 +29,8 @@ struct reflection_t {
     const uniform_block_t* find_uniform_block_by_slot(int slot) const;
     const Image* find_image_by_slot(int slot) const;
     const Image* find_image_by_name(const std::string& name) const;
-    const sampler_t* find_sampler_by_slot(int slot) const;
-    const sampler_t* find_sampler_by_name(const std::string& name) const;
+    const Sampler* find_sampler_by_slot(int slot) const;
+    const Sampler* find_sampler_by_name(const std::string& name) const;
     const ImageSampler* find_image_sampler_by_slot(int slot) const;
 };
 
