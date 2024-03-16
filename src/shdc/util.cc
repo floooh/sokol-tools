@@ -34,49 +34,6 @@ ErrMsg check_errors(const Input& inp,
     return ErrMsg();
 }
 
-const char* uniform_type_str(Uniform::Type type) {
-    switch (type) {
-        case Uniform::FLOAT: return "float";
-        case Uniform::FLOAT2: return "vec2";
-        case Uniform::FLOAT3: return "vec3";
-        case Uniform::FLOAT4: return "vec4";
-        case Uniform::MAT4: return "mat4";
-        default: return "FIXME";
-    }
-}
-
-int uniform_size(Uniform::Type type, int array_size) {
-    if (array_size > 1) {
-        switch (type) {
-            case Uniform::FLOAT4:
-            case Uniform::INT4:
-                return 16 * array_size;
-            case Uniform::MAT4:
-                return 64 * array_size;
-            default: return 0;
-        }
-    }
-    else {
-        switch (type) {
-            case Uniform::FLOAT:
-            case Uniform::INT:
-                return 4;
-            case Uniform::FLOAT2:
-            case Uniform::INT2:
-                return 8;
-            case Uniform::FLOAT3:
-            case Uniform::INT3:
-                return 12;
-            case Uniform::FLOAT4:
-            case Uniform::INT4:
-                return 16;
-            case Uniform::MAT4:
-                return 64;
-            default: return 0;
-        }
-    }
-}
-
 int roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }

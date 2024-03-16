@@ -214,16 +214,14 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
                 L("    _pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
                 cur_offset = next_offset;
             }
-            if (inp.ctype_map.count(uniform_type_str(uniform.type)) > 0) {
+            if (inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
                 // user-provided type names
                 if (uniform.array_count == 1) {
-                    L("    {}: {}", uniform.name, inp.ctype_map.at(uniform_type_str(uniform.type)));
+                    L("    {}: {}", uniform.name, inp.ctype_map.at(uniform.type_as_glsl()));
+                } else {
+                    L("    {}: [{}]{}", uniform.name, uniform.array_count, inp.ctype_map.at(uniform.type_as_glsl()));
                 }
-                else {
-                    L("    {}: [{}]{}", uniform.name, uniform.array_count, inp.ctype_map.at(uniform_type_str(uniform.type)));
-                }
-            }
-            else {
+            } else {
                 // default type names (float)
                 if (uniform.array_count == 1) {
                     switch (uniform.type) {
@@ -255,7 +253,7 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
             else {
                 L(",\n");
             }
-            cur_offset += uniform_size(uniform.type, uniform.array_count);
+            cur_offset += uniform.size_bytes();
         }
         /* pad to multiple of 16-bytes struct size */
         const int round16 = roundup(cur_offset, 16);

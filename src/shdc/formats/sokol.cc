@@ -274,16 +274,14 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
                 L("    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
                 cur_offset = next_offset;
             }
-            if (inp.ctype_map.count(uniform_type_str(uniform.type)) > 0) {
+            if (inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
                 // user-provided type names
                 if (uniform.array_count == 1) {
-                    L("    {} {};\n", inp.ctype_map.at(uniform_type_str(uniform.type)), uniform.name);
+                    L("    {} {};\n", inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
+                } else {
+                    L("    {} {}[{}];\n", inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
                 }
-                else {
-                    L("    {} {}[{}];\n", inp.ctype_map.at(uniform_type_str(uniform.type)), uniform.name, uniform.array_count);
-                }
-            }
-            else {
+            } else {
                 // default type names (float)
                 if (uniform.array_count == 1) {
                     switch (uniform.type) {
@@ -298,8 +296,7 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
                         case Uniform::MAT4:       L("    float {}[16];\n", uniform.name); break;
                         default:                    L("    INVALID_UNIFORM_TYPE;\n"); break;
                     }
-                }
-                else {
+                } else {
                     switch (uniform.type) {
                         case Uniform::FLOAT4:     L("    float {}[{}][4];\n", uniform.name, uniform.array_count); break;
                         case Uniform::INT4:       L("    int {}[{}][4];\n",   uniform.name, uniform.array_count); break;
@@ -308,7 +305,7 @@ static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross,
                     }
                 }
             }
-            cur_offset += uniform_size(uniform.type, uniform.array_count);
+            cur_offset += uniform.size_bytes();
         }
         /* pad to multiple of 16-bytes struct size */
         const int round16 = roundup(cur_offset, 16);
