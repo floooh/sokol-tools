@@ -123,47 +123,47 @@ static void write_header(const Args& args, const Input& inp, const Spirvcross& s
                 L("//                  ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
         }
-        for (const UniformBlock& ub: vs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: vs_src->refl.bindings.uniform_blocks) {
             L("//              Uniform block '{}':\n", ub.struct_name);
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const Image& img: vs_src->refl.images) {
+        for (const Image& img: vs_src->refl.bindings.images) {
             L("//              Image '{}':\n", img.name);
             L("//                  Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("//                  Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("//                  Multisampled: {}\n", img.multisampled);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const Sampler& smp: vs_src->refl.samplers) {
+        for (const Sampler& smp: vs_src->refl.bindings.samplers) {
             L("//              Sampler '{}':\n", smp.name);
             L("//                  Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const ImageSampler& img_smp: vs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: vs_src->refl.bindings.image_samplers) {
             L("//              Image Sampler Pair '{}':\n", img_smp.name);
             L("//                  Image: {}\n", img_smp.image_name);
             L("//                  Sampler: {}\n", img_smp.sampler_name);
         }
         L("//          Fragment shader: {}\n", prog.fs_name);
-        for (const UniformBlock& ub: fs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: fs_src->refl.bindings.uniform_blocks) {
             L("//              Uniform block '{}':\n", ub.struct_name);
             L("//                  C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const Image& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.bindings.images) {
             L("//              Image '{}':\n", img.name);
             L("//                  Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("//                  Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("//                  Multisampled: {}\n", img.multisampled);
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const Sampler& smp: fs_src->refl.samplers) {
+        for (const Sampler& smp: fs_src->refl.bindings.samplers) {
             L("//              Sampler '{}':\n", smp.name);
             L("//                  Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("//                  Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const ImageSampler& img_smp: fs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: fs_src->refl.bindings.image_samplers) {
             L("//              Image Sampler Pair '{}':\n", img_smp.name);
             L("//                  Image: {}\n", img_smp.image_name);
             L("//                  Sampler: {}\n", img_smp.sampler_name);
@@ -190,19 +190,19 @@ static void write_vertex_attrs(const Input& inp, const Spirvcross& spirvcross) {
 }
 
 static void write_image_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Image& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.bindings.images) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
 }
 
 static void write_sampler_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Sampler& smp: spirvcross.unique_samplers) {
+    for (const Sampler& smp: spirvcross.bindings.samplers) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), smp.name, smp.slot);
     }
 }
 
 static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
-    for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
+    for (const UniformBlock& ub: spirvcross.bindings.uniform_blocks) {
         L("pub const SLOT_{}{} = {};\n", mod_prefix(inp), ub.struct_name, ub.slot);
         // FIXME: trying to 16-byte align this struct currently produces a Zig
         // compiler error: https://github.com/ziglang/zig/issues/7780
@@ -347,7 +347,7 @@ static void write_stage(const char* indent,
     assert(src);
     L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < UniformBlock::NUM; ub_index++) {
-        const UniformBlock* ub = src->refl.find_uniform_block_by_slot(ub_index);
+        const UniformBlock* ub = src->refl.bindings.find_uniform_block_by_slot(ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = .STD140;\n", indent, stage_name, ub_index);
@@ -368,7 +368,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < Image::NUM; img_index++) {
-        const Image* img = src->refl.find_image_by_slot(img_index);
+        const Image* img = src->refl.bindings.find_image_by_slot(img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
@@ -377,18 +377,18 @@ static void write_stage(const char* indent,
         }
     }
     for (int smp_index = 0; smp_index < Sampler::NUM; smp_index++) {
-        const Sampler* smp = src->refl.find_sampler_by_slot(smp_index);
+        const Sampler* smp = src->refl.bindings.find_sampler_by_slot(smp_index);
         if (smp) {
             L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
             L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
     for (int img_smp_index = 0; img_smp_index < ImageSampler::NUM; img_smp_index++) {
-        const ImageSampler* img_smp = src->refl.find_image_sampler_by_slot(img_smp_index);
+        const ImageSampler* img_smp = src->refl.bindings.find_image_sampler_by_slot(img_smp_index);
         if (img_smp) {
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
-            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_image_by_name(img_smp->image_name)->slot);
-            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_sampler_by_name(img_smp->sampler_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.bindings.find_image_by_name(img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
             if (Slang::is_glsl(slang)) {
                 L("{}desc.{}.image_sampler_pairs[{}].glsl_name = \"{}\";\n", indent, stage_name, img_smp_index, img_smp->name);
             }
@@ -444,7 +444,7 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
         Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
             if (!comment_header_written) {

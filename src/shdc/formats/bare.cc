@@ -57,11 +57,11 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
 
         ErrMsg err;
         err = write_stage(file_path_vs, vs_src, vs_blob);
-        if (err.has_error) {
+        if (err.valid()) {
             return err;
         }
         err = write_stage(file_path_fs, fs_src, fs_blob);
-        if (err.has_error) {
+        if (err.valid()) {
             return err;
         }
     }
@@ -74,11 +74,11 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
         Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
         }

@@ -10,12 +10,11 @@ struct ImageSampler {
     std::string name;
     std::string image_name;
     std::string sampler_name;
-    int unique_index = -1;
 
-    bool equals(const ImageSampler& other);
+    bool equals(const ImageSampler& other) const;
 };
 
-inline bool ImageSampler::equals(const ImageSampler& other) {
+inline bool ImageSampler::equals(const ImageSampler& other) const {
     return (slot == other.slot)
         && (name == other.name)
         && (image_name == other.image_name)

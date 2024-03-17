@@ -12,12 +12,11 @@ struct Image {
     ImageType::Enum type = ImageType::INVALID;
     ImageSampleType::Enum sample_type = ImageSampleType::INVALID;
     bool multisampled = false;
-    int unique_index = -1;      // index into Spirvcross.unique_images
 
-    bool equals(const Image& other);
+    bool equals(const Image& other) const;
 };
 
-inline bool Image::equals(const Image& other) {
+inline bool Image::equals(const Image& other) const {
     return (slot == other.slot)
         && (name == other.name)
         && (type == other.type)

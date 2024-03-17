@@ -627,7 +627,7 @@ ErrMsg Input::warning(int index, const std::string& msg) const {
 /* print a debug-dump of content to stderr */
 void Input::dump_debug(ErrMsg::Format err_fmt) const {
     fmt::print(stderr, "Input:\n");
-    if (out_error.has_error) {
+    if (out_error.valid()) {
         fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
     } else {
         fmt::print(stderr, "  error: not set\n");

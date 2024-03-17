@@ -15,7 +15,7 @@ int main(int argc, const char** argv) {
     Spirv::initialize_spirv_tools();
 
     // parse command line args
-    Args args = Args::parse(argc, argv);
+    const Args args = Args::parse(argc, argv);
     if (args.debug_dump) {
         args.dump_debug();
     }
@@ -24,16 +24,17 @@ int main(int argc, const char** argv) {
     }
 
     // load the source and parse tagged blocks
-    Input inp = Input::load_and_parse(args.input, args.module);
+    const Input inp = Input::load_and_parse(args.input, args.module);
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
-    if (inp.out_error.has_error) {
+    if (inp.out_error.valid()) {
         inp.out_error.print(args.error_format);
         return 10;
     }
 
-    // compile source snippets to SPIRV blobs
+    // compile source snippets to SPIRV blobs (multiple compilations is necessary
+    // because of conditional compilation by target language)
     std::array<Spirv,Slang::NUM> spirv;
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = (Slang::Enum)i;
@@ -71,7 +72,7 @@ int main(int argc, const char** argv) {
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }
-            if (spirvcross[i].error.has_error) {
+            if (spirvcross[i].error.valid()) {
                 spirvcross[i].error.print(args.error_format);
                 return 10;
             }
@@ -129,7 +130,7 @@ int main(int argc, const char** argv) {
             output_err = formats::sokol::gen(args, inp, spirvcross, bytecode);
             break;
     }
-    if (output_err.has_error) {
+    if (output_err.valid()) {
         output_err.print(args.error_format);
         return 10;
     }

@@ -9,7 +9,7 @@
 
 namespace shdc {
 
-// glsl-to-spirv compiler wrapper
+// glslang SPIRV output of all shader source snippets for one shading language
 struct Spirv {
     std::vector<ErrMsg> errors;
     std::vector<SpirvBlob> blobs;

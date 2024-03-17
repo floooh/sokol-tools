@@ -9,12 +9,11 @@ struct Sampler {
     int slot = -1;
     std::string name;
     SamplerType::Enum type = SamplerType::INVALID;
-    int unique_index = -1;          // index into Spirvcross.unique_samplers
 
-    bool equals(const Sampler& other);
+    bool equals(const Sampler& other) const;
 };
 
-inline bool Sampler::equals(const Sampler& other) {
+inline bool Sampler::equals(const Sampler& other) const {
     return (slot == other.slot)
         && (name == other.name)
         && (type == other.type);

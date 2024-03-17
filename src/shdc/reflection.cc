@@ -159,7 +159,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
             refl_uniform.offset = compiler.type_struct_member_offset(ub_type, m_index);
             refl_ub.uniforms.push_back(refl_uniform);
         }
-        refl.uniform_blocks.push_back(refl_ub);
+        refl.bindings.uniform_blocks.push_back(refl_ub);
     }
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
@@ -174,7 +174,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
             refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
         refl_img.multisampled = spirtype_to_image_multisampled(img_type);
-        refl.images.push_back(refl_img);
+        refl.bindings.images.push_back(refl_img);
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
@@ -188,7 +188,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
         } else {
             refl_smp.type = SamplerType::FILTERING;
         }
-        refl.samplers.push_back(refl_smp);
+        refl.bindings.samplers.push_back(refl_smp);
     }
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
@@ -197,17 +197,17 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
         refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
         refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);
-        refl.image_samplers.push_back(refl_img_smp);
+        refl.bindings.image_samplers.push_back(refl_img_smp);
     }
     // patch textures with overridden image-sample-types
-    for (auto& img: refl.images) {
+    for (auto& img: refl.bindings.images) {
         const auto* tag = snippet.lookup_image_sample_type_tag(img.name);
         if (tag) {
             img.sample_type = tag->type;
         }
     }
     // patch samplers with overridden sampler-types
-    for (auto& smp: refl.samplers) {
+    for (auto& smp: refl.bindings.samplers) {
         const auto* tag = snippet.lookup_sampler_type_tag(smp.name);
         if (tag) {
             smp.type = tag->type;
@@ -216,58 +216,68 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     return refl;
 }
 
-const UniformBlock* Reflection::find_uniform_block_by_slot(int slot) const {
-    for (const UniformBlock& ub: this->uniform_blocks) {
-        if (ub.slot == slot) {
-            return &ub;
-        }
-    }
-    return nullptr;
-}
+bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, Bindings& out_bindings, ErrMsg& out_error) {
+    out_bindings = Bindings();
+    out_error = ErrMsg();
+    for (const Bindings& src_bindings: in_bindings) {
 
-const Image* Reflection::find_image_by_slot(int slot) const {
-    for (const Image& img: this->images) {
-        if (img.slot == slot) {
-            return &img;
+        // merge identical uniform blocks
+        for (const UniformBlock& ub: src_bindings.uniform_blocks) {
+            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_name);
+            if (other_ub) {
+                // another uniform block of the same name exists, make sure it's identical
+                if (!ub.equals(*other_ub)) {
+                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
+                    return false;
+                }
+            } else {
+                out_bindings.uniform_blocks.push_back(ub);
+            }
         }
-    }
-    return nullptr;
-}
 
-const Sampler* Reflection::find_sampler_by_slot(int slot) const {
-    for (const Sampler& smp: this->samplers) {
-        if (smp.slot == slot) {
-            return &smp;
+        // merge identical images
+        for (const Image& img: src_bindings.images) {
+            const Image* other_img = out_bindings.find_image_by_name(img.name);
+            if (other_img) {
+                // another image of the same name exists, make sure it's identical
+                if (!img.equals(*other_img)) {
+                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    return false;
+                }
+            } else {
+                out_bindings.images.push_back(img);
+            }
         }
-    }
-    return nullptr;
-}
 
-const ImageSampler* Reflection::find_image_sampler_by_slot(int slot) const {
-    for (const ImageSampler& img_smp: this->image_samplers) {
-        if (img_smp.slot == slot) {
-            return &img_smp;
+        // merge identical samplers
+        for (const Sampler& smp: src_bindings.samplers) {
+            const Sampler* other_smp = out_bindings.find_sampler_by_name(smp.name);
+            if (other_smp) {
+                // another sampler of the same name exists, make sure it's identical
+                if (!smp.equals(*other_smp)) {
+                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
+                    return false;
+                }
+            } else {
+                out_bindings.samplers.push_back(smp);
+            }
         }
-    }
-    return nullptr;
-}
 
-const Image* Reflection::find_image_by_name(const std::string& name) const {
-    for (const Image& img: this->images) {
-        if (img.name == name) {
-            return &img;
+        // merge image samplers
+        for (const ImageSampler& img_smp: src_bindings.image_samplers) {
+            const ImageSampler* other_img_smp = out_bindings.find_image_sampler_by_name(img_smp.name);
+            if (other_img_smp) {
+                // another image sampler of the same name exists, make sure it's identical
+                if (!img_smp.equals(*other_img_smp)) {
+                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
+                    return false;
+                }
+            } else {
+                out_bindings.image_samplers.push_back(img_smp);
+            }
         }
     }
-    return nullptr;
-}
-
-const Sampler* Reflection::find_sampler_by_name(const std::string& name) const {
-    for (const Sampler& smp: this->samplers) {
-        if (smp.name == name) {
-            return &smp;
-        }
-    }
-    return nullptr;
+    return true;
 }
 
 } // namespace

@@ -7,14 +7,14 @@ namespace shdc {
 // an error message object with filename, line number and message
 struct ErrMsg {
     enum Type {
+        NONE,
         ERROR,
         WARNING,
     };
-    Type type = ERROR;
+    Type type = NONE;
     std::string file;
     std::string msg;
     int line_index = -1;      // line_index is zero-based!
-    bool has_error = false;
 
     enum Format {
         GCC,
@@ -23,9 +23,10 @@ struct ErrMsg {
 
     static ErrMsg error(const std::string& file, int line, const std::string& msg);
     static ErrMsg warning(const std::string& file, int line, const std::string& msg);
+    static const char* format_to_str(Format fmt);
     std::string as_string(Format fmt) const;
     void print(Format fmt) const;
-    static const char* format_to_str(Format fmt);
+    bool valid() const;
 };
 
 
@@ -35,7 +36,6 @@ inline ErrMsg ErrMsg::error(const std::string& file, int line, const std::string
     err.file = file;
     err.msg = msg;
     err.line_index = line;
-    err.has_error = true;
     return err;
 }
 
@@ -45,7 +45,6 @@ inline ErrMsg ErrMsg::warning(const std::string& file, int line, const std::stri
     err.file = file;
     err.msg = msg;
     err.line_index = line;
-    err.has_error = true;
     return err;
 }
 
@@ -67,6 +66,10 @@ inline const char* ErrMsg::format_to_str(Format fmt) {
         case MSVC: return "msvc";
         default: return "<invalid>";
     }
+}
+
+inline bool ErrMsg::valid() const {
+    return type != NONE;
 }
 
 } // namespace shdc

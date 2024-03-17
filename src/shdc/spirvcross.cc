@@ -241,7 +241,7 @@ static Reflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& byte
     CompilerGLSL compiler(bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
-    options.version = 330;
+    options.version = 430;
     options.es = false;
     options.vulkan_semantics = false;
     options.enable_420pack_extension = false;
@@ -389,100 +389,12 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     return res;
 }
 
-static int find_unique_uniform_block_by_name(const Spirvcross& spv_cross, const std::string& name) {
-    for (int i = 0; i < (int)spv_cross.unique_uniform_blocks.size(); i++) {
-        if (spv_cross.unique_uniform_blocks[i].struct_name == name) {
-            return i;
-        }
+static bool merge_bindings(const Input& inp, Spirvcross& spv_cross) {
+    std::vector<Bindings> in_bindings;
+    for (const SpirvcrossSource& src: spv_cross.sources) {
+        in_bindings.push_back(src.refl.bindings);
     }
-    return -1;
-}
-
-static int find_unique_image_by_name(const Spirvcross& spv_cross, const std::string& name) {
-    for (int i = 0; i < (int)spv_cross.unique_images.size(); i++) {
-        if (spv_cross.unique_images[i].name == name) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-static int find_unique_sampler_by_name(const Spirvcross& spv_cross, const std::string& name) {
-    for (int i = 0; i < (int)spv_cross.unique_samplers.size(); i++) {
-        if (spv_cross.unique_samplers[i].name == name) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-// find all identical uniform blocks across all shaders, and check for collisions
-static bool gather_unique_uniform_blocks(const Input& inp, Spirvcross& spv_cross) {
-    for (SpirvcrossSource& src: spv_cross.sources) {
-        for (UniformBlock& ub: src.refl.uniform_blocks) {
-            int other_ub_index = find_unique_uniform_block_by_name(spv_cross, ub.struct_name);
-            if (other_ub_index >= 0) {
-                if (ub.equals(spv_cross.unique_uniform_blocks[other_ub_index])) {
-                    // identical uniform block already exists, take note of the index
-                    ub.unique_index = other_ub_index;
-                } else {
-                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
-                    return false;
-                }
-            } else {
-                // a new unique uniform block
-                ub.unique_index = (int) spv_cross.unique_uniform_blocks.size();
-                spv_cross.unique_uniform_blocks.push_back(ub);
-            }
-        }
-    }
-    return true;
-}
-
-// find all identical images across all shaders, and check for collisions
-static bool gather_unique_images(const Input& inp, Spirvcross& spv_cross) {
-    for (SpirvcrossSource& src: spv_cross.sources) {
-        for (Image& img: src.refl.images) {
-            int other_img_index = find_unique_image_by_name(spv_cross, img.name);
-            if (other_img_index >= 0) {
-                if (img.equals(spv_cross.unique_images[other_img_index])) {
-                    // identical image already exists, take note of the index
-                    img.unique_index = other_img_index;
-                } else {
-                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
-                    return false;
-                }
-            } else {
-                // new unique image
-                img.unique_index = (int) spv_cross.unique_images.size();
-                spv_cross.unique_images.push_back(img);
-            }
-        }
-    }
-    return true;
-}
-
-// find all identical samplers across all shaders, and check for collisions
-static bool gather_unique_samplers(const Input& inp, Spirvcross& spv_cross) {
-    for (SpirvcrossSource& src: spv_cross.sources) {
-        for (Sampler& smp: src.refl.samplers) {
-            int other_smp_index = find_unique_sampler_by_name(spv_cross, smp.name);
-            if (other_smp_index >= 0) {
-                if (smp.equals(spv_cross.unique_samplers[other_smp_index])) {
-                    // identical sampler already exists, take note of the index
-                    smp.unique_index = other_smp_index;
-                } else {
-                    spv_cross.error = ErrMsg::error(inp.base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
-                    return false;
-                }
-            } else {
-                // new unique sampler
-                smp.unique_index = (int) spv_cross.unique_samplers.size();
-                spv_cross.unique_samplers.push_back(smp);
-            }
-        }
-    }
-    return true;
+    return Reflection::merge_bindings(in_bindings, inp.base_path, spv_cross.bindings, spv_cross.error);
 }
 
 struct SnippetRefls {
@@ -526,50 +438,6 @@ static ErrMsg validate_linking(const Input& inp, const Spirvcross& spv_cross) {
     return ErrMsg();
 }
 
-/*
-CURRENTLY UNUSED BECAUSE OF PROBLEMS WITH #ifdef BLOCKS IN SHADER CODE
-
-static ErrMsg validate_image_sample_type_tags(const Input& inp, const Spirvcross& spv_cross) {
-    for (const auto& prog_item: inp.programs) {
-        const Program& prog = prog_item.second;
-        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
-        for (const auto& kvp: res.vs_snippet.image_sample_type_tags) {
-            const auto& tag = kvp.second;
-            if (nullptr == util::find_image_by_name(res.vs_refl, tag.tex_name)) {
-                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
-            }
-        }
-        for (const auto& kvp: res.fs_snippet.image_sample_type_tags) {
-            const auto& tag = kvp.second;
-            if (nullptr == util::find_image_by_name(res.fs_refl, tag.tex_name)) {
-                return inp.error(tag.line_index, fmt::format("unknown texture name '{}' in @image_sample_type tag\n", tag.tex_name));
-            }
-        }
-    }
-    return ErrMsg();
-}
-
-static ErrMsg validate_sampler_type_tags(const Input& inp, const Spirvcross& spv_cross) {
-    for (const auto& prog_item: inp.programs) {
-        const Program& prog = prog_item.second;
-        const auto res = get_snippets_and_sources(inp, prog, spv_cross);
-        for (const auto& kvp: res.vs_snippet.sampler_type_tags) {
-            const auto& tag = kvp.second;
-            if (nullptr == util::find_sampler_by_name(res.vs_refl, tag.smp_name)) {
-                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
-            }
-        }
-        for (const auto& kvp: res.fs_snippet.sampler_type_tags) {
-            const auto& tag = kvp.second;
-            if (nullptr == util::find_sampler_by_name(res.fs_refl, tag.smp_name)) {
-                return inp.error(tag.line_index, fmt::format("unknown sampler name '{}' in @sampler_type tag\n", tag.smp_name));
-            }
-        }
-    }
-    return ErrMsg();
-}
-*/
-
 Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::Enum slang) {
     Spirvcross spv_cross;
     for (const auto& blob: spirv.blobs) {
@@ -578,7 +446,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
         const Snippet& snippet = inp.snippets[blob.snippet_index];
         assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
         spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
-        if (spv_cross.error.has_error) {
+        if (spv_cross.error.valid()) {
             return spv_cross;
         }
         switch (slang) {
@@ -607,7 +475,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
         } else {
             const int line_index = snippet.lines[0];
             std::string err_msg;
-            if (src.error.has_error) {
+            if (src.error.valid()) {
                 err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", Slang::to_str(slang), src.error.msg);
             } else {
                 err_msg = fmt::format("Failed to cross-compile to {}\n", Slang::to_str(slang));
@@ -615,45 +483,27 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
             spv_cross.error = inp.error(line_index, err_msg);
             return spv_cross;
         }
-        if (!gather_unique_uniform_blocks(inp, spv_cross)) {
-            // error has been set in spv_cross.error
-            return spv_cross;
-        }
-        if (!gather_unique_images(inp, spv_cross)) {
-            // error has been set in spv_cross.error
-            return spv_cross;
-        }
-        if (!gather_unique_samplers(inp, spv_cross)) {
-            // error has been set in spv_cross.error
-            return spv_cross;
-        }
     }
+
+    // merge common resource bindings of all individual shader source snippets
+    if (!merge_bindings(inp, spv_cross)) {
+        // error has been set in spv_cross.error
+        return spv_cross;
+    }
+
     // check that vertex-shader outputs match their fragment shader inputs
     ErrMsg err;
     err = validate_linking(inp, spv_cross);
-    if (err.has_error) {
+    if (err.valid()) {
         spv_cross.error = err;
         return spv_cross;
     }
-    // check that explicit image-sampler-type-tags and sampler-type-tags use existing image and sampler names
-    /* FIXME this doesn't work with conditional compilation via #ifdef!
-    err = validate_image_sample_type_tags(inp, spv_cross);
-    if (err.has_error) {
-        spv_cross.error = err;
-        return spv_cross;
-    }
-    err = validate_sampler_type_tags(inp, spv_cross);
-    if (err.has_error) {
-        spv_cross.error = err;
-        return spv_cross;
-    }
-    */
     return spv_cross;
 }
 
 void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
     fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
-    if (error.has_error) {
+    if (error.valid()) {
         fmt::print(stderr, "  error: {}\n", error.as_string(err_fmt));
     } else {
         fmt::print(stderr, "  error: not set\n");
@@ -680,7 +530,7 @@ void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
                 fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
             }
         }
-        for (const UniformBlock& ub: source.refl.uniform_blocks) {
+        for (const UniformBlock& ub: source.refl.bindings.uniform_blocks) {
             fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
             for (const Uniform& uniform: ub.uniforms) {
                 fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
@@ -690,14 +540,14 @@ void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
                     uniform.offset);
             }
         }
-        for (const Image& img: source.refl.images) {
+        for (const Image& img: source.refl.bindings.images) {
             fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
                 img.name, img.slot, ImageType::to_str(img.type), ImageSampleType::to_str(img.sample_type));
         }
-        for (const Sampler& smp: source.refl.samplers) {
+        for (const Sampler& smp: source.refl.bindings.samplers) {
             fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);
         }
-        for (const ImageSampler& img_smp: source.refl.image_samplers) {
+        for (const ImageSampler& img_smp: source.refl.bindings.image_samplers) {
             fmt::print(stderr, "      image sampler: {}, slot: {}, image: {}, sampler: {}\n",
                 img_smp.name, img_smp.slot, img_smp.image_name, img_smp.sampler_name);
         }

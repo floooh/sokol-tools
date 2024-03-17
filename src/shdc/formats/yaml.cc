@@ -126,36 +126,36 @@ static void write_source_reflection(const SpirvcrossSource* src) {
         }
         write_attribute(output);
     }
-    if (src->refl.uniform_blocks.size() > 0) {
+    if (src->refl.bindings.uniform_blocks.size() > 0) {
         L("          uniform_blocks:\n");
-        for (const auto& uniform_block: src->refl.uniform_blocks) {
+        for (const auto& uniform_block: src->refl.bindings.uniform_blocks) {
             if (uniform_block.slot == -1) {
                 break;
             }
             write_uniform_block(uniform_block);
         }
     }
-    if (src->refl.images.size() > 0) {
+    if (src->refl.bindings.images.size() > 0) {
         L("          images:\n");
-        for (const auto& image: src->refl.images) {
+        for (const auto& image: src->refl.bindings.images) {
             if (image.slot == -1) {
                 break;
             }
             write_image(image);
         }
     }
-    if (src->refl.samplers.size() > 0) {
+    if (src->refl.bindings.samplers.size() > 0) {
         L("          samplers:\n");
-        for (const auto& sampler: src->refl.samplers) {
+        for (const auto& sampler: src->refl.bindings.samplers) {
             if (sampler.slot == -1) {
                 break;
             }
             write_sampler(sampler);
         }
     }
-    if (src->refl.image_samplers.size() > 0) {
+    if (src->refl.bindings.image_samplers.size() > 0) {
         L("          image_sampler_pairs:\n");
-        for (const auto& image_sampler: src->refl.image_samplers) {
+        for (const auto& image_sampler: src->refl.bindings.image_samplers) {
             if (image_sampler.slot == -1) {
                 break;
             }
@@ -201,7 +201,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
 ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode) {
     // first generate the bare-output files
     ErrMsg output_err = bare::gen(args, inp, spirvcross, bytecode);
-    if (output_err.has_error) {
+    if (output_err.valid()) {
         return output_err;
     }
 
@@ -213,14 +213,14 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
         Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
 
             L("  -\n");
             L("    slang: {}\n", Slang::to_str(slang));
             err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
         }

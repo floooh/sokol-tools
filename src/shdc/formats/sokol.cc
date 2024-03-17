@@ -134,46 +134,46 @@ static void write_header(const Args& args, const Input& inp, const Spirvcross& s
                 L("                    ATTR_{}{}_{} = {}\n", mod_prefix(inp), vs_snippet.name, attr.name, attr.slot);
             }
         }
-        for (const UniformBlock& ub: vs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: vs_src->refl.bindings.uniform_blocks) {
             L("                Uniform block '{}':\n", ub.struct_name);
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const Image& img: vs_src->refl.images) {
+        for (const Image& img: vs_src->refl.bindings.images) {
             L("                Image '{}':\n", img.name);
             L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Multisampled: {}\n", img.multisampled);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const Sampler& smp: vs_src->refl.samplers) {
+        for (const Sampler& smp: vs_src->refl.bindings.samplers) {
             L("                Sampler '{}':\n", smp.name);
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const ImageSampler& img_smp: vs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: vs_src->refl.bindings.image_samplers) {
             L("                Image Sampler Pair '{}':\n", img_smp.name);
             L("                    Image: {}\n", img_smp.image_name);
             L("                    Sampler: {}\n", img_smp.sampler_name);
         }
         L("            Fragment shader: {}\n", prog.fs_name);
-        for (const UniformBlock& ub: fs_src->refl.uniform_blocks) {
+        for (const UniformBlock& ub: fs_src->refl.bindings.uniform_blocks) {
             L("                Uniform block '{}':\n", ub.struct_name);
             L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), ub.struct_name, ub.slot);
         }
-        for (const Image& img: fs_src->refl.images) {
+        for (const Image& img: fs_src->refl.bindings.images) {
             L("                Image '{}':\n", img.name);
             L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
             L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
         }
-        for (const Sampler& smp: fs_src->refl.samplers) {
+        for (const Sampler& smp: fs_src->refl.bindings.samplers) {
             L("                Sampler '{}':\n", smp.name);
             L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
             L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
         }
-        for (const ImageSampler& img_smp: fs_src->refl.image_samplers) {
+        for (const ImageSampler& img_smp: fs_src->refl.bindings.image_samplers) {
             L("                Image Sampler Pair '{}':\n", img_smp.name);
             L("                    Image: {}\n", img_smp.image_name);
             L("                    Sampler: {}\n", img_smp.sampler_name);
@@ -207,16 +207,16 @@ static void write_header(const Args& args, const Input& inp, const Spirvcross& s
     }
     L("\n");
     L("    Image bind slots, use as index in sg_bindings.vs.images[] or .fs.images[]\n\n");
-    for (const Image& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.bindings.images) {
         L("        SLOT_{}{} = {};\n", mod_prefix(inp), img.name, img.slot);
     }
     L("\n");
     L("    Sampler bind slots, use as index in sg_bindings.vs.sampler[] or .fs.samplers[]\n\n");
-    for (const Sampler& smp: spirvcross.unique_samplers) {
+    for (const Sampler& smp: spirvcross.bindings.samplers) {
         L("        SLOT_{}{} = {};\n", mod_prefix(inp), smp.name, smp.slot);
     }
     L("\n");
-    for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
+    for (const UniformBlock& ub: spirvcross.bindings.uniform_blocks) {
         L("    Bind slot and C-struct for uniform block '{}':\n\n", ub.struct_name);
         L("        {}{}_t {} = {{\n", mod_prefix(inp), ub.struct_name, ub.struct_name);
         for (const Uniform& uniform: ub.uniforms) {
@@ -251,19 +251,19 @@ static void write_vertex_attrs(const Input& inp, const Spirvcross& spirvcross) {
 }
 
 static void write_image_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Image& img: spirvcross.unique_images) {
+    for (const Image& img: spirvcross.bindings.images) {
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), img.name, img.slot);
     }
 }
 
 static void write_sampler_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Sampler& smp: spirvcross.unique_samplers) {
+    for (const Sampler& smp: spirvcross.bindings.samplers) {
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), smp.name, smp.slot);
     }
 }
 
 static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
-    for (const UniformBlock& ub: spirvcross.unique_uniform_blocks) {
+    for (const UniformBlock& ub: spirvcross.bindings.uniform_blocks) {
         L("#define SLOT_{}{} ({})\n", mod_prefix(inp), ub.struct_name, ub.slot);
         L("#pragma pack(push,1)\n");
         int cur_offset = 0;
@@ -435,7 +435,7 @@ static void write_stage(const char* indent,
     }
     L("{}desc.{}.entry = \"{}\";\n", indent, stage_name, src->refl.entry_point);
     for (int ub_index = 0; ub_index < UniformBlock::NUM; ub_index++) {
-        const UniformBlock* ub = src->refl.find_uniform_block_by_slot(ub_index);
+        const UniformBlock* ub = src->refl.bindings.find_uniform_block_by_slot(ub_index);
         if (ub) {
             L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
             L("{}desc.{}.uniform_blocks[{}].layout = SG_UNIFORMLAYOUT_STD140;\n", indent, stage_name, ub_index);
@@ -456,7 +456,7 @@ static void write_stage(const char* indent,
         }
     }
     for (int img_index = 0; img_index < Image::NUM; img_index++) {
-        const Image* img = src->refl.find_image_by_slot(img_index);
+        const Image* img = src->refl.bindings.find_image_by_slot(img_index);
         if (img) {
             L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
             L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
@@ -465,18 +465,18 @@ static void write_stage(const char* indent,
         }
     }
     for (int smp_index = 0; smp_index < Sampler::NUM; smp_index++) {
-        const Sampler* smp = src->refl.find_sampler_by_slot(smp_index);
+        const Sampler* smp = src->refl.bindings.find_sampler_by_slot(smp_index);
         if (smp) {
             L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
             L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
         }
     }
     for (int img_smp_index = 0; img_smp_index < ImageSampler::NUM; img_smp_index++) {
-        const ImageSampler* img_smp = src->refl.find_image_sampler_by_slot(img_smp_index);
+        const ImageSampler* img_smp = src->refl.bindings.find_image_sampler_by_slot(img_smp_index);
         if (img_smp) {
             L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
-            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_image_by_name(img_smp->image_name)->slot);
-            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.find_sampler_by_name(img_smp->sampler_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->refl.bindings.find_image_by_name(img_smp->image_name)->slot);
+            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
             if (Slang::is_glsl(slang)) {
                 L("{}desc.{}.image_sampler_pairs[{}].glsl_name = \"{}\";\n", indent, stage_name, img_smp_index, img_smp->name);
             }
@@ -575,7 +575,7 @@ static void write_attr_slot_func(const Program& prog, const Args& args, const In
 }
 
 static void write_image_slot_stage(const SpirvcrossSource* src) {
-    for (const Image& img: src->refl.images) {
+    for (const Image& img: src->refl.bindings.images) {
         if (img.slot >= 0) {
             L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
             L("      return {};\n", img.slot);
@@ -585,7 +585,7 @@ static void write_image_slot_stage(const SpirvcrossSource* src) {
 }
 
 static void write_sampler_slot_stage(const SpirvcrossSource* src) {
-    for (const Sampler& smp: src->refl.samplers) {
+    for (const Sampler& smp: src->refl.bindings.samplers) {
         if (smp.slot >= 0) {
             L("    if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
             L("      return {};\n", smp.slot);
@@ -601,12 +601,12 @@ static void write_image_slot_func(const Program& prog, const Args& args, const I
 
     L("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)img_name;\n");
-    if (!vs_src->refl.images.empty()) {
+    if (!vs_src->refl.bindings.images.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_image_slot_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.images.empty()) {
+    if (!fs_src->refl.bindings.images.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_image_slot_stage(fs_src);
         L("  }}\n");
@@ -622,12 +622,12 @@ static void write_sampler_slot_func(const Program& prog, const Args& args, const
 
     L("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)smp_name;\n");
-    if (!vs_src->refl.samplers.empty()) {
+    if (!vs_src->refl.bindings.samplers.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_sampler_slot_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.samplers.empty()) {
+    if (!fs_src->refl.bindings.samplers.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_sampler_slot_stage(fs_src);
         L("  }}\n");
@@ -637,7 +637,7 @@ static void write_sampler_slot_func(const Program& prog, const Args& args, const
 }
 
 static void write_uniformblock_slot_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.uniform_blocks) {
+    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
         if (ub.slot >= 0) {
             L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             L("      return {};\n", ub.slot);
@@ -653,12 +653,12 @@ static void write_uniformblock_slot_func(const Program& prog, const Args& args, 
 
     L("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)ub_name;\n");
-    if (!vs_src->refl.uniform_blocks.empty()) {
+    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_uniformblock_slot_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.uniform_blocks.empty()) {
+    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_uniformblock_slot_stage(fs_src);
         L("  }}\n");
@@ -668,7 +668,7 @@ static void write_uniformblock_slot_func(const Program& prog, const Args& args, 
 }
 
 static void write_uniformblock_size_stage(const SpirvcrossSource* src, const Input& inp) {
-    for (const UniformBlock& ub: src->refl.uniform_blocks) {
+    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
         if (ub.slot >= 0) {
             L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             L("      return sizeof({}{}_t);\n", mod_prefix(inp), ub.struct_name);
@@ -684,12 +684,12 @@ static void write_uniformblock_size_func(const Program& prog, const Args& args, 
 
     L("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)ub_name;\n");
-    if (!vs_src->refl.uniform_blocks.empty()) {
+    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_uniformblock_size_stage(vs_src, inp);
         L("  }}\n");
     }
-    if (!fs_src->refl.uniform_blocks.empty()) {
+    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_uniformblock_size_stage(fs_src, inp);
         L("  }}\n");
@@ -699,7 +699,7 @@ static void write_uniformblock_size_func(const Program& prog, const Args& args, 
 }
 
 static void write_uniform_offset_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.uniform_blocks) {
+    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
         if (ub.slot >= 0) {
             L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             for (const Uniform& u: ub.uniforms) {
@@ -719,12 +719,12 @@ static void write_uniform_offset_func(const Program& prog, const Args& args, con
 
     L("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
     L("  (void)stage; (void)ub_name; (void)u_name;\n");
-    if (!vs_src->refl.uniform_blocks.empty()) {
+    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_uniform_offset_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.uniform_blocks.empty()) {
+    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_uniform_offset_stage(fs_src);
         L("  }}\n");
@@ -734,7 +734,7 @@ static void write_uniform_offset_func(const Program& prog, const Args& args, con
 }
 
 static void write_uniform_desc_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.uniform_blocks) {
+    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
         if (ub.slot >= 0) {
             L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
             for (const Uniform& u: ub.uniforms) {
@@ -762,12 +762,12 @@ static void write_uniform_desc_func(const Program& prog, const Args& args, const
     L("  #else\n");
     L("  sg_shader_uniform_desc desc = {{0}};\n");
     L("  #endif\n");
-    if (!vs_src->refl.uniform_blocks.empty()) {
+    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
         write_uniform_desc_stage(vs_src);
         L("  }}\n");
     }
-    if (!fs_src->refl.uniform_blocks.empty()) {
+    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
         L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
         write_uniform_desc_stage(fs_src);
         L("  }}\n");
@@ -791,7 +791,7 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
         Slang::Enum slang = (Slang::Enum) i;
         if (args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(inp, spirvcross[i], slang);
-            if (err.has_error) {
+            if (err.valid()) {
                 return err;
             }
             if (!comment_header_written) {
