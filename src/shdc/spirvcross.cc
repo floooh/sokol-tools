@@ -389,14 +389,6 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     return res;
 }
 
-static bool merge_bindings(const Input& inp, Spirvcross& spv_cross) {
-    std::vector<Bindings> in_bindings;
-    for (const SpirvcrossSource& src: spv_cross.sources) {
-        in_bindings.push_back(src.refl.bindings);
-    }
-    return Reflection::merge_bindings(in_bindings, inp.base_path, spv_cross.bindings, spv_cross.error);
-}
-
 struct SnippetRefls {
     const Snippet& vs_snippet;
     const Snippet& fs_snippet;
@@ -483,12 +475,6 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
             spv_cross.error = inp.error(line_index, err_msg);
             return spv_cross;
         }
-    }
-
-    // merge common resource bindings of all individual shader source snippets
-    if (!merge_bindings(inp, spv_cross)) {
-        // error has been set in spv_cross.error
-        return spv_cross;
     }
 
     // check that vertex-shader outputs match their fragment shader inputs

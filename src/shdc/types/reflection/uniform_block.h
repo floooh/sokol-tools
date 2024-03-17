@@ -2,11 +2,13 @@
 #include <string>
 #include <vector>
 #include "uniform.h"
+#include "shader_stage.h"
 
 namespace shdc::refl {
 
 struct UniformBlock {
     static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
+    ShaderStage::Enum stage = ShaderStage::INVALID;
     int slot = -1;
     int size = 0;
     std::string struct_name;
@@ -19,7 +21,8 @@ struct UniformBlock {
 
 // FIXME: hmm is this correct??
 inline bool UniformBlock::equals(const UniformBlock& other) const {
-    if ((slot != other.slot) ||
+    if ((stage != other.stage) ||
+        (slot != other.slot) ||
         (size != other.size) ||
         (struct_name != other.struct_name) ||
         (uniforms.size() != other.uniforms.size()) ||

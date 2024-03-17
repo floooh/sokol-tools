@@ -197,24 +197,24 @@ static void write_vertex_attrs(const Input& inp, const Spirvcross& spirvcross) {
     L("\n");
 }
 
-static void write_image_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Image& img: spirvcross.bindings.images) {
+static void write_image_bind_slots(const Input& inp, const Bindings& bindings) {
+    for (const Image& img: bindings.images) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), img.name));
         L("const {}* = {}\n", slotName, img.slot);
     }
     L("\n");
 }
 
-static void write_sampler_bind_slots(const Input& inp, const Spirvcross& spirvcross) {
-    for (const Sampler& smp: spirvcross.bindings.samplers) {
+static void write_sampler_bind_slots(const Input& inp, const Bindings& bindings) {
+    for (const Sampler& smp: bindings.samplers) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), smp.name));
         L("const {}* = {}\n", slotName, smp.slot);
     }
     L("\n");
 }
 
-static void write_uniform_blocks(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
-    for (const UniformBlock& ub: spirvcross.bindings.uniform_blocks) {
+static void write_uniform_blocks(const Input& inp, const Bindings& bindings) {
+    for (const UniformBlock& ub: bindings.uniform_blocks) {
         const auto slotName = to_camel_case(fmt::format("SLOT_{}_{}", mod_prefix(inp), ub.struct_name));
         L("const {}* = {}\n", slotName, ub.slot);
         L("type {}* {{.packed.}} = object\n", to_nim_struct_name(mod_prefix(inp), ub.struct_name));
@@ -447,7 +447,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     L("{}result.label = \"{}\"\n", indent, shader_name);
 }
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode) {
+ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode, const Bindings& merged_bindings) {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
@@ -468,9 +468,9 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
             if (!common_decls_written) {
                 common_decls_written = true;
                 write_vertex_attrs(inp, spirvcross[i]);
-                write_image_bind_slots(inp, spirvcross[i]);
-                write_sampler_bind_slots(inp, spirvcross[i]);
-                write_uniform_blocks(inp, spirvcross[i], slang);
+                write_image_bind_slots(inp, merged_bindings);
+                write_sampler_bind_slots(inp, merged_bindings);
+                write_uniform_blocks(inp, merged_bindings);
             }
             write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
         }

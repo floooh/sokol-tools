@@ -9,6 +9,10 @@
 
 namespace shdc::formats::sokolnim {
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode);
+ErrMsg gen(const Args& args,
+    const Input& inp,
+    const std::array<Spirvcross,Slang::NUM>& spirvcross,
+    const std::array<Bytecode,Slang::NUM>& bytecode,
+    const refl::Bindings& merged_bindings);
 
 }

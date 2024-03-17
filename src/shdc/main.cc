@@ -10,6 +10,7 @@
 #include "formats/yaml.h"
 
 using namespace shdc;
+using namespace shdc::refl;
 
 int main(int argc, const char** argv) {
     Spirv::initialize_spirv_tools();
@@ -105,6 +106,24 @@ int main(int argc, const char** argv) {
         }
     }
 
+    // find and merge identical binding reflections across all compiled shader snippets
+    Bindings merged_bindings;
+    {
+        std::vector<Bindings> snippet_bindings;
+        for (int i = 0; i < Slang::NUM; i++) {
+            Slang::Enum slang = (Slang::Enum)i;
+            if (args.slang & Slang::bit(slang)) {
+                for (const SpirvcrossSource& src: spirvcross[i].sources) {
+                    snippet_bindings.push_back(src.refl.bindings);
+                }
+            }
+        }
+        ErrMsg merge_error;
+        if (!Reflection::merge_bindings(snippet_bindings, inp.base_path, merged_bindings, merge_error)) {
+            merge_error.print(args.error_format);
+        }
+    }
+
     // generate output files
     ErrMsg output_err;
     switch (args.output_format) {
@@ -112,22 +131,22 @@ int main(int argc, const char** argv) {
             output_err = formats::bare::gen(args, inp, spirvcross, bytecode);
             break;
         case Format::BARE_YAML:
-            output_err = formats::yaml::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::yaml::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
         case Format::SOKOL_ZIG:
-            output_err = formats::sokolzig::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolzig::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
         case Format::SOKOL_NIM:
-            output_err = formats::sokolnim::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolnim::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
         case Format::SOKOL_ODIN:
-            output_err = formats::sokolodin::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolodin::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
         case Format::SOKOL_RUST:
-            output_err = formats::sokolrust::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokolrust::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
         default:
-            output_err = formats::sokol::gen(args, inp, spirvcross, bytecode);
+            output_err = formats::sokol::gen(args, inp, spirvcross, bytecode, merged_bindings);
             break;
     }
     if (output_err.valid()) {

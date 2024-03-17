@@ -14,7 +14,6 @@ namespace shdc {
 struct Spirvcross {
     ErrMsg error;
     std::vector<SpirvcrossSource> sources;
-    refl::Bindings bindings;    // merged unique resource bindings across all snippets
 
     static Spirvcross translate(const Input& inp, const Spirv& spirv, Slang::Enum slang);
     static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);

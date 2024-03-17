@@ -140,6 +140,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
         std::string n = compiler.get_name(ub_res.id);
         UniformBlock refl_ub;
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
+        refl_ub.stage = refl.stage;
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.struct_name = ub_res.name;
@@ -164,6 +165,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
         Image refl_img;
+        refl_img.stage = refl.stage;
         refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
@@ -180,6 +182,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     for (const Resource& smp_res: shd_resources.separate_samplers) {
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         Sampler refl_smp;
+        refl_smp.stage = refl.stage;
         refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
         refl_smp.name = smp_res.name;
         // HACK ALERT!
@@ -193,6 +196,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     // combined image samplers
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
         ImageSampler refl_img_smp;
+        refl_img_smp.stage = refl.stage;
         refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
         refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);

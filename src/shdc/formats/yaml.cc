@@ -198,7 +198,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
     return ErrMsg();
 }
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode) {
+ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode, const Bindings& merged_bindings) {
     // first generate the bare-output files
     ErrMsg output_err = bare::gen(args, inp, spirvcross, bytecode);
     if (output_err.valid()) {
