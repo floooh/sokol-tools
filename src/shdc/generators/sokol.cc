@@ -873,6 +873,73 @@ void SokolGenerator::gen_epilog(const GenInput& gen) {
     // empty
 }
 
+void SokolGenerator::gen_prerequisites(const GenInput& gen) {
+    if (gen.args.output_format == Format::SOKOL_IMPL) {
+        l("#if !defined(SOKOL_GFX_INCLUDED)\n");
+        l("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
+        l("#endif\n");
+    }
+    l("#if !defined(SOKOL_SHDC_ALIGN)\n");
+    l("  #if defined(_MSC_VER)\n");
+    l("    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
+    l("  #else\n");
+    l("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
+    l("  #endif\n");
+    l("#endif\n");
+}
+
+void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
+    l("#pragma pack(push,1)\n");
+    int cur_offset = 0;
+    l("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", to_struct_name(ub.struct_name));
+    for (const Uniform& uniform: ub.uniforms) {
+        int next_offset = uniform.offset;
+        if (next_offset > cur_offset) {
+            l("    uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
+            cur_offset = next_offset;
+        }
+        if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
+            // user-provided type names
+            if (uniform.array_count == 1) {
+                l("    {} {};\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
+            } else {
+                l("    {} {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
+            }
+        } else {
+            // default type names (float)
+            if (uniform.array_count == 1) {
+                switch (uniform.type) {
+                    case Uniform::FLOAT:      l("    float {};\n", uniform.name); break;
+                    case Uniform::FLOAT2:     l("    float {}[2];\n", uniform.name); break;
+                    case Uniform::FLOAT3:     l("    float {}[3];\n", uniform.name); break;
+                    case Uniform::FLOAT4:     l("    float {}[4];\n", uniform.name); break;
+                    case Uniform::INT:        l("    int {};\n", uniform.name); break;
+                    case Uniform::INT2:       l("    int {}[2];\n", uniform.name); break;
+                    case Uniform::INT3:       l("    int {}[3];\n", uniform.name); break;
+                    case Uniform::INT4:       l("    int {}[4];\n", uniform.name); break;
+                    case Uniform::MAT4:       l("    float {}[16];\n", uniform.name); break;
+                    default:                  l("    INVALID_UNIFORM_TYPE;\n"); break;
+                }
+            } else {
+                switch (uniform.type) {
+                    case Uniform::FLOAT4:     l("    float {}[{}][4];\n", uniform.name, uniform.array_count); break;
+                    case Uniform::INT4:       l("    int {}[{}][4];\n",   uniform.name, uniform.array_count); break;
+                    case Uniform::MAT4:       l("    float {}[{}][16];\n", uniform.name, uniform.array_count); break;
+                    default:                  l("    INVALID_UNIFORM_TYPE;\n"); break;
+                }
+            }
+        }
+        cur_offset += uniform.size_bytes();
+    }
+    // pad to multiple of 16-bytes struct size
+    const int round16 = roundup(cur_offset, 16);
+    if (cur_offset != round16) {
+        l("    uint8_t _pad_{}[{}];\n", cur_offset, round16 - cur_offset);
+    }
+    l("}} {};\n", to_struct_name(ub.struct_name));
+    l("#pragma pack(pop)\n");
+}
+
 std::string SokolGenerator::comment_block_start() {
     return "/*";
 }
@@ -889,7 +956,7 @@ std::string SokolGenerator::lang_name() {
     return "C";
 }
 
-std::string SokolGenerator::get_shader_desc_help(const std::string& mod_prefix, const std::string& prog_name) {
+std::string SokolGenerator::get_shader_desc_help(const std::string& prog_name) {
     return fmt::format("{}{}_shader_desc(sg_query_backend());\n", mod_prefix, prog_name);
 }
 
@@ -971,40 +1038,40 @@ std::string SokolGenerator::to_backend(Slang::Enum e) {
     }
 }
 
-std::string SokolGenerator::to_struct_name(const std::string& mod_prefix, const std::string& name) {
+std::string SokolGenerator::to_struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolGenerator::to_vertex_attr_name(const std::string& mod_prefix, const std::string& snippet_name, const refl::VertexAttr& attr) {
+std::string SokolGenerator::to_vertex_attr_name(const std::string& snippet_name, const refl::VertexAttr& attr) {
     return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
 }
 
-std::string SokolGenerator::to_image_bind_slot_name(const std::string& mod_prefix, const refl::Image& img) {
+std::string SokolGenerator::to_image_bind_slot_name(const refl::Image& img) {
     return fmt::format("SLOT_{}{}", mod_prefix, img.name);
 }
 
-std::string SokolGenerator::to_sampler_bind_slot_name(const std::string& mod_prefix, const refl::Sampler& smp) {
+std::string SokolGenerator::to_sampler_bind_slot_name(const refl::Sampler& smp) {
     return fmt::format("SLOT_{}{}", mod_prefix, smp.name);
 }
 
-std::string SokolGenerator::to_uniform_block_bind_slot_name(const std::string& mod_prefix, const refl::UniformBlock& ub) {
+std::string SokolGenerator::to_uniform_block_bind_slot_name(const refl::UniformBlock& ub) {
     return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
 }
 
-std::string SokolGenerator::to_vertex_attr_definition(const std::string& mod_prefix, const std::string& snippet_name, const refl::VertexAttr& attr) {
-    return fmt::format("#define {} ({})", to_vertex_attr_name(mod_prefix, snippet_name, attr), attr.slot);
+std::string SokolGenerator::to_vertex_attr_definition(const std::string& snippet_name, const refl::VertexAttr& attr) {
+    return fmt::format("#define {} ({})", to_vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-std::string SokolGenerator::to_image_bind_slot_definition(const std::string& mod_prefix, const refl::Image& img) {
-    return fmt::format("#define {} ({})", to_image_bind_slot_name(mod_prefix, img), img.slot);
+std::string SokolGenerator::to_image_bind_slot_definition(const refl::Image& img) {
+    return fmt::format("#define {} ({})", to_image_bind_slot_name(img), img.slot);
 }
 
-std::string SokolGenerator::to_sampler_bind_slot_definition(const std::string& mod_prefix, const refl::Sampler& smp) {
-    return fmt::format("#define {} ({})", to_sampler_bind_slot_name(mod_prefix, smp), smp.slot);
+std::string SokolGenerator::to_sampler_bind_slot_definition(const refl::Sampler& smp) {
+    return fmt::format("#define {} ({})", to_sampler_bind_slot_name(smp), smp.slot);
 }
 
-std::string SokolGenerator::to_uniform_block_bind_slot_definition(const std::string& mod_prefix, const refl::UniformBlock& ub) {
-    return fmt::format("#define {} ({})", to_uniform_block_bind_slot_name(mod_prefix, ub), ub.slot);
+std::string SokolGenerator::to_uniform_block_bind_slot_definition(const refl::UniformBlock& ub) {
+    return fmt::format("#define {} ({})", to_uniform_block_bind_slot_name(ub), ub.slot);
 }
 
 } // namespace

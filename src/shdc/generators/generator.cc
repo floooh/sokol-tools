@@ -20,6 +20,7 @@ ErrMsg Generator::generate(const GenInput& gen) {
     // have a 'common reflection' object
     const Slang::Enum slang = Slang::first_valid(gen.args.slang);
     gen_header(gen, slang);
+    gen_prerequisites(gen);
     gen_vertex_attrs(gen, slang);
     gen_bind_slots(gen);
     gen_uniform_blocks(gen);
@@ -31,12 +32,8 @@ ErrMsg Generator::generate(const GenInput& gen) {
 // default behaviour of begin is to clear the generated content string, and check for error in GenInput
 ErrMsg Generator::begin(const GenInput& gen) {
     content.clear();
+    mod_prefix = util::mod_prefix(gen.inp);
     return check_errors(gen);
-}
-
-// epilog is any code which must go before documentation header
-void Generator::gen_prolog(const GenInput& gen) {
-    // empty
 }
 
 // create a default comment header
@@ -55,7 +52,7 @@ void Generator::gen_header(const GenInput& gen, Slang::Enum slang) {
         const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, gen.inp, gen.spirvcross[slang]);
         assert(vs_src && fs_src);
         cbl("    Shader program: '{}':\n", prog.name);
-        cbl("        Get shader desc: {}", get_shader_desc_help(mod_prefix(gen.inp), prog.name));
+        cbl("        Get shader desc: {}", get_shader_desc_help(prog.name));
         gen_vertex_shader_info(gen, prog, *vs_src);
         gen_fragment_shader_info(gen, prog, *fs_src);
     }
@@ -69,7 +66,7 @@ void Generator::gen_vertex_shader_info(const GenInput& gen, const Program& prog,
     const Snippet& vs_snippet = gen.inp.snippets[src.snippet_index];
     for (const VertexAttr& attr: src.refl.inputs) {
         if (attr.slot >= 0) {
-            cbl("                {} => {}\n", to_vertex_attr_name(mod_prefix(gen.inp), vs_snippet.name, attr), attr.slot);
+            cbl("                {} => {}\n", to_vertex_attr_name(vs_snippet.name, attr), attr.slot);
         }
     }
     gen_bindings_info(gen, src.refl.bindings);
@@ -83,20 +80,20 @@ void Generator::gen_fragment_shader_info(const GenInput& gen, const Program& pro
 void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings) {
     for (const UniformBlock& ub: bindings.uniform_blocks) {
         cbl("            Uniform block '{}':\n", ub.struct_name);
-        cbl("                {} struct: {}\n", lang_name(), to_struct_name(mod_prefix(gen.inp), ub.struct_name));
-        cbl("                Bind slot: {} => {}\n", to_uniform_block_bind_slot_name(mod_prefix(gen.inp), ub), ub.slot);
+        cbl("                {} struct: {}\n", lang_name(), to_struct_name(ub.struct_name));
+        cbl("                Bind slot: {} => {}\n", to_uniform_block_bind_slot_name(ub), ub.slot);
     }
     for (const Image& img: bindings.images) {
         cbl("            Image '{}':\n", img.name);
         cbl("                Image type: {}\n", to_image_type(img.type));
         cbl("                Sample type: {}\n", to_image_sample_type(img.sample_type));
         cbl("                Multisampled: {}\n", img.multisampled);
-        cbl("                Bind slot: {} => {}\n", to_image_bind_slot_name(mod_prefix(gen.inp), img), img.slot);
+        cbl("                Bind slot: {} => {}\n", to_image_bind_slot_name(img), img.slot);
     }
     for (const Sampler& smp: bindings.samplers) {
         cbl("            Sampler '{}':\n", smp.name);
         cbl("                Type: {}\n", to_sampler_type(smp.type));
-        cbl("                Bind slot: {} => {}\n", to_sampler_bind_slot_name(mod_prefix(gen.inp), smp), smp.slot);
+        cbl("                Bind slot: {} => {}\n", to_sampler_bind_slot_name(smp), smp.slot);
     }
     for (const ImageSampler& img_smp: bindings.image_samplers) {
         cbl("            Image Sampler Pair '{}':\n", img_smp.name);
@@ -111,7 +108,7 @@ void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
             const Snippet& vs_snippet = gen.inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
-                    l("{}\n", to_vertex_attr_definition(mod_prefix(gen.inp), vs_snippet.name, attr));
+                    l("{}\n", to_vertex_attr_definition(vs_snippet.name, attr));
                 }
             }
         }
@@ -121,25 +118,23 @@ void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
 
 void Generator::gen_bind_slots(const GenInput& gen) {
     for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
-        l("{}\n", to_uniform_block_bind_slot_definition(mod_prefix(gen.inp), ub));
+        l("{}\n", to_uniform_block_bind_slot_definition(ub));
     }
     l("\n");
     for (const Image& img: gen.merged_bindings.images) {
-        l("{}\n", to_image_bind_slot_definition(mod_prefix(gen.inp), img));
+        l("{}\n", to_image_bind_slot_definition(img));
     }
     l("\n");
     for (const Sampler& smp: gen.merged_bindings.samplers) {
-        l("{}\n", to_sampler_bind_slot_definition(mod_prefix(gen.inp), smp));
+        l("{}\n", to_sampler_bind_slot_definition(smp));
     }
     l("\n");
 }
 
 void Generator::gen_uniform_blocks(const GenInput& gen) {
-    // FIXME
-}
-
-void Generator::gen_epilog(const GenInput& gen) {
-    // empty
+    for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
+        gen_uniform_block_decl(gen, ub);
+    }
 }
 
 // default behaviour of end() is to write the output file
