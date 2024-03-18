@@ -861,8 +861,150 @@ static ErrMsg _generate(const GenInput& gen) {
 }
 
 //------------------------------------------------------------------------------
-ErrMsg SokolGenerator::generate(const GenInput& gen) {
-    return _generate(gen);
+//ErrMsg SokolGenerator::generate(const GenInput& gen) {
+//    return _generate(gen);
+//}
+
+void SokolGenerator::gen_prolog(const GenInput& gen) {
+    l("#pragma once\n");
+}
+
+void SokolGenerator::gen_epilog(const GenInput& gen) {
+    // empty
+}
+
+std::string SokolGenerator::comment_block_start() {
+    return "/*";
+}
+
+std::string SokolGenerator::comment_block_end() {
+    return "*/";
+}
+
+std::string SokolGenerator::comment_block_line(const std::string& str) {
+    return fmt::format("    {}", str);
+}
+
+std::string SokolGenerator::lang_name() {
+    return "C";
+}
+
+std::string SokolGenerator::get_shader_desc_help(const std::string& mod_prefix, const std::string& prog_name) {
+    return fmt::format("{}{}_shader_desc(sg_query_backend());\n", mod_prefix, prog_name);
+}
+
+std::string SokolGenerator::to_uniform_type(Uniform::Type t) {
+    switch (t) {
+        case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
+        case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
+        case Uniform::FLOAT3: return "SG_UNIFORMTYPE_FLOAT3";
+        case Uniform::FLOAT4: return "SG_UNIFORMTYPE_FLOAT4";
+        case Uniform::INT:    return "SG_UNIFORMTYPE_INT";
+        case Uniform::INT2:   return "SG_UNIFORMTYPE_INT2";
+        case Uniform::INT3:   return "SG_UNIFORMTYPE_INT3";
+        case Uniform::INT4:   return "SG_UNIFORMTYPE_INT4";
+        case Uniform::MAT4:   return "SG_UNIFORMTYPE_MAT4";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolGenerator::to_flattened_uniform_type(Uniform::Type t) {
+    switch (t) {
+        case Uniform::FLOAT:
+        case Uniform::FLOAT2:
+        case Uniform::FLOAT3:
+        case Uniform::FLOAT4:
+        case Uniform::MAT4:
+             return "SG_UNIFORMTYPE_FLOAT4";
+        case Uniform::INT:
+        case Uniform::INT2:
+        case Uniform::INT3:
+        case Uniform::INT4:
+            return "SG_UNIFORMTYPE_INT4";
+        default:
+            return "INVALID";
+    }
+}
+
+std::string SokolGenerator::to_image_type(ImageType::Enum e) {
+    switch (e) {
+        case ImageType::_2D:     return "SG_IMAGETYPE_2D";
+        case ImageType::CUBE:    return "SG_IMAGETYPE_CUBE";
+        case ImageType::_3D:     return "SG_IMAGETYPE_3D";
+        case ImageType::ARRAY:   return "SG_IMAGETYPE_ARRAY";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolGenerator::to_image_sample_type(refl::ImageSampleType::Enum e) {
+    switch (e) {
+        case ImageSampleType::FLOAT: return "SG_IMAGESAMPLETYPE_FLOAT";
+        case ImageSampleType::DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
+        case ImageSampleType::SINT:  return "SG_IMAGESAMPLETYPE_SINT";
+        case ImageSampleType::UINT:  return "SG_IMAGESAMPLETYPE_UINT";
+        case ImageSampleType::UNFILTERABLE_FLOAT:  return "SG_IMAGESAMPLETYPE_UNFILTERABLE_FLOAT";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolGenerator::to_sampler_type(refl::SamplerType::Enum e) {
+    switch (e) {
+        case SamplerType::FILTERING:     return "SG_SAMPLERTYPE_FILTERING";
+        case SamplerType::COMPARISON:    return "SG_SAMPLERTYPE_COMPARISON";
+        case SamplerType::NONFILTERING:  return "SG_SAMPLERTYPE_NONFILTERING";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolGenerator::to_backend(Slang::Enum e) {
+    switch (e) {
+        case Slang::GLSL410:      return "SG_BACKEND_GLCORE";
+        case Slang::GLSL430:      return "SG_BACKEND_GLCORE";
+        case Slang::GLSL300ES:    return "SG_BACKEND_GLES3";
+        case Slang::HLSL4:        return "SG_BACKEND_D3D11";
+        case Slang::HLSL5:        return "SG_BACKEND_D3D11";
+        case Slang::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
+        case Slang::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
+        case Slang::METAL_SIM:    return "SG_BACKEND_METAL_SIMULATOR";
+        case Slang::WGSL:         return "SG_BACKEND_WGPU";
+        default: return "<INVALID>";
+    }
+}
+
+std::string SokolGenerator::to_struct_name(const std::string& mod_prefix, const std::string& name) {
+    return fmt::format("{}{}_t", mod_prefix, name);
+}
+
+std::string SokolGenerator::to_vertex_attr_name(const std::string& mod_prefix, const std::string& snippet_name, const refl::VertexAttr& attr) {
+    return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
+}
+
+std::string SokolGenerator::to_image_bind_slot_name(const std::string& mod_prefix, const refl::Image& img) {
+    return fmt::format("SLOT_{}{}", mod_prefix, img.name);
+}
+
+std::string SokolGenerator::to_sampler_bind_slot_name(const std::string& mod_prefix, const refl::Sampler& smp) {
+    return fmt::format("SLOT_{}{}", mod_prefix, smp.name);
+}
+
+std::string SokolGenerator::to_uniform_block_bind_slot_name(const std::string& mod_prefix, const refl::UniformBlock& ub) {
+    return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
+}
+
+std::string SokolGenerator::to_vertex_attr_definition(const std::string& mod_prefix, const std::string& snippet_name, const refl::VertexAttr& attr) {
+    return fmt::format("#define {} ({})", to_vertex_attr_name(mod_prefix, snippet_name, attr), attr.slot);
+}
+
+std::string SokolGenerator::to_image_bind_slot_definition(const std::string& mod_prefix, const refl::Image& img) {
+    return fmt::format("#define {} ({})", to_image_bind_slot_name(mod_prefix, img), img.slot);
+}
+
+std::string SokolGenerator::to_sampler_bind_slot_definition(const std::string& mod_prefix, const refl::Sampler& smp) {
+    return fmt::format("#define {} ({})", to_sampler_bind_slot_name(mod_prefix, smp), smp.slot);
+}
+
+std::string SokolGenerator::to_uniform_block_bind_slot_definition(const std::string& mod_prefix, const refl::UniformBlock& ub) {
+    return fmt::format("#define {} ({})", to_uniform_block_bind_slot_name(mod_prefix, ub), ub.slot);
 }
 
 } // namespace
