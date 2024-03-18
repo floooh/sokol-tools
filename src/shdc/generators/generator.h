@@ -38,8 +38,9 @@ protected:
 
     // override at least those methods in a concrete generator subclass
     virtual void begin_comment_block() { assert(false && "implement me"); };
-    virtual std::string comment_block_line(std::string l) { assert(false && "implement me"); };
     virtual void end_comment_block() { assert(false && "implement me"); };
+
+    virtual std::string comment_block_line(std::string l) { assert(false && "implement me"); return ""; };
 
     virtual std::string lang_name() { assert(false && "implement me"); return ""; };
     virtual std::string get_shader_desc_help(const std::string& mod_prefix, const std::string& prog_name) { assert(false && "implement me"); return ""; };
