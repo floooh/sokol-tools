@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <string>
+#include <assert.h>
 
 namespace shdc {
 
@@ -20,6 +21,7 @@ struct Slang {
     };
 
     static uint32_t bit(Enum c);
+    static Slang::Enum from_index(int idx);
     static const char* to_str(Enum c);
     static std::string bits_to_str(uint32_t mask, const std::string& delim);
     static bool is_glsl(Enum c);
@@ -31,6 +33,11 @@ struct Slang {
 
 inline uint32_t Slang::bit(Enum c) {
     return (1<<c);
+}
+
+inline Slang::Enum Slang::from_index(int idx) {
+    assert((idx >= 0) && (idx < NUM));
+    return (Slang::Enum)idx;
 }
 
 inline const char* Slang::to_str(Enum c) {

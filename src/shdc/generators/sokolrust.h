@@ -1,8 +1,11 @@
 #pragma once
-#include "types/gen/gen_input.h"
+#include "generator.h"
 
-namespace shdc::gen::sokolrust {
+namespace shdc::gen {
 
-ErrMsg generate(const GenInput& gen);
+class SokolRustGenerator: public Generator {
+public:
+    virtual ErrMsg generate(const GenInput& gen);
+};
 
-}
+} // namespace

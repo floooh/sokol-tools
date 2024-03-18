@@ -1,8 +1,11 @@
 #pragma once
-#include "types/gen/gen_input.h"
+#include "bare.h"
 
-namespace shdc::gen::yaml {
+namespace shdc::gen {
 
-ErrMsg generate(const GenInput& gen);
+class YamlGenerator: public BareGenerator {
+public:
+    virtual ErrMsg generate(const GenInput& gen);
+};
 
-}
+} // namespace

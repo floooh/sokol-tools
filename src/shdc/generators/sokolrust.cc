@@ -7,7 +7,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc::gen::sokolrust {
+namespace shdc::gen {
 
 using namespace util;
 using namespace refl;
@@ -446,7 +446,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     L("{}desc.label = b\"{}{}_shader\\0\".as_ptr() as *const _;\n", indent, mod_prefix(inp), prog.name);
 }
 
-ErrMsg generate(const GenInput& gen) {
+static ErrMsg _generate(const GenInput& gen) {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
@@ -507,6 +507,11 @@ ErrMsg generate(const GenInput& gen) {
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);
     return ErrMsg();
+}
+
+//------------------------------------------------------------------------------
+ErrMsg SokolRustGenerator::generate(const GenInput& gen) {
+    return _generate(gen);
 }
 
 } // namespace

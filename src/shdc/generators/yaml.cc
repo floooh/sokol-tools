@@ -8,7 +8,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc::gen::yaml {
+namespace shdc::gen {
 
 using namespace util;
 using namespace refl;
@@ -198,13 +198,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
     return ErrMsg();
 }
 
-ErrMsg generate(const GenInput& gen) {
-    // first generate the bare-output files
-    ErrMsg output_err = bare::generate(gen);
-    if (output_err.valid()) {
-        return output_err;
-    }
-
+static ErrMsg _generate(const GenInput& gen) {
     file_content.clear();
 
     L("shaders:\n");
@@ -236,6 +230,15 @@ ErrMsg generate(const GenInput& gen) {
     fclose(f);
 
     return ErrMsg();
+}
+
+//------------------------------------------------------------------------------
+ErrMsg YamlGenerator::generate(const GenInput& gen) {
+    ErrMsg err = BareGenerator::generate(gen);
+    if (err.valid()) {
+        return err;
+    }
+    return _generate(gen);
 }
 
 }
