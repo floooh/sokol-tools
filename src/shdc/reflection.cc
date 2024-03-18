@@ -220,8 +220,8 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     return refl;
 }
 
-bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, Bindings& out_bindings, ErrMsg& out_error) {
-    out_bindings = Bindings();
+Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, ErrMsg& out_error) {
+    Bindings out_bindings;
     out_error = ErrMsg();
     for (const Bindings& src_bindings: in_bindings) {
 
@@ -232,7 +232,7 @@ bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const 
                 // another uniform block of the same name exists, make sure it's identical
                 if (!ub.equals(*other_ub)) {
                     out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
-                    return false;
+                    return Bindings();
                 }
             } else {
                 out_bindings.uniform_blocks.push_back(ub);
@@ -246,7 +246,7 @@ bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const 
                 // another image of the same name exists, make sure it's identical
                 if (!img.equals(*other_img)) {
                     out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
-                    return false;
+                    return Bindings();
                 }
             } else {
                 out_bindings.images.push_back(img);
@@ -260,7 +260,7 @@ bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const 
                 // another sampler of the same name exists, make sure it's identical
                 if (!smp.equals(*other_smp)) {
                     out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
-                    return false;
+                    return Bindings();
                 }
             } else {
                 out_bindings.samplers.push_back(smp);
@@ -274,14 +274,14 @@ bool Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const 
                 // another image sampler of the same name exists, make sure it's identical
                 if (!img_smp.equals(*other_img_smp)) {
                     out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
-                    return false;
+                    return Bindings();
                 }
             } else {
                 out_bindings.image_samplers.push_back(img_smp);
             }
         }
     }
-    return true;
+    return out_bindings;
 }
 
 } // namespace

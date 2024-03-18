@@ -7,7 +7,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc::formats::sokol {
+namespace shdc::gen::sokol {
 
 using namespace util;
 using namespace refl;
@@ -777,7 +777,7 @@ static void write_uniform_desc_func(const Program& prog, const Args& args, const
 
 }
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode, const Bindings& merged_bindings) {
+ErrMsg generate(const GenInput& gen) {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
@@ -789,71 +789,71 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
     bool guard_written = false;
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = (Slang::Enum) i;
-        if (args.slang & Slang::bit(slang)) {
-            ErrMsg err = check_errors(inp, spirvcross[i], slang);
+        if (gen.args.slang & Slang::bit(slang)) {
+            ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);
             if (err.valid()) {
                 return err;
             }
             if (!comment_header_written) {
                 comment_header_written = true;
-                write_header(args, inp, spirvcross[i], merged_bindings);
+                write_header(gen.args, gen.inp, gen.spirvcross[i], gen.merged_bindings);
             }
             if (!common_decls_written) {
                 common_decls_written = true;
-                write_common_decls(slang, args, inp, spirvcross[i], merged_bindings);
+                write_common_decls(slang, gen.args, gen.inp, gen.spirvcross[i], gen.merged_bindings);
             }
             if (!guard_written) {
                 guard_written = true;
-                if (args.output_format == Format::SOKOL_DECL) {
+                if (gen.args.output_format == Format::SOKOL_DECL) {
                     L("#if !defined(SOKOL_SHDC_DECL)\n");
-                } else if (args.output_format == Format::SOKOL_IMPL) {
+                } else if (gen.args.output_format == Format::SOKOL_IMPL) {
                     L("#if defined(SOKOL_SHDC_IMPL)\n");
                 }
             }
-            if (args.ifdef) {
+            if (gen.args.ifdef) {
                 L("#if defined({})\n", sokol_define(slang));
             }
-            write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
-            if (args.ifdef) {
+            write_shader_sources_and_blobs(gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
+            if (gen.args.ifdef) {
                 L("#endif /* {} */\n", sokol_define(slang));
             }
         }
     }
 
     // write access functions which return sg_shader_desc pointers
-    if (args.output_format != Format::SOKOL_IMPL) {
+    if (gen.args.output_format != Format::SOKOL_IMPL) {
         L("#if !defined(SOKOL_GFX_INCLUDED)\n");
-        L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
+        L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
         L("#endif\n");
     }
-    for (const auto& item: inp.programs) {
+    for (const auto& item: gen.inp.programs) {
         const Program& prog = item.second;
-        write_shader_desc_func(prog, args, inp, spirvcross, bytecode);
-        if (args.reflection) {
-            int slang_index = (int)Slang::first_valid(args.slang);
+        write_shader_desc_func(prog, gen.args, gen.inp, gen.spirvcross, gen.bytecode);
+        if (gen.args.reflection) {
+            int slang_index = (int)Slang::first_valid(gen.args.slang);
             assert((slang_index >= 0) && (slang_index < Slang::NUM));
-            write_attr_slot_func(prog, args, inp, spirvcross[slang_index]);
-            write_image_slot_func(prog, args, inp, spirvcross[slang_index]);
-            write_sampler_slot_func(prog, args, inp, spirvcross[slang_index]);
-            write_uniformblock_slot_func(prog, args, inp, spirvcross[slang_index]);
-            write_uniformblock_size_func(prog, args, inp, spirvcross[slang_index]);
-            write_uniform_offset_func(prog, args, inp, spirvcross[slang_index]);
-            write_uniform_desc_func(prog, args, inp, spirvcross[slang_index]);
+            write_attr_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_image_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_sampler_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_uniformblock_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_uniformblock_size_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_uniform_offset_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
+            write_uniform_desc_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
         }
     }
 
     if (guard_written) {
-        if (args.output_format == Format::SOKOL_DECL) {
+        if (gen.args.output_format == Format::SOKOL_DECL) {
             L("#endif /* SOKOL_SHDC_DECL */\n");
-        } else if (args.output_format == Format::SOKOL_IMPL) {
+        } else if (gen.args.output_format == Format::SOKOL_IMPL) {
             L("#endif /* SOKOL_SHDC_IMPL */\n");
         }
     }
 
     // write result into output file
-    FILE* f = fopen(args.output.c_str(), "w");
+    FILE* f = fopen(gen.args.output.c_str(), "w");
     if (!f) {
-        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(gen.inp.base_path, 0, fmt::format("failed to open output file '{}'", gen.args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);

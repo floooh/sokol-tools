@@ -7,7 +7,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc::formats::sokolnim {
+namespace shdc::gen::sokolnim {
 
 using namespace util;
 using namespace refl;
@@ -447,7 +447,7 @@ static void write_shader_desc_init(const char* indent, const Program& prog, cons
     L("{}result.label = \"{}\"\n", indent, shader_name);
 }
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode, const Bindings& merged_bindings) {
+ErrMsg generate(const GenInput& gen) {
     // first write everything into a string, and only when no errors occur,
     // dump this into a file (so we don't have half-written files lying around)
     file_content.clear();
@@ -456,36 +456,36 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
     bool common_decls_written = false;
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = (Slang::Enum) i;
-        if (args.slang & Slang::bit(slang)) {
-            ErrMsg err = check_errors(inp, spirvcross[i], slang);
+        if (gen.args.slang & Slang::bit(slang)) {
+            ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);
             if (err.valid()) {
                 return err;
             }
             if (!comment_header_written) {
-                write_header(args, inp, spirvcross[i]);
+                write_header(gen.args, gen.inp, gen.spirvcross[i]);
                 comment_header_written = true;
             }
             if (!common_decls_written) {
                 common_decls_written = true;
-                write_vertex_attrs(inp, spirvcross[i]);
-                write_image_bind_slots(inp, merged_bindings);
-                write_sampler_bind_slots(inp, merged_bindings);
-                write_uniform_blocks(inp, merged_bindings);
+                write_vertex_attrs(gen.inp, gen.spirvcross[i]);
+                write_image_bind_slots(gen.inp, gen.merged_bindings);
+                write_sampler_bind_slots(gen.inp, gen.merged_bindings);
+                write_uniform_blocks(gen.inp, gen.merged_bindings);
             }
-            write_shader_sources_and_blobs(inp, spirvcross[i], bytecode[i], slang);
+            write_shader_sources_and_blobs(gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
         }
     }
 
     // write access functions which return sg.ShaderDesc structs
-    for (const auto& item: inp.programs) {
+    for (const auto& item: gen.inp.programs) {
         const Program& prog = item.second;
-        L("proc {}*(backend: sg.Backend): sg.ShaderDesc =\n", to_camel_case(fmt::format("{}_{}_shader_desc", mod_prefix(inp), prog.name)));
+        L("proc {}*(backend: sg.Backend): sg.ShaderDesc =\n", to_camel_case(fmt::format("{}_{}_shader_desc", mod_prefix(gen.inp), prog.name)));
         L("  case backend:\n");
         for (int i = 0; i < Slang::NUM; i++) {
             Slang::Enum slang = (Slang::Enum) i;
-            if (args.slang & Slang::bit(slang)) {
+            if (gen.args.slang & Slang::bit(slang)) {
                 L("    of {}:\n", sokol_backend(slang));
-                write_shader_desc_init("      ", prog, inp, spirvcross[i], bytecode[i], slang);
+                write_shader_desc_init("      ", prog, gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
             }
         }
         L("    else: discard\n");
@@ -493,9 +493,9 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
     }
 
     // write result into output file
-    FILE* f = fopen(args.output.c_str(), "w");
+    FILE* f = fopen(gen.args.output.c_str(), "w");
     if (!f) {
-        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(gen.inp.base_path, 0, fmt::format("failed to open output file '{}'", gen.args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);

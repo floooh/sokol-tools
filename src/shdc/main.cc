@@ -1,16 +1,16 @@
 /*
     sokol-shdc main source file.
 */
-#include "formats/bare.h"
-#include "formats/sokol.h"
-#include "formats/sokolnim.h"
-#include "formats/sokolodin.h"
-#include "formats/sokolrust.h"
-#include "formats/sokolzig.h"
-#include "formats/yaml.h"
+#include "spirv.h"
+#include "args.h"
+#include "input.h"
+#include "spirvcross.h"
+#include "bytecode.h"
+#include "generators/generate.h"
 
 using namespace shdc;
 using namespace shdc::refl;
+using namespace shdc::gen;
 
 int main(int argc, const char** argv) {
     Spirv::initialize_spirv_tools();
@@ -107,50 +107,27 @@ int main(int argc, const char** argv) {
     }
 
     // find and merge identical binding reflections across all compiled shader snippets
-    Bindings merged_bindings;
-    {
-        std::vector<Bindings> snippet_bindings;
-        for (int i = 0; i < Slang::NUM; i++) {
-            Slang::Enum slang = (Slang::Enum)i;
-            if (args.slang & Slang::bit(slang)) {
-                for (const SpirvcrossSource& src: spirvcross[i].sources) {
-                    snippet_bindings.push_back(src.refl.bindings);
-                }
+    std::vector<Bindings> snippet_bindings;
+    for (int i = 0; i < Slang::NUM; i++) {
+        Slang::Enum slang = (Slang::Enum)i;
+        if (args.slang & Slang::bit(slang)) {
+            for (const SpirvcrossSource& src: spirvcross[i].sources) {
+                snippet_bindings.push_back(src.refl.bindings);
             }
         }
-        ErrMsg merge_error;
-        if (!Reflection::merge_bindings(snippet_bindings, inp.base_path, merged_bindings, merge_error)) {
-            merge_error.print(args.error_format);
-        }
+    }
+    ErrMsg merge_error;
+    const Bindings merged_bindings = Reflection::merge_bindings(snippet_bindings, inp.base_path, merge_error);
+    if (merge_error.valid()) {
+        merge_error.print(args.error_format);
+        return 10;
     }
 
     // generate output files
-    ErrMsg output_err;
-    switch (args.output_format) {
-        case Format::BARE:
-            output_err = formats::bare::gen(args, inp, spirvcross, bytecode);
-            break;
-        case Format::BARE_YAML:
-            output_err = formats::yaml::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-        case Format::SOKOL_ZIG:
-            output_err = formats::sokolzig::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-        case Format::SOKOL_NIM:
-            output_err = formats::sokolnim::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-        case Format::SOKOL_ODIN:
-            output_err = formats::sokolodin::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-        case Format::SOKOL_RUST:
-            output_err = formats::sokolrust::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-        default:
-            output_err = formats::sokol::gen(args, inp, spirvcross, bytecode, merged_bindings);
-            break;
-    }
-    if (output_err.valid()) {
-        output_err.print(args.error_format);
+    const GenInput gen_input(args, inp, spirvcross, bytecode, merged_bindings);
+    ErrMsg gen_error = generate(args.output_format, gen_input);
+    if (gen_error.valid()) {
+        gen_error.print(args.error_format);
         return 10;
     }
 

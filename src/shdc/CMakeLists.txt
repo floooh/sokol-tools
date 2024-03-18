@@ -1,6 +1,6 @@
 fips_begin_app(sokol-shdc cmdline)
     fips_src(. NO_RECURSE)
-    fips_src(formats NO_RECURSE)
+    fips_src(generators NO_RECURSE)
     fips_src(types NO_RECURSE)
     fips_src(types/reflection)
     fips_deps(fmt getopt pystring glslang SPIRV-Cross tint)

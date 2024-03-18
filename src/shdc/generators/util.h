@@ -6,7 +6,7 @@
 #include "types/slang.h"
 #include "types/reflection/uniform.h"
 
-namespace shdc::formats::util {
+namespace shdc::gen::util {
 
 // utility functions for generators
 ErrMsg check_errors(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang);

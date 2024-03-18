@@ -22,7 +22,7 @@ struct Reflection {
     // parse reflection info for a compiled shader source
     static Reflection parse(const spirv_cross::Compiler& compiler, const Snippet& snippet, Slang::Enum slang);
     // create a set of unique resource bindings from shader snippet input bindings
-    static bool merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, Bindings& out_bindings, ErrMsg& out_error);
+    static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, ErrMsg& out_error);
 };
 
 } // namespace reflection

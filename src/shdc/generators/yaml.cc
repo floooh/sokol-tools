@@ -8,7 +8,7 @@
 #include "pystring.h"
 #include <stdio.h>
 
-namespace shdc::formats::yaml {
+namespace shdc::gen::yaml {
 
 using namespace util;
 using namespace refl;
@@ -198,9 +198,9 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
     return ErrMsg();
 }
 
-ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::NUM>& spirvcross, const std::array<Bytecode,Slang::NUM>& bytecode, const Bindings& merged_bindings) {
+ErrMsg generate(const GenInput& gen) {
     // first generate the bare-output files
-    ErrMsg output_err = bare::gen(args, inp, spirvcross, bytecode);
+    ErrMsg output_err = bare::generate(gen);
     if (output_err.valid()) {
         return output_err;
     }
@@ -211,15 +211,15 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
 
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = (Slang::Enum) i;
-        if (args.slang & Slang::bit(slang)) {
-            ErrMsg err = check_errors(inp, spirvcross[i], slang);
+        if (gen.args.slang & Slang::bit(slang)) {
+            ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);
             if (err.valid()) {
                 return err;
             }
 
             L("  -\n");
             L("    slang: {}\n", Slang::to_str(slang));
-            err = write_shader_sources_and_blobs(args, inp, spirvcross[i], bytecode[i], slang);
+            err = write_shader_sources_and_blobs(gen.args, gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
             if (err.valid()) {
                 return err;
             }
@@ -227,10 +227,10 @@ ErrMsg gen(const Args& args, const Input& inp, const std::array<Spirvcross,Slang
     }
 
     // write result into output file
-    const std::string file_path = fmt::format("{}_{}reflection.yaml", args.output, mod_prefix(inp));
+    const std::string file_path = fmt::format("{}_{}reflection.yaml", gen.args.output, mod_prefix(gen.inp));
     FILE* f = fopen(file_path.c_str(), "w");
     if (!f) {
-        return ErrMsg::error(inp.base_path, 0, fmt::format("failed to open output file '{}'", args.output));
+        return ErrMsg::error(gen.inp.base_path, 0, fmt::format("failed to open output file '{}'", gen.args.output));
     }
     fwrite(file_content.c_str(), file_content.length(), 1, f);
     fclose(f);

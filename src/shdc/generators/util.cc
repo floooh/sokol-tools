@@ -5,7 +5,7 @@
 #include "fmt/format.h"
 #include "pystring.h"
 
-namespace shdc::formats::util {
+namespace shdc::gen::util {
 
 using namespace refl;
 
