@@ -3,6 +3,7 @@
 */
 #include "generator.h"
 #include "util.h"
+#include "pystring.h"
 
 using namespace shdc::gen::util;
 using namespace shdc::refl;
@@ -24,7 +25,10 @@ ErrMsg Generator::generate(const GenInput& gen) {
     gen_vertex_attrs(gen, slang);
     gen_bind_slots(gen);
     gen_uniform_blocks(gen);
+    gen_stb_impl_start(gen);
+    gen_shader_arrays(gen);
     gen_epilog(gen);
+    gen_stb_impl_end(gen);
     err = end(gen);
     return err;
 }
@@ -66,7 +70,7 @@ void Generator::gen_vertex_shader_info(const GenInput& gen, const Program& prog,
     const Snippet& vs_snippet = gen.inp.snippets[src.snippet_index];
     for (const VertexAttr& attr: src.refl.inputs) {
         if (attr.slot >= 0) {
-            cbl("                {} => {}\n", to_vertex_attr_name(vs_snippet.name, attr), attr.slot);
+            cbl("                {} => {}\n", vertex_attr_name(vs_snippet.name, attr), attr.slot);
         }
     }
     gen_bindings_info(gen, src.refl.bindings);
@@ -80,20 +84,20 @@ void Generator::gen_fragment_shader_info(const GenInput& gen, const Program& pro
 void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings) {
     for (const UniformBlock& ub: bindings.uniform_blocks) {
         cbl("            Uniform block '{}':\n", ub.struct_name);
-        cbl("                {} struct: {}\n", lang_name(), to_struct_name(ub.struct_name));
-        cbl("                Bind slot: {} => {}\n", to_uniform_block_bind_slot_name(ub), ub.slot);
+        cbl("                {} struct: {}\n", lang_name(), struct_name(ub.struct_name));
+        cbl("                Bind slot: {} => {}\n", uniform_block_bind_slot_name(ub), ub.slot);
     }
     for (const Image& img: bindings.images) {
         cbl("            Image '{}':\n", img.name);
-        cbl("                Image type: {}\n", to_image_type(img.type));
-        cbl("                Sample type: {}\n", to_image_sample_type(img.sample_type));
+        cbl("                Image type: {}\n", image_type(img.type));
+        cbl("                Sample type: {}\n", image_sample_type(img.sample_type));
         cbl("                Multisampled: {}\n", img.multisampled);
-        cbl("                Bind slot: {} => {}\n", to_image_bind_slot_name(img), img.slot);
+        cbl("                Bind slot: {} => {}\n", image_bind_slot_name(img), img.slot);
     }
     for (const Sampler& smp: bindings.samplers) {
         cbl("            Sampler '{}':\n", smp.name);
-        cbl("                Type: {}\n", to_sampler_type(smp.type));
-        cbl("                Bind slot: {} => {}\n", to_sampler_bind_slot_name(smp), smp.slot);
+        cbl("                Type: {}\n", sampler_type(smp.type));
+        cbl("                Bind slot: {} => {}\n", sampler_bind_slot_name(smp), smp.slot);
     }
     for (const ImageSampler& img_smp: bindings.image_samplers) {
         cbl("            Image Sampler Pair '{}':\n", img_smp.name);
@@ -108,7 +112,7 @@ void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
             const Snippet& vs_snippet = gen.inp.snippets[src.snippet_index];
             for (const VertexAttr& attr: src.refl.inputs) {
                 if (attr.slot >= 0) {
-                    l("{}\n", to_vertex_attr_definition(vs_snippet.name, attr));
+                    l("{}\n", vertex_attr_definition(vs_snippet.name, attr));
                 }
             }
         }
@@ -118,15 +122,15 @@ void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
 
 void Generator::gen_bind_slots(const GenInput& gen) {
     for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
-        l("{}\n", to_uniform_block_bind_slot_definition(ub));
+        l("{}\n", uniform_block_bind_slot_definition(ub));
     }
     l("\n");
     for (const Image& img: gen.merged_bindings.images) {
-        l("{}\n", to_image_bind_slot_definition(img));
+        l("{}\n", image_bind_slot_definition(img));
     }
     l("\n");
     for (const Sampler& smp: gen.merged_bindings.samplers) {
-        l("{}\n", to_sampler_bind_slot_definition(smp));
+        l("{}\n", sampler_bind_slot_definition(smp));
     }
     l("\n");
 }
@@ -134,6 +138,65 @@ void Generator::gen_bind_slots(const GenInput& gen) {
 void Generator::gen_uniform_blocks(const GenInput& gen) {
     for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
         gen_uniform_block_decl(gen, ub);
+    }
+}
+
+void Generator::gen_shader_arrays(const GenInput& gen) {
+    for (int slang_idx = 0; slang_idx < Slang::NUM; slang_idx++) {
+        Slang::Enum slang = Slang::from_index(slang_idx);
+        if (gen.args.slang & Slang::bit(slang)) {
+            const Spirvcross& spirvcross = gen.spirvcross[slang];
+            const Bytecode& bytecode = gen.bytecode[slang];
+            for (int snippet_index = 0; snippet_index < (int)gen.inp.snippets.size(); snippet_index++) {
+                const Snippet& snippet = gen.inp.snippets[snippet_index];
+                if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
+                    continue;
+                }
+                int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
+                assert(src_index >= 0);
+                const SpirvcrossSource& src = spirvcross.sources[src_index];
+                int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
+                const BytecodeBlob* blob = (blob_index != -1) ? &bytecode.blobs[blob_index] : nullptr;
+                std::vector<std::string> lines;
+                pystring::splitlines(src.source_code, lines);
+                // first write the source code in a comment block
+                l("{}\n", comment_block_start());
+                for (const std::string& line: lines) {
+                    cbl("    {}\n", replace_C_comment_tokens(line));
+                }
+                l("{}\n", comment_block_end());
+                if (blob) {
+                    const std::string array_name = shader_bytecode_array_name(snippet.name, slang);
+                    gen_shader_array_start(gen, array_name, blob->data.size(), slang);
+                    const size_t len = blob->data.size();
+                    for (size_t i = 0; i < len; i++) {
+                        if ((i & 15) == 0) {
+                            l("    ");
+                        }
+                        l("{},", blob->data[i]);
+                        if ((i & 15) == 15) {
+                            l("\n");
+                        }
+                    }
+                    gen_shader_array_end(gen);
+                } else {
+                    // if no bytecode exists, write the source code, but also a byte array with a trailing 0
+                    const std::string array_name = shader_source_array_name(snippet.name, slang);
+                    const size_t len = src.source_code.length() + 1;
+                    gen_shader_array_start(gen, array_name, len, slang);
+                    for (size_t i = 0; i < len; i++) {
+                        if ((i & 15) == 0) {
+                            l("    ");
+                        }
+                        l("{},", (int)src.source_code[i]);
+                        if ((i & 15) == 15) {
+                            l("\n");
+                        }
+                    }
+                    gen_shader_array_end(gen);
+                }
+            }
+        }
     }
 }
 

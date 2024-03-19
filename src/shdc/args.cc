@@ -39,7 +39,7 @@ static const getopt_option_t option_list[] = {
     { "module",             'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection",         'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
     { "bytecode",           'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
+    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
     { "errfmt",             'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",               'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
     { "genver",             'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
@@ -72,7 +72,6 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - wgsl           WebGPU (SOKOL_WGPU)\n\n"
         "Output formats (used with -f --format):\n"
         "  - sokol          C header which includes both decl and inlined impl\n"
-        "  - sokol_decl     C header with SOKOL_SHDC_DECL wrapped decl and inlined impl\n"
         "  - sokol_impl     C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"
         "  - sokol_zig      Zig module file\n"
         "  - sokol_nim      Nim module file\n"
@@ -208,7 +207,7 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_FORMAT:
                     args.output_format = Format::from_str(ctx.current_opt_arg);
                     if (args.output_format == Format::INVALID) {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;

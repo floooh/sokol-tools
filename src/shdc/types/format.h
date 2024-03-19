@@ -7,7 +7,6 @@ namespace shdc {
 struct Format	{
     enum Enum {
         SOKOL = 0,
-        SOKOL_DECL,
         SOKOL_IMPL,
         SOKOL_ZIG,
         SOKOL_NIM,
@@ -26,7 +25,6 @@ struct Format	{
 inline const char* Format::to_str(Enum f) {
     switch (f) {
         case SOKOL:         return "sokol";
-        case SOKOL_DECL:    return "sokol_decl";
         case SOKOL_IMPL:    return "sokol_impl";
         case SOKOL_ZIG:     return "sokol_zig";
         case SOKOL_NIM:     return "sokol_nim";
@@ -41,8 +39,6 @@ inline const char* Format::to_str(Enum f) {
 inline Format::Enum Format::from_str(const std::string& str) {
     if (str == "sokol") {
         return SOKOL;
-    } else if (str == "sokol_decl") {
-        return SOKOL_DECL;
     } else if (str == "sokol_impl") {
         return SOKOL_IMPL;
     } else if (str == "sokol_zig") {

@@ -804,9 +804,7 @@ static ErrMsg _generate(const GenInput& gen) {
             }
             if (!guard_written) {
                 guard_written = true;
-                if (gen.args.output_format == Format::SOKOL_DECL) {
-                    L("#if !defined(SOKOL_SHDC_DECL)\n");
-                } else if (gen.args.output_format == Format::SOKOL_IMPL) {
+                if (gen.args.output_format == Format::SOKOL_IMPL) {
                     L("#if defined(SOKOL_SHDC_IMPL)\n");
                 }
             }
@@ -843,9 +841,7 @@ static ErrMsg _generate(const GenInput& gen) {
     }
 
     if (guard_written) {
-        if (gen.args.output_format == Format::SOKOL_DECL) {
-            L("#endif /* SOKOL_SHDC_DECL */\n");
-        } else if (gen.args.output_format == Format::SOKOL_IMPL) {
+        if (gen.args.output_format == Format::SOKOL_IMPL) {
             L("#endif /* SOKOL_SHDC_IMPL */\n");
         }
     }
@@ -874,11 +870,9 @@ void SokolGenerator::gen_epilog(const GenInput& gen) {
 }
 
 void SokolGenerator::gen_prerequisites(const GenInput& gen) {
-    if (gen.args.output_format == Format::SOKOL_IMPL) {
-        l("#if !defined(SOKOL_GFX_INCLUDED)\n");
-        l("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
-        l("#endif\n");
-    }
+    l("#if !defined(SOKOL_GFX_INCLUDED)\n");
+    l("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
+    l("#endif\n");
     l("#if !defined(SOKOL_SHDC_ALIGN)\n");
     l("  #if defined(_MSC_VER)\n");
     l("    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
@@ -886,12 +880,13 @@ void SokolGenerator::gen_prerequisites(const GenInput& gen) {
     l("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
     l("  #endif\n");
     l("#endif\n");
+    // FIXME: write function prototypes
 }
 
 void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
-    l("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", to_struct_name(ub.struct_name));
+    l("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_name));
     for (const Uniform& uniform: ub.uniforms) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
@@ -936,8 +931,42 @@ void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBl
     if (cur_offset != round16) {
         l("    uint8_t _pad_{}[{}];\n", cur_offset, round16 - cur_offset);
     }
-    l("}} {};\n", to_struct_name(ub.struct_name));
+    l("}} {};\n", struct_name(ub.struct_name));
     l("#pragma pack(pop)\n");
+}
+
+void SokolGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
+    if (gen.args.ifdef) {
+        l("#if defined({})\n", sokol_define(slang));
+    }
+    l("static const uint8_t {}[{}] = {{\n", array_name, num_bytes);
+}
+
+void SokolGenerator::gen_shader_array_end(const GenInput& gen) {
+    l("\n}};\n");
+    if (gen.args.ifdef) {
+        l("#endif\n");
+    }
+}
+
+void SokolGenerator::gen_stb_impl_start(const GenInput &gen) {
+    if (gen.args.output_format == Format::SOKOL_IMPL) {
+        l("#if defined(SOKOL_SHDC_IMPL)\n");
+    }
+}
+
+void SokolGenerator::gen_stb_impl_end(const GenInput& gen) {
+    if (gen.args.output_format == Format::SOKOL_IMPL) {
+        l("#endif // SOKOL_SHDC_IMPL");
+    }
+}
+
+std::string SokolGenerator::shader_bytecode_array_name(const std::string& name, Slang::Enum slang) {
+    return fmt::format("{}{}_bytecode_{}", mod_prefix, name, Slang::to_str(slang));
+}
+
+std::string SokolGenerator::shader_source_array_name(const std::string& name, Slang::Enum slang) {
+    return fmt::format("{}{}_source_{}", mod_prefix, name, Slang::to_str(slang));
 }
 
 std::string SokolGenerator::comment_block_start() {
@@ -960,7 +989,7 @@ std::string SokolGenerator::get_shader_desc_help(const std::string& prog_name) {
     return fmt::format("{}{}_shader_desc(sg_query_backend());\n", mod_prefix, prog_name);
 }
 
-std::string SokolGenerator::to_uniform_type(Uniform::Type t) {
+std::string SokolGenerator::uniform_type(Uniform::Type t) {
     switch (t) {
         case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
         case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
@@ -975,7 +1004,7 @@ std::string SokolGenerator::to_uniform_type(Uniform::Type t) {
     }
 }
 
-std::string SokolGenerator::to_flattened_uniform_type(Uniform::Type t) {
+std::string SokolGenerator::flattened_uniform_type(Uniform::Type t) {
     switch (t) {
         case Uniform::FLOAT:
         case Uniform::FLOAT2:
@@ -993,7 +1022,7 @@ std::string SokolGenerator::to_flattened_uniform_type(Uniform::Type t) {
     }
 }
 
-std::string SokolGenerator::to_image_type(ImageType::Enum e) {
+std::string SokolGenerator::image_type(ImageType::Enum e) {
     switch (e) {
         case ImageType::_2D:     return "SG_IMAGETYPE_2D";
         case ImageType::CUBE:    return "SG_IMAGETYPE_CUBE";
@@ -1003,7 +1032,7 @@ std::string SokolGenerator::to_image_type(ImageType::Enum e) {
     }
 }
 
-std::string SokolGenerator::to_image_sample_type(refl::ImageSampleType::Enum e) {
+std::string SokolGenerator::image_sample_type(refl::ImageSampleType::Enum e) {
     switch (e) {
         case ImageSampleType::FLOAT: return "SG_IMAGESAMPLETYPE_FLOAT";
         case ImageSampleType::DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
@@ -1014,7 +1043,7 @@ std::string SokolGenerator::to_image_sample_type(refl::ImageSampleType::Enum e) 
     }
 }
 
-std::string SokolGenerator::to_sampler_type(refl::SamplerType::Enum e) {
+std::string SokolGenerator::sampler_type(refl::SamplerType::Enum e) {
     switch (e) {
         case SamplerType::FILTERING:     return "SG_SAMPLERTYPE_FILTERING";
         case SamplerType::COMPARISON:    return "SG_SAMPLERTYPE_COMPARISON";
@@ -1023,7 +1052,7 @@ std::string SokolGenerator::to_sampler_type(refl::SamplerType::Enum e) {
     }
 }
 
-std::string SokolGenerator::to_backend(Slang::Enum e) {
+std::string SokolGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:      return "SG_BACKEND_GLCORE";
         case Slang::GLSL430:      return "SG_BACKEND_GLCORE";
@@ -1038,40 +1067,40 @@ std::string SokolGenerator::to_backend(Slang::Enum e) {
     }
 }
 
-std::string SokolGenerator::to_struct_name(const std::string& name) {
+std::string SokolGenerator::struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolGenerator::to_vertex_attr_name(const std::string& snippet_name, const refl::VertexAttr& attr) {
+std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const refl::VertexAttr& attr) {
     return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
 }
 
-std::string SokolGenerator::to_image_bind_slot_name(const refl::Image& img) {
+std::string SokolGenerator::image_bind_slot_name(const refl::Image& img) {
     return fmt::format("SLOT_{}{}", mod_prefix, img.name);
 }
 
-std::string SokolGenerator::to_sampler_bind_slot_name(const refl::Sampler& smp) {
+std::string SokolGenerator::sampler_bind_slot_name(const refl::Sampler& smp) {
     return fmt::format("SLOT_{}{}", mod_prefix, smp.name);
 }
 
-std::string SokolGenerator::to_uniform_block_bind_slot_name(const refl::UniformBlock& ub) {
+std::string SokolGenerator::uniform_block_bind_slot_name(const refl::UniformBlock& ub) {
     return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
 }
 
-std::string SokolGenerator::to_vertex_attr_definition(const std::string& snippet_name, const refl::VertexAttr& attr) {
-    return fmt::format("#define {} ({})", to_vertex_attr_name(snippet_name, attr), attr.slot);
+std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const refl::VertexAttr& attr) {
+    return fmt::format("#define {} ({})", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-std::string SokolGenerator::to_image_bind_slot_definition(const refl::Image& img) {
-    return fmt::format("#define {} ({})", to_image_bind_slot_name(img), img.slot);
+std::string SokolGenerator::image_bind_slot_definition(const refl::Image& img) {
+    return fmt::format("#define {} ({})", image_bind_slot_name(img), img.slot);
 }
 
-std::string SokolGenerator::to_sampler_bind_slot_definition(const refl::Sampler& smp) {
-    return fmt::format("#define {} ({})", to_sampler_bind_slot_name(smp), smp.slot);
+std::string SokolGenerator::sampler_bind_slot_definition(const refl::Sampler& smp) {
+    return fmt::format("#define {} ({})", sampler_bind_slot_name(smp), smp.slot);
 }
 
-std::string SokolGenerator::to_uniform_block_bind_slot_definition(const refl::UniformBlock& ub) {
-    return fmt::format("#define {} ({})", to_uniform_block_bind_slot_name(ub), ub.slot);
+std::string SokolGenerator::uniform_block_bind_slot_definition(const refl::UniformBlock& ub) {
+    return fmt::format("#define {} ({})", uniform_block_bind_slot_name(ub), ub.slot);
 }
 
 } // namespace
