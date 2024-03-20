@@ -11,25 +11,43 @@ public:
     virtual ErrMsg generate(const GenInput& gen);
 
 protected:
+    // create with get_shader_stage_info()
+    struct ShaderStageInfo {
+    public:
+        std::string stage_name;
+        const SpirvcrossSource* source = nullptr;
+        const BytecodeBlob* bytecode = nullptr;
+        std::string source_array_name;
+        std::string bytecode_array_name;
+    };
+    std::string indent;
     std::string content;
     std::string mod_prefix;
 
     // add a line to content
     template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
-        content.append(fmt::vformat(fmt, fmt::make_format_args(args...)));
+        content.append(fmt::format("{}{}", indent, fmt::vformat(fmt, fmt::make_format_args(args...))));
     }
     // add a comment block line to content
     template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
         content.append(comment_block_line(fmt::vformat(fmt, fmt::make_format_args(args...))));
     }
+    // indentantion
+    void reset_indent() { indent = ""; };
+    void push_tab() { indent += "    "; };
+    void pop_tab() { for (int i = 0; i < 4; i++) { if (indent.length() > 0) { indent.pop_back(); } } };
 
-    // highlevel code generation methods
+    // general helpers
+    ShaderStageInfo get_shader_stage_info(const GenInput& gen, const Program& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
+
+    // highlevel code generation methods with default implementations
     virtual ErrMsg begin(const GenInput& gen);
     virtual void gen_header(const GenInput& gen, Slang::Enum slang);
     virtual void gen_vertex_attrs(const GenInput& gen, Slang::Enum slang);
     virtual void gen_bind_slots(const GenInput& gen);
     virtual void gen_uniform_blocks(const GenInput& gen);
     virtual void gen_shader_arrays(const GenInput& gen);
+    virtual void gen_shader_desc_funcs(const GenInput& gen);
     virtual ErrMsg end(const GenInput& gen);
 
     virtual void gen_vertex_shader_info(const GenInput& gen, const Program& prog, const SpirvcrossSource& vs_src);
@@ -45,6 +63,7 @@ protected:
     virtual void gen_shader_array_end(const GenInput& gen) { assert(false && "implement me"); };
     virtual void gen_stb_impl_start(const GenInput& gen) { };   // optional
     virtual void gen_stb_impl_end(const GenInput& gen) { };     // optional
+    virtual void gen_shader_desc_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
 
     virtual std::string comment_block_start() { assert(false && "implement me"); return ""; };
     virtual std::string comment_block_line(const std::string& l) { assert(false && "implement me"); return ""; };

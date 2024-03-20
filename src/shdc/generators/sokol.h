@@ -13,6 +13,7 @@ protected:
     virtual void gen_shader_array_end(const GenInput& gen);
     virtual void gen_stb_impl_start(const GenInput& gen);
     virtual void gen_stb_impl_end(const GenInput& gen);
+    virtual void gen_shader_desc_func(const GenInput& gen, const Program& prog);
     virtual std::string comment_block_start();
     virtual std::string comment_block_line(const std::string& l);
     virtual std::string comment_block_end();

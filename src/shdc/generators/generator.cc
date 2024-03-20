@@ -27,10 +27,29 @@ ErrMsg Generator::generate(const GenInput& gen) {
     gen_uniform_blocks(gen);
     gen_stb_impl_start(gen);
     gen_shader_arrays(gen);
+    gen_shader_desc_funcs(gen);
     gen_epilog(gen);
     gen_stb_impl_end(gen);
     err = end(gen);
     return err;
+}
+
+Generator::ShaderStageInfo Generator::get_shader_stage_info(const GenInput& gen, const Program& prog, ShaderStage::Enum stage, Slang::Enum slang) {
+    ShaderStageInfo info;
+    if (stage == ShaderStage::VS) {
+        info.stage_name = "vs";
+        info.source = find_spirvcross_source_by_shader_name(prog.vs_name, gen.inp, gen.spirvcross[slang]);
+        info.bytecode = find_bytecode_blob_by_shader_name(prog.vs_name, gen.inp, gen.bytecode[slang]);
+        info.source_array_name = shader_source_array_name(prog.vs_name, slang);
+        info.bytecode_array_name = shader_bytecode_array_name(prog.vs_name, slang);
+    } else {
+        info.stage_name = "fs";
+        info.source = find_spirvcross_source_by_shader_name(prog.fs_name, gen.inp, gen.spirvcross[slang]);
+        info.bytecode = find_bytecode_blob_by_shader_name(prog.fs_name, gen.inp, gen.bytecode[slang]);
+        info.source_array_name = shader_source_array_name(prog.fs_name, slang);
+        info.bytecode_array_name = shader_bytecode_array_name(prog.fs_name, slang);
+    }
+    return info;
 }
 
 // default behaviour of begin is to clear the generated content string, and check for error in GenInput
@@ -197,6 +216,13 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                 }
             }
         }
+    }
+}
+
+void Generator::gen_shader_desc_funcs(const GenInput& gen) {
+    for (const auto& item: gen.inp.programs) {
+        const Program& prog = item.second;
+        gen_shader_desc_func(gen, prog);
     }
 }
 
