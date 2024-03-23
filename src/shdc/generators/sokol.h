@@ -22,7 +22,7 @@ protected:
     virtual void gen_uniform_offset_refl_func(const GenInput& gen, const Program& prog);
     virtual void gen_uniform_desc_refl_func(const GenInput& gen, const Program& prog);
     virtual std::string comment_block_start();
-    virtual std::string comment_block_line(const std::string& l);
+    virtual std::string comment_block_line_prefix();
     virtual std::string comment_block_end();
     virtual std::string shader_bytecode_array_name(const std::string& name, Slang::Enum slang);
     virtual std::string shader_source_array_name(const std::string& name, Slang::Enum slang);

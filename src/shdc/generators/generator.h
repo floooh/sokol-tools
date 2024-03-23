@@ -11,6 +11,9 @@ public:
     virtual ErrMsg generate(const GenInput& gen);
 
 protected:
+    // the current module prefix, initialized by begin()
+    std::string mod_prefix;
+
     // called directly by generate() in this order
     virtual ErrMsg begin(const GenInput& gen);
     virtual void gen_prolog(const GenInput& gen) { assert(false && "implement me"); };
@@ -56,7 +59,7 @@ protected:
     virtual std::string get_shader_desc_help(const std::string& prog_name) { assert(false && "implement me"); return ""; };
 
     virtual std::string comment_block_start() { assert(false && "implement me"); return ""; };
-    virtual std::string comment_block_line(const std::string& l) { assert(false && "implement me"); return ""; };
+    virtual std::string comment_block_line_prefix() { assert(false && "implement me"); return ""; };
     virtual std::string comment_block_end() { assert(false && "implement me"); return ""; };
 
     virtual std::string shader_bytecode_array_name(const std::string& name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
@@ -90,24 +93,52 @@ protected:
     };
     ShaderStageInfo get_shader_stage_info(const GenInput& gen, const Program& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
 
-    // add a line to content
-    template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
-        content.append(fmt::format("{}{}", indentation, fmt::vformat(fmt, fmt::make_format_args(args...))));
-    }
-    // add a comment block line to content
-    template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
-        content.append(comment_block_line(fmt::vformat(fmt, fmt::make_format_args(args...))));
-    }
-    // indentantion
+    // line output
     void reset_indent() { indentation = ""; };
-    void indent() { indentation += "    "; };
-    void dedent() { for (int i = 0; i < 4; i++) { if (indentation.length() > 0) { indentation.pop_back(); } } };
+    template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
+        const std::string str = fmt::format("{}{}", indentation, fmt::vformat(fmt, fmt::make_format_args(args...)));
+        content.append(str);
+    }
+    template<typename... T> void l_open(fmt::format_string<T...> fmt, T&&... args) {
+        l(fmt, args...);
+        indent();
+    }
+    template<typename... T> void l_close(fmt::format_string<T...> fmt, T&&... args) {
+        dedent();
+        l(fmt, args...);
+    }
+    // comment block lines
+    void cbl_start() {
+        l_open("{}\n", comment_block_start());
+    }
+    template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
+        const std::string str = fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::vformat(fmt, fmt::make_format_args(args...)));
+        content.append(str);
+    }
+    template<typename... T> void cbl_open(fmt::format_string<T...> fmt, T&&... args) {
+        cbl(fmt, args...);
+        indent();
+    }
+    template<typename... T> void cbl_close(fmt::format_string<T...> fmt, T&&... args) {
+        dedent();
+        cbl(fmt, args...);
+    }
+    void cbl_close() {
+        dedent();
+    }
+    void cbl_end() {
+        l_close("{}\n", comment_block_end());
+    }
+
     // utility methods
     static ErrMsg check_errors(const GenInput& gen);
 
+private:
+    void indent() { indentation += "    "; };
+    void dedent() { for (int i = 0; i < 4; i++) { if (indentation.length() > 0) { indentation.pop_back(); } } };
+
     std::string indentation;
     std::string content;
-    std::string mod_prefix;
 };
 
 } // namespace
