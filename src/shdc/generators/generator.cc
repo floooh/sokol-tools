@@ -22,12 +22,15 @@ ErrMsg Generator::generate(const GenInput& gen) {
     const Slang::Enum slang = Slang::first_valid(gen.args.slang);
     gen_header(gen, slang);
     gen_prerequisites(gen);
-    gen_vertex_attrs(gen, slang);
-    gen_bind_slots(gen);
-    gen_uniform_blocks(gen);
+    gen_vertex_attr_consts(gen, slang);
+    gen_bind_slot_consts(gen);
+    gen_uniformblock_decls(gen);
     gen_stb_impl_start(gen);
     gen_shader_arrays(gen);
     gen_shader_desc_funcs(gen);
+    if (gen.args.reflection) {
+        gen_reflection_funcs(gen);
+    }
     gen_epilog(gen);
     gen_stb_impl_end(gen);
     err = end(gen);
@@ -125,7 +128,7 @@ void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings)
     }
 }
 
-void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
+void Generator::gen_vertex_attr_consts(const GenInput& gen, Slang::Enum slang) {
     for (const SpirvcrossSource& src: gen.spirvcross[slang].sources) {
         if (src.refl.stage == ShaderStage::VS) {
             const Snippet& vs_snippet = gen.inp.snippets[src.snippet_index];
@@ -139,7 +142,7 @@ void Generator::gen_vertex_attrs(const GenInput& gen, Slang::Enum slang) {
     l("\n");
 }
 
-void Generator::gen_bind_slots(const GenInput& gen) {
+void Generator::gen_bind_slot_consts(const GenInput& gen) {
     for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
         l("{}\n", uniform_block_bind_slot_definition(ub));
     }
@@ -154,9 +157,9 @@ void Generator::gen_bind_slots(const GenInput& gen) {
     l("\n");
 }
 
-void Generator::gen_uniform_blocks(const GenInput& gen) {
+void Generator::gen_uniformblock_decls(const GenInput& gen) {
     for (const UniformBlock& ub: gen.merged_bindings.uniform_blocks) {
-        gen_uniform_block_decl(gen, ub);
+        gen_uniformblock_decl(gen, ub);
     }
 }
 
@@ -181,7 +184,7 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                 // first write the source code in a comment block
                 l("{}\n", comment_block_start());
                 for (const std::string& line: lines) {
-                    cbl("    {}\n", replace_C_comment_tokens(line));
+                    cbl("{}\n", replace_C_comment_tokens(line));
                 }
                 l("{}\n", comment_block_end());
                 if (blob) {
@@ -223,6 +226,19 @@ void Generator::gen_shader_desc_funcs(const GenInput& gen) {
     for (const auto& item: gen.inp.programs) {
         const Program& prog = item.second;
         gen_shader_desc_func(gen, prog);
+    }
+}
+
+void Generator::gen_reflection_funcs(const GenInput& gen) {
+    for (const auto& item: gen.inp.programs) {
+        const Program& prog = item.second;
+        gen_attr_slot_refl_func(gen, prog);
+        gen_image_slot_refl_func(gen, prog);
+        gen_sampler_slot_refl_func(gen, prog);
+        gen_uniformblock_slot_refl_func(gen, prog);
+        gen_uniformblock_size_refl_func(gen, prog);
+        gen_uniform_offset_refl_func(gen, prog);
+        gen_uniform_desc_refl_func(gen, prog);
     }
 }
 

@@ -12,29 +12,6 @@ namespace shdc::gen {
 using namespace util;
 using namespace refl;
 
-static std::string file_content;
-
-#if defined(_MSC_VER)
-#define L(str, ...) file_content.append(fmt::format(str, __VA_ARGS__))
-#else
-#define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
-#endif
-
-static const char* uniform_type_to_sokol_type_str(Uniform::Type type) {
-    switch (type) {
-        case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
-        case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
-        case Uniform::FLOAT3: return "SG_UNIFORMTYPE_FLOAT3";
-        case Uniform::FLOAT4: return "SG_UNIFORMTYPE_FLOAT4";
-        case Uniform::INT:    return "SG_UNIFORMTYPE_INT";
-        case Uniform::INT2:   return "SG_UNIFORMTYPE_INT2";
-        case Uniform::INT3:   return "SG_UNIFORMTYPE_INT3";
-        case Uniform::INT4:   return "SG_UNIFORMTYPE_INT4";
-        case Uniform::MAT4: return "SG_UNIFORMTYPE_MAT4";
-        default: return "FIXME";
-    }
-}
-
 static const char* sokol_define(Slang::Enum slang) {
     switch (slang) {
         case Slang::GLSL410:      return "SOKOL_GLCORE";
@@ -50,36 +27,6 @@ static const char* sokol_define(Slang::Enum slang) {
     }
 }
 
-static void write_common_decls(Slang::Enum slang, const Args& args, const Input& inp, const Spirvcross& spirvcross, const Bindings& merged_bindings) {
-    if (args.output_format == Format::SOKOL_IMPL) {
-        L("#if !defined(SOKOL_GFX_INCLUDED)\n");
-        L("  #error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(args.output));
-        L("#endif\n");
-    }
-    L("#if !defined(SOKOL_SHDC_ALIGN)\n");
-    L("  #if defined(_MSC_VER)\n");
-    L("    #define SOKOL_SHDC_ALIGN(a) __declspec(align(a))\n");
-    L("  #else\n");
-    L("    #define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
-    L("  #endif\n");
-    L("#endif\n");
-    if (args.output_format == Format::SOKOL_IMPL) {
-        for (const auto& item: inp.programs) {
-            const Program& prog = item.second;
-            L("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix(inp), prog.name);
-            if (args.reflection) {
-                L("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix(inp), prog.name);
-                L("int {}{}_image_slot(sg_shader_stage stage, const char* img_name);\n", mod_prefix(inp), prog.name);
-                L("int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name);\n", mod_prefix(inp), prog.name);
-                L("int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix(inp), prog.name);
-                L("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix(inp), prog.name);
-                L("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix(inp), prog.name);
-                L("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix(inp), prog.name);
-            }
-        }
-    }
-}
-
 static std::string func_prefix(const Args& args) {
     if (args.output_format != Format::SOKOL_IMPL) {
         return std::string("static inline ");
@@ -87,249 +34,6 @@ static std::string func_prefix(const Args& args) {
         return std::string();
     }
 }
-
-static void write_attr_slot_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    assert(vs_src);
-
-    L("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)attr_name;\n");
-    for (const VertexAttr& attr: vs_src->refl.inputs) {
-        if (attr.slot >= 0) {
-            L("  if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
-            L("    return {};\n", attr.slot);
-            L("  }}\n");
-        }
-    }
-    L("  return -1;\n");
-    L("}}\n");
-}
-
-static void write_image_slot_stage(const SpirvcrossSource* src) {
-    for (const Image& img: src->refl.bindings.images) {
-        if (img.slot >= 0) {
-            L("    if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
-            L("      return {};\n", img.slot);
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_sampler_slot_stage(const SpirvcrossSource* src) {
-    for (const Sampler& smp: src->refl.bindings.samplers) {
-        if (smp.slot >= 0) {
-            L("    if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
-            L("      return {};\n", smp.slot);
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_image_slot_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)img_name;\n");
-    if (!vs_src->refl.bindings.images.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_image_slot_stage(vs_src);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.images.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_image_slot_stage(fs_src);
-        L("  }}\n");
-    }
-    L("  return -1;\n");
-    L("}}\n");
-}
-
-static void write_sampler_slot_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)smp_name;\n");
-    if (!vs_src->refl.bindings.samplers.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_sampler_slot_stage(vs_src);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.samplers.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_sampler_slot_stage(fs_src);
-        L("  }}\n");
-    }
-    L("  return -1;\n");
-    L("}}\n");
-}
-
-static void write_uniformblock_slot_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
-        if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
-            L("      return {};\n", ub.slot);
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_uniformblock_slot_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)ub_name;\n");
-    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_uniformblock_slot_stage(vs_src);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_uniformblock_slot_stage(fs_src);
-        L("  }}\n");
-    }
-    L("  return -1;\n");
-    L("}}\n");
-}
-
-static void write_uniformblock_size_stage(const SpirvcrossSource* src, const Input& inp) {
-    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
-        if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
-            L("      return sizeof({}{}_t);\n", mod_prefix(inp), ub.struct_name);
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_uniformblock_size_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)ub_name;\n");
-    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_uniformblock_size_stage(vs_src, inp);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_uniformblock_size_stage(fs_src, inp);
-        L("  }}\n");
-    }
-    L("  return 0;\n");
-    L("}}\n");
-}
-
-static void write_uniform_offset_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
-        if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
-            for (const Uniform& u: ub.uniforms) {
-                L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                L("        return {};\n", u.offset);
-                L("      }}\n");
-            }
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_uniform_offset_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)ub_name; (void)u_name;\n");
-    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_uniform_offset_stage(vs_src);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_uniform_offset_stage(fs_src);
-        L("  }}\n");
-    }
-    L("  return -1;\n");
-    L("}}\n");
-}
-
-static void write_uniform_desc_stage(const SpirvcrossSource* src) {
-    for (const UniformBlock& ub: src->refl.bindings.uniform_blocks) {
-        if (ub.slot >= 0) {
-            L("    if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
-            for (const Uniform& u: ub.uniforms) {
-                L("      if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
-                L("        desc.name = \"{}\";\n", u.name);
-                L("        desc.type = {};\n", uniform_type_to_sokol_type_str(u.type));
-                L("        desc.array_count = {};\n", u.array_count);
-                L("        return desc;\n");
-                L("      }}\n");
-            }
-            L("    }}\n");
-        }
-    }
-}
-
-static void write_uniform_desc_func(const Program& prog, const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-
-    L("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(args), mod_prefix(inp), prog.name);
-    L("  (void)stage; (void)ub_name; (void)u_name;\n");
-    L("  #if defined(__cplusplus)\n");
-    L("  sg_shader_uniform_desc desc = {{}};\n");
-    L("  #else\n");
-    L("  sg_shader_uniform_desc desc = {{0}};\n");
-    L("  #endif\n");
-    if (!vs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_VS == stage) {{\n");
-        write_uniform_desc_stage(vs_src);
-        L("  }}\n");
-    }
-    if (!fs_src->refl.bindings.uniform_blocks.empty()) {
-        L("  if (SG_SHADERSTAGE_FS == stage) {{\n");
-        write_uniform_desc_stage(fs_src);
-        L("  }}\n");
-    }
-    L("  return desc;\n");
-    L("}}\n");
-
-}
-
-static ErrMsg _generate(const GenInput& gen) {
-    for (const auto& item: gen.inp.programs) {
-        const Program& prog = item.second;
-        if (gen.args.reflection) {
-            int slang_index = (int)Slang::first_valid(gen.args.slang);
-            assert((slang_index >= 0) && (slang_index < Slang::NUM));
-            write_attr_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_image_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_sampler_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_uniformblock_slot_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_uniformblock_size_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_uniform_offset_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-            write_uniform_desc_func(prog, gen.args, gen.inp, gen.spirvcross[slang_index]);
-        }
-    }
-    return ErrMsg();
-}
-
-//------------------------------------------------------------------------------
-//ErrMsg SokolGenerator::generate(const GenInput& gen) {
-//    return _generate(gen);
-//}
 
 void SokolGenerator::gen_prolog(const GenInput& gen) {
     l("#pragma once\n");
@@ -350,15 +54,29 @@ void SokolGenerator::gen_prerequisites(const GenInput& gen) {
     l("#define SOKOL_SHDC_ALIGN(a) __attribute__((aligned(a)))\n");
     l("#endif\n");
     l("#endif\n");
-    // FIXME: write function prototypes
+    if (gen.args.output_format == Format::SOKOL_IMPL) {
+        for (const auto& item: gen.inp.programs) {
+            const Program& prog = item.second;
+            l("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix, prog.name);
+            if (gen.args.reflection) {
+                l("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix, prog.name);
+                l("int {}{}_image_slot(sg_shader_stage stage, const char* img_name);\n", mod_prefix, prog.name);
+                l("int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name);\n", mod_prefix, prog.name);
+                l("int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
+                l("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
+                l("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
+                l("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
+            }
+        }
+    }
 }
 
-void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
+void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlock& ub) {
     reset_indent();
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
     l("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_name));
-    push_tab();
+    indent();
     for (const Uniform& uniform: ub.uniforms) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
@@ -403,7 +121,7 @@ void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBl
     if (cur_offset != round16) {
         l("uint8_t _pad_{}[{}];\n", cur_offset, round16 - cur_offset);
     }
-    pop_tab();
+    dedent();
     l("}} {};\n", struct_name(ub.struct_name));
     l("#pragma pack(pop)\n");
 }
@@ -411,7 +129,7 @@ void SokolGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBl
 void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& prog) {
     reset_indent();
     l("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
-    push_tab();
+    indent();
     for (int i = 0; i < Slang::NUM; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
@@ -419,11 +137,11 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                 l("#if defined({})\n", sokol_define(slang));
             }
             l("if (backend == {}) {{\n", backend(slang));
-            push_tab();
+            indent();
             l("static sg_shader_desc desc;\n");
             l("static bool valid;\n");
             l("if (!valid) {{\n");
-            push_tab();
+            indent();
             l("valid = true;\n");
             const ShaderStageInfo attr_info = get_shader_stage_info(gen, prog, ShaderStage::VS, slang);
             for (int attr_index = 0; attr_index < VertexAttr::NUM; attr_index++) {
@@ -511,10 +229,10 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                 }
             }
             l("desc.label = \"{}{}_shader\";\n", mod_prefix, prog.name);
-            pop_tab();
+            dedent();
             l("}}\n");
             l("return &desc;\n");
-            pop_tab();
+            dedent();
             l("}}\n");
             if (gen.args.ifdef) {
                 l("#endif /* {} */\n", sokol_define(slang));
@@ -522,9 +240,222 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
         }
     }
     l("return 0;\n");
-    pop_tab();
+    dedent();
     l("}}\n");
+}
 
+void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Program& prog) {
+    const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::VS, Slang::first_valid(gen.args.slang));
+    const Reflection& vs_refl = info.source->refl;
+    l("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)attr_name;\n");
+    for (const VertexAttr& attr: vs_refl.inputs) {
+        if (attr.slot >= 0) {
+            l("if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
+            indent();
+            l("return {};\n", attr.slot);
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return -1;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)img_name;\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.images.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const Image& img: refl.bindings.images) {
+                if (img.slot >= 0) {
+                    l("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+                    indent();
+                    l("return {};\n", img.slot);
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return -1;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)smp_name;\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.samplers.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const Sampler& smp: refl.bindings.samplers) {
+                if (smp.slot >= 0) {
+                    l("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
+                    indent();
+                    l("return {};\n", smp.slot);
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return -1;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)ub_name;\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
+                    indent();
+                    l("return {};\n", ub.slot);
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return -1;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)ub_name;\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
+                    indent();
+                    l("return sizeof({});\n", struct_name(ub.struct_name));
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return 0;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)ub_name; (void)u_name;\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
+                    indent();
+                    for (const Uniform& u: ub.uniforms) {
+                        l("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                        indent();
+                        l("return {};\n", u.offset);
+                        dedent();
+                        l("}}\n");
+                    }
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return -1;\n");
+    dedent();
+    l("}}\n");
+}
+
+void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Program& prog) {
+    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+    l("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    indent();
+    l("(void)stage; (void)ub_name; (void)u_name;\n");
+    l("#if defined(__cplusplus)\n");
+    l("sg_shader_uniform_desc desc = {{}};\n");
+    l("#else\n");
+    l("sg_shader_uniform_desc desc = {{0}};\n");
+    l("#endif\n");
+    for (int stage_index = 0; stage_index < 2; stage_index++) {
+        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+        const Reflection& refl = info.source->refl;
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            indent();
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
+                    indent();
+                    for (const Uniform& u: ub.uniforms) {
+                        l("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                        indent();
+                        l("desc.name = \"{}\";\n", u.name);
+                        l("desc.type = {};\n", uniform_type(u.type));
+                        l("desc.array_count = {};\n", u.array_count);
+                        l("return desc;\n");
+                        dedent();
+                        l("}}\n");
+                    }
+                    dedent();
+                    l("}}\n");
+                }
+            }
+            dedent();
+            l("}}\n");
+        }
+    }
+    l("return desc;\n");
+    dedent();
+    l("}}\n");
 }
 
 void SokolGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
