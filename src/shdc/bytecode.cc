@@ -308,7 +308,7 @@ static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slan
             NULL,                           // pSourceName
             NULL,                           // pDefines
             NULL,                           // pInclude
-            src.refl.entry_point.c_str(),   // entryPoint
+            src.stage_refl.entry_point.c_str(), // entryPoint
             compile_target,                 // pTarget
             D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR | D3DCOMPILE_OPTIMIZATION_LEVEL3, // Flags1
             0,                              // Flags2
