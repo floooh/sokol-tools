@@ -3,17 +3,17 @@
 
 namespace shdc::refl {
 
-struct VertexAttr {
-    static const int NUM = 16;      // must be identical with NUM_VERTEX_ATTRS
+struct StageAttr {
+    static const int Num = 16;
     int slot = -1;
     std::string name;
     std::string sem_name;
     int sem_index = 0;
 
-    bool equals(const VertexAttr& rhs) const;
+    bool equals(const StageAttr& rhs) const;
 };
 
-inline bool VertexAttr::equals(const VertexAttr& rhs) const {
+inline bool StageAttr::equals(const StageAttr& rhs) const {
     return (slot == rhs.slot) &&
            (name == rhs.name) &&
            (sem_name == rhs.sem_name) &&

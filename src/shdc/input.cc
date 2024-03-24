@@ -450,16 +450,17 @@ static bool parse(Input& inp) {
                 if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.snippet_map[cur_snippet.name] = (int)inp.snippets.size();
+                cur_snippet.index = (int)inp.snippets.size();
+                inp.snippet_map[cur_snippet.name] = cur_snippet.index;
                 switch (cur_snippet.type) {
                     case Snippet::BLOCK:
-                        inp.block_map[cur_snippet.name] = (int)inp.snippets.size();
+                        inp.block_map[cur_snippet.name] = cur_snippet.index;
                         break;
                     case Snippet::VS:
-                        inp.vs_map[cur_snippet.name] = (int)inp.snippets.size();
+                        inp.vs_map[cur_snippet.name] = cur_snippet.index;
                         break;
                     case Snippet::FS:
-                        inp.fs_map[cur_snippet.name] = (int)inp.snippets.size();
+                        inp.fs_map[cur_snippet.name] = cur_snippet.index;
                         break;
                     default: break;
                 }

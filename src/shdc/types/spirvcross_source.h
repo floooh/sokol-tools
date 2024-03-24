@@ -1,6 +1,6 @@
 #pragma once
 #include "errmsg.h"
-#include "reflection.h"
+#include "reflection/stage_reflection.h"
 
 namespace shdc {
 
@@ -10,7 +10,7 @@ struct SpirvcrossSource {
     int snippet_index = -1;
     std::string source_code;
     ErrMsg error;
-    refl::Reflection refl;
+    refl::StageReflection stage_refl;
 };
 
 } // namespace shdc

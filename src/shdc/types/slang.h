@@ -17,7 +17,7 @@ struct Slang {
         METAL_IOS,
         METAL_SIM,
         WGSL,
-        NUM
+        Num,
     };
 
     static uint32_t bit(Enum c);
@@ -36,7 +36,7 @@ inline uint32_t Slang::bit(Enum c) {
 }
 
 inline Slang::Enum Slang::from_index(int idx) {
-    assert((idx >= 0) && (idx < NUM));
+    assert((idx >= 0) && (idx < Num));
     return (Slang::Enum)idx;
 }
 
@@ -58,7 +58,7 @@ inline const char* Slang::to_str(Enum c) {
 inline std::string Slang::bits_to_str(uint32_t mask, const std::string& delim) {
     std::string res;
     bool sep = false;
-    for (int i = 0; i < Slang::NUM; i++) {
+    for (int i = 0; i < Slang::Num; i++) {
         if (mask & Slang::bit((Enum)i)) {
             if (sep) {
                 res += delim;
@@ -108,7 +108,7 @@ inline bool Slang::is_wgsl(Enum c) {
 
 inline Slang::Enum Slang::first_valid(uint32_t mask) {
     int i = 0;
-    for (i = 0; i < NUM; i++) {
+    for (i = 0; i < Num; i++) {
         if (0 != (mask & (1<<i))) {
             break;
         }

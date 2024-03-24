@@ -25,6 +25,66 @@ using namespace spirv_cross;
 
 namespace shdc::refl {
 
+// check that a program's vertex shader outputs match the fragment shader inputs
+// FIXME: this should also check the attribute's type
+// FIXME: move all reflection validations into Reflection
+static ErrMsg validate_linking(const Input& inp, const Program& prog, const ProgramReflection& prog_refl) {
+    for (int slot = 0; slot < StageAttr::Num; slot++) {
+        const StageAttr& vs_out = prog_refl.vs().outputs[slot];
+        const StageAttr& fs_inp = prog_refl.fs().inputs[slot];
+        if (!vs_out.equals(fs_inp)) {
+            return inp.error(prog.line_index,
+                fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
+                    prog_refl.vs_name(),
+                    prog_refl.fs_name(),
+                    slot,
+                    vs_out.name,
+                    fs_inp.name));
+        }
+    }
+    return ErrMsg();
+}
+
+Reflection Reflection::build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross_array) {
+    Reflection res;
+
+    // for each program, just pick the reflection info from the first compiled slang
+    // FIXME: we should check whether the reflection info of all compiled slangs actually matches
+    for (const auto& item: inp.programs) {
+        const Program& prog = item.second;
+        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
+        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
+        const Slang::Enum slang = Slang::first_valid(args.slang);
+        const Spirvcross& spirvcross = spirvcross_array[slang];
+        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        ProgramReflection prog_refl;
+        prog_refl.name = prog.name;
+        prog_refl.stages[ShaderStage::Vertex] = spirvcross.sources[vs_src_index].stage_refl;
+        prog_refl.stages[ShaderStage::Fragment] = spirvcross.sources[fs_src_index].stage_refl;
+
+        // check that the outputs of the vertex stage match the input stage
+        res.error = validate_linking(inp, prog, prog_refl);
+        if (res.error.valid()) {
+            return res;
+        }
+        res.progs.push_back(prog_refl);
+    }
+
+    // create a merged set of resource bindings
+    std::vector<Bindings> snippet_bindings;
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
+        if (args.slang & Slang::bit(slang)) {
+            for (const SpirvcrossSource& src: spirvcross_array[i].sources) {
+                snippet_bindings.push_back(src.stage_refl.bindings);
+            }
+        }
+    }
+    res.bindings = merge_bindings(snippet_bindings, inp.base_path, res.error);
+    return res;
+}
+
 static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
     switch (type.basetype) {
         case SPIRType::Float:
@@ -99,16 +159,21 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, Slang::Enum slang) {
-    Reflection refl;
+StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, Slang::Enum slang) {
+    StageReflection refl;
+
+    assert(snippet.index >= 0);
+    refl.snippet_index = snippet.index;
+    refl.snippet_name = snippet.name;
 
     ShaderResources shd_resources = compiler.get_shader_resources();
     // shader stage
     switch (compiler.get_execution_model()) {
-        case spv::ExecutionModelVertex:   refl.stage = ShaderStage::VS; break;
-        case spv::ExecutionModelFragment: refl.stage = ShaderStage::FS; break;
-        default: refl.stage = ShaderStage::INVALID; break;
+        case spv::ExecutionModelVertex:   refl.stage = ShaderStage::Vertex; break;
+        case spv::ExecutionModelFragment: refl.stage = ShaderStage::Fragment; break;
+        default: refl.stage = ShaderStage::Invalid; break;
     }
+    refl.stage_name = ShaderStage::to_str(refl.stage);
 
     // find entry point
     const auto entry_points = compiler.get_entry_points_and_stages();
@@ -120,7 +185,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
     }
     // stage inputs and outputs
     for (const Resource& res_attr: shd_resources.stage_inputs) {
-        VertexAttr refl_attr;
+        StageAttr refl_attr;
         refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";
@@ -128,7 +193,7 @@ Reflection Reflection::parse(const Compiler& compiler, const Snippet& snippet, S
         refl.inputs[refl_attr.slot] = refl_attr;
     }
     for (const Resource& res_attr: shd_resources.stage_outputs) {
-        VertexAttr refl_attr;
+        StageAttr refl_attr;
         refl_attr.slot = compiler.get_decoration(res_attr.id, spv::DecorationLocation);
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";

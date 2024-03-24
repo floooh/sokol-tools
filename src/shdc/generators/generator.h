@@ -17,9 +17,9 @@ protected:
     // called directly by generate() in this order
     virtual ErrMsg begin(const GenInput& gen);
     virtual void gen_prolog(const GenInput& gen) { assert(false && "implement me"); };
-    virtual void gen_header(const GenInput& gen, Slang::Enum slang);
+    virtual void gen_header(const GenInput& gen);
     virtual void gen_prerequisites(const GenInput& gen) { assert(false && "implement me"); };
-    virtual void gen_vertex_attr_consts(const GenInput& gen, Slang::Enum slang);
+    virtual void gen_vertex_attr_consts(const GenInput& gen);
     virtual void gen_bind_slot_consts(const GenInput& gen);
     virtual void gen_uniformblock_decls(const GenInput& gen);
     virtual void gen_stb_impl_start(const GenInput& gen) { };
@@ -31,8 +31,8 @@ protected:
     virtual ErrMsg end(const GenInput& gen);
 
     // called by gen_header()
-    virtual void gen_vertex_shader_info(const GenInput& gen, const Program& prog, const SpirvcrossSource& vs_src);
-    virtual void gen_fragment_shader_info(const GenInput& gen, const Program& prog, const SpirvcrossSource& fs_src);
+    virtual void gen_vertex_shader_info(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_fragment_shader_info(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_bindings_info(const GenInput& gen, const refl::Bindings& bindings);
 
     // called by gen_uniformblock_decls()
@@ -43,16 +43,16 @@ protected:
     virtual void gen_shader_array_end(const GenInput& gen) { assert(false && "implement me"); };
 
     // called by gen_shader_desc_funcs()
-    virtual void gen_shader_desc_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
+    virtual void gen_shader_desc_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
 
     // called by gen_reflection_funcs()
-    virtual void gen_attr_slot_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
-    virtual void gen_image_slot_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
-    virtual void gen_sampler_slot_refl_func(const GenInput& gen, const Program& progm) { assert(false && "implement me"); };
-    virtual void gen_uniformblock_slot_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
-    virtual void gen_uniformblock_size_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
-    virtual void gen_uniform_offset_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
-    virtual void gen_uniform_desc_refl_func(const GenInput& gen, const Program& prog) { assert(false && "implement me"); };
+    virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm) { assert(false && "implement me"); };
+    virtual void gen_uniformblock_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_uniformblock_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
 
     // general helper methods
     virtual std::string lang_name() { assert(false && "implement me"); return ""; };
@@ -62,8 +62,8 @@ protected:
     virtual std::string comment_block_line_prefix() { assert(false && "implement me"); return ""; };
     virtual std::string comment_block_end() { assert(false && "implement me"); return ""; };
 
-    virtual std::string shader_bytecode_array_name(const std::string& name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
-    virtual std::string shader_source_array_name(const std::string& name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
+    virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
+    virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
 
     virtual std::string uniform_type(refl::Uniform::Type t) { assert(false && "implement me"); return ""; };
     virtual std::string flattened_uniform_type(refl::Uniform::Type t) { assert(false && "implement me"); return ""; };
@@ -73,25 +73,24 @@ protected:
     virtual std::string backend(Slang::Enum e) { assert(false && "implement me"); return ""; };
 
     virtual std::string struct_name(const std::string& name) { assert(false && "implement me"); return ""; };
-    virtual std::string vertex_attr_name(const std::string& snippet_name, const refl::VertexAttr& attr) { assert(false && "implement me"); return ""; };
+    virtual std::string vertex_attr_name(const std::string& snippet_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string image_bind_slot_name(const refl::Image& img) { assert(false && "implement me"); return ""; };
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
 
-    virtual std::string vertex_attr_definition(const std::string& snippet_name, const refl::VertexAttr& attr) { assert(false && "implement me"); return ""; };
+    virtual std::string vertex_attr_definition(const std::string& snippet_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string image_bind_slot_definition(const refl::Image& img) { assert(false && "implement me"); return ""; };
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
 
-    struct ShaderStageInfo {
+    struct ShaderStageArrayInfo {
     public:
-        std::string stage_name;
-        const SpirvcrossSource* source = nullptr;
-        const BytecodeBlob* bytecode = nullptr;
-        std::string source_array_name;
+        bool has_bytecode = false;
+        size_t bytecode_array_size = 0;
         std::string bytecode_array_name;
+        std::string source_array_name;
     };
-    ShaderStageInfo get_shader_stage_info(const GenInput& gen, const Program& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
+    ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
 
     // line output
     void reset_indent() { indentation = ""; };

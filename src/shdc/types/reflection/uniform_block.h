@@ -7,8 +7,8 @@
 namespace shdc::refl {
 
 struct UniformBlock {
-    static const int NUM = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
-    ShaderStage::Enum stage = ShaderStage::INVALID;
+    static const int Num = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
+    ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     int size = 0;
     std::string struct_name;

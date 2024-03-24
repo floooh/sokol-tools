@@ -7,8 +7,8 @@
 namespace shdc::refl {
 
 struct Image {
-    static const int NUM = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
-    ShaderStage::Enum stage = ShaderStage::INVALID;
+    static const int Num = 12;        // must be identical with SG_MAX_SHADERSTAGE_IMAGES
+    ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     std::string name;
     ImageType::Enum type = ImageType::INVALID;

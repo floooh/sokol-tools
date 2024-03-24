@@ -70,7 +70,7 @@ static ErrMsg write_shader_sources_and_blobs(const Args& args,
 }
 
 static ErrMsg _generate(const GenInput& gen) {
-    for (int i = 0; i < Slang::NUM; i++) {
+    for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = (Slang::Enum) i;
         if (gen.args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);

@@ -50,7 +50,7 @@ static Uniform as_flattened_uniform(const UniformBlock& block) {
     return uniform;
 }
 
-static void write_attribute(const VertexAttr& att) {
+static void write_attribute(const StageAttr& att) {
     L("            -\n");
     L("              slot: {}\n", att.slot);
     L("              name: {}\n", att.name);
@@ -111,51 +111,51 @@ static void write_image_sampler(const ImageSampler& image_sampler) {
 }
 
 static void write_source_reflection(const SpirvcrossSource* src) {
-    L("          entry_point: {}\n", src->refl.entry_point);
+    L("          entry_point: {}\n", src->stage_refl.entry_point);
     L("          inputs:\n");
-    for (const auto& input: src->refl.inputs) {
+    for (const auto& input: src->stage_refl.inputs) {
         if (input.slot == -1) {
             break;
         }
         write_attribute(input);
     }
     L("          outputs:\n");
-    for (const auto& output: src->refl.outputs) {
+    for (const auto& output: src->stage_refl.outputs) {
         if (output.slot == -1) {
             break;
         }
         write_attribute(output);
     }
-    if (src->refl.bindings.uniform_blocks.size() > 0) {
+    if (src->stage_refl.bindings.uniform_blocks.size() > 0) {
         L("          uniform_blocks:\n");
-        for (const auto& uniform_block: src->refl.bindings.uniform_blocks) {
+        for (const auto& uniform_block: src->stage_refl.bindings.uniform_blocks) {
             if (uniform_block.slot == -1) {
                 break;
             }
             write_uniform_block(uniform_block);
         }
     }
-    if (src->refl.bindings.images.size() > 0) {
+    if (src->stage_refl.bindings.images.size() > 0) {
         L("          images:\n");
-        for (const auto& image: src->refl.bindings.images) {
+        for (const auto& image: src->stage_refl.bindings.images) {
             if (image.slot == -1) {
                 break;
             }
             write_image(image);
         }
     }
-    if (src->refl.bindings.samplers.size() > 0) {
+    if (src->stage_refl.bindings.samplers.size() > 0) {
         L("          samplers:\n");
-        for (const auto& sampler: src->refl.bindings.samplers) {
+        for (const auto& sampler: src->stage_refl.bindings.samplers) {
             if (sampler.slot == -1) {
                 break;
             }
             write_sampler(sampler);
         }
     }
-    if (src->refl.bindings.image_samplers.size() > 0) {
+    if (src->stage_refl.bindings.image_samplers.size() > 0) {
         L("          image_sampler_pairs:\n");
-        for (const auto& image_sampler: src->refl.bindings.image_samplers) {
+        for (const auto& image_sampler: src->stage_refl.bindings.image_samplers) {
             if (image_sampler.slot == -1) {
                 break;
             }
@@ -203,7 +203,7 @@ static ErrMsg _generate(const GenInput& gen) {
 
     L("shaders:\n");
 
-    for (int i = 0; i < Slang::NUM; i++) {
+    for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = (Slang::Enum) i;
         if (gen.args.slang & Slang::bit(slang)) {
             ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);

@@ -4,7 +4,7 @@
 namespace shdc::refl {
 
 struct Uniform {
-    static const int NUM = 16;      // must be identical with SG_MAX_UB_MEMBERS
+    static const int Num = 16;      // must be identical with SG_MAX_UB_MEMBERS
     enum Type {
         INVALID,
         FLOAT,

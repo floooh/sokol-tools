@@ -5,9 +5,10 @@ namespace shdc::refl {
 // a shader stage
 struct ShaderStage {
     enum Enum {
-        INVALID,
-        VS,
-        FS,
+        Vertex = 0,
+        Fragment,
+        Num,
+        Invalid,
     };
     static const char* to_str(Enum e);
     static Enum from_index(int idx);
@@ -17,26 +18,23 @@ struct ShaderStage {
 
 inline const char* ShaderStage::to_str(ShaderStage::Enum e) {
     switch (e) {
-        case VS: return "VS";
-        case FS: return "FS";
+        case Vertex: return "VS";
+        case Fragment: return "FS";
         default: return "INVALID";
     }
 }
 
 inline ShaderStage::Enum ShaderStage::from_index(int idx) {
-    switch (idx) {
-        case 0: return VS;
-        case 1: return FS;
-        default: return INVALID;
-    }
+    assert((idx >= 0) && (idx < Num));
+    return (ShaderStage::Enum)idx;
 }
 
 inline bool ShaderStage::is_vs(ShaderStage::Enum e) {
-    return VS == e;
+    return Vertex == e;
 }
 
 inline bool ShaderStage::is_fs(ShaderStage::Enum e) {
-    return FS == e;
+    return Fragment == e;
 }
 
 } // namespace

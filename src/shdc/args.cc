@@ -91,7 +91,7 @@ static bool parse_slang(Args& args, const char* str) {
     pystring::split(str, splits, ":");
     for (const auto& item : splits) {
         bool item_valid = false;
-        for (int i = 0; i < Slang::NUM; i++) {
+        for (int i = 0; i < Slang::Num; i++) {
             if (item == Slang::to_str((Slang::Enum)i)) {
                 args.slang |= Slang::bit((Slang::Enum)i);
                 item_valid = true;

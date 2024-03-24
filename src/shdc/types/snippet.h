@@ -17,8 +17,9 @@ struct Snippet {
         VS,
         FS
     };
+    int index = -1;
     Type type = INVALID;
-    std::array<uint32_t, Slang::NUM> options = { };
+    std::array<uint32_t, Slang::Num> options = { };
     std::map<std::string, ImageSampleTypeTag> image_sample_type_tags;
     std::map<std::string, SamplerTypeTag> sampler_type_tags;
     std::string name;

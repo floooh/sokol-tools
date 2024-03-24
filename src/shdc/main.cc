@@ -6,6 +6,7 @@
 #include "input.h"
 #include "spirvcross.h"
 #include "bytecode.h"
+#include "reflection.h"
 #include "generators/generate.h"
 
 using namespace shdc;
@@ -36,9 +37,9 @@ int main(int argc, const char** argv) {
 
     // compile source snippets to SPIRV blobs (multiple compilations is necessary
     // because of conditional compilation by target language)
-    std::array<Spirv,Slang::NUM> spirv;
-    for (int i = 0; i < Slang::NUM; i++) {
-        Slang::Enum slang = (Slang::Enum)i;
+    std::array<Spirv,Slang::Num> spirv;
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
         if (args.slang & Slang::bit(slang)) {
             spirv[i] = Spirv::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
@@ -65,9 +66,9 @@ int main(int argc, const char** argv) {
     }
 
     // cross-translate SPIRV to shader dialects
-    std::array<Spirvcross,Slang::NUM> spirvcross;
-    for (int i = 0; i < Slang::NUM; i++) {
-        Slang::Enum slang = (Slang::Enum)i;
+    std::array<Spirvcross,Slang::Num> spirvcross;
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
         if (args.slang & Slang::bit(slang)) {
             spirvcross[i] = Spirvcross::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
@@ -81,10 +82,10 @@ int main(int argc, const char** argv) {
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    std::array<Bytecode, Slang::NUM> bytecode;
+    std::array<Bytecode, Slang::Num> bytecode;
     if (args.byte_code) {
-        for (int i = 0; i < Slang::NUM; i++) {
-            Slang::Enum slang = (Slang::Enum)i;
+        for (int i = 0; i < Slang::Num; i++) {
+            Slang::Enum slang = Slang::from_index(i);
             if (args.slang & Slang::bit(slang)) {
                 bytecode[i] = Bytecode::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {
@@ -106,25 +107,15 @@ int main(int argc, const char** argv) {
         }
     }
 
-    // find and merge identical binding reflections across all compiled shader snippets
-    std::vector<Bindings> snippet_bindings;
-    for (int i = 0; i < Slang::NUM; i++) {
-        Slang::Enum slang = (Slang::Enum)i;
-        if (args.slang & Slang::bit(slang)) {
-            for (const SpirvcrossSource& src: spirvcross[i].sources) {
-                snippet_bindings.push_back(src.refl.bindings);
-            }
-        }
-    }
-    ErrMsg merge_error;
-    const Bindings merged_bindings = Reflection::merge_bindings(snippet_bindings, inp.base_path, merge_error);
-    if (merge_error.valid()) {
-        merge_error.print(args.error_format);
+    // build merged Reflection info
+    const Reflection refl = Reflection::build(args, inp, spirvcross);
+    if (refl.error.valid()) {
+        refl.error.print(args.error_format);
         return 10;
     }
 
     // generate output files
-    const GenInput gen_input(args, inp, spirvcross, bytecode, merged_bindings);
+    const GenInput gen_input(args, inp, spirvcross, bytecode, refl);
     ErrMsg gen_error = generate(args.output_format, gen_input);
     if (gen_error.valid()) {
         gen_error.print(args.error_format);

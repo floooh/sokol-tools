@@ -124,10 +124,10 @@ void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlo
     l("#pragma pack(pop)\n");
 }
 
-void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& prog) {
+void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
     reset_indent();
     l_open("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
-    for (int i = 0; i < Slang::NUM; i++) {
+    for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
             if (gen.args.ifdef) {
@@ -138,9 +138,8 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
             l("static bool valid;\n");
             l_open("if (!valid) {{\n");
             l("valid = true;\n");
-            const ShaderStageInfo attr_info = get_shader_stage_info(gen, prog, ShaderStage::VS, slang);
-            for (int attr_index = 0; attr_index < VertexAttr::NUM; attr_index++) {
-                const VertexAttr& attr = attr_info.source->refl.inputs[attr_index];
+            for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
+                const StageAttr& attr = prog.vs().inputs[attr_index];
                 if (attr.slot >= 0) {
                     if (Slang::is_glsl(slang)) {
                         l("desc.attrs[{}].name = \"{}\";\n", attr_index, attr.name);
@@ -150,12 +149,13 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                     }
                 }
             }
-            for (int stage_index = 0; stage_index < 2; stage_index++) {
-                const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-                const std::string dsn = fmt::format("desc.{}", info.stage_name);
-                if (info.bytecode) {
+            for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
+                const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+                const StageReflection& refl = prog.stages[stage_index];
+                const std::string dsn = fmt::format("desc.{}", refl.stage_name);
+                if (info.has_bytecode) {
                     l("{}.bytecode.ptr = {};\n", dsn, info.bytecode_array_name);
-                    l("{}.bytecode.size = {};\n", dsn, info.bytecode->data.size());
+                    l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);
                 } else {
                     l("{}.source = {};\n", dsn, info.source_array_name);
                     const char* d3d11_tgt = nullptr;
@@ -168,9 +168,9 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                         l("{}.d3d11_target = \"{}\";\n", dsn, d3d11_tgt);
                     }
                 }
-                l("{}.entry = \"{}\";\n", dsn, info.source->refl.entry_point);
-                for (int ub_index = 0; ub_index < UniformBlock::NUM; ub_index++) {
-                    const UniformBlock* ub = info.source->refl.bindings.find_uniform_block_by_slot(ub_index);
+                l("{}.entry = \"{}\";\n", dsn, refl.entry_point);
+                for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
+                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
                         l("{}.size = {};\n", ubn, roundup(ub->size, 16));
@@ -192,8 +192,8 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                         }
                     }
                 }
-                for (int img_index = 0; img_index < Image::NUM; img_index++) {
-                    const Image* img = info.source->refl.bindings.find_image_by_slot(img_index);
+                for (int img_index = 0; img_index < Image::Num; img_index++) {
+                    const Image* img = refl.bindings.find_image_by_slot(img_index);
                     if (img) {
                         const std::string in = fmt::format("{}.images[{}]", dsn, img_index);
                         l("{}.used = true;\n", in);
@@ -202,21 +202,21 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
                         l("{}.sample_type = {};\n", in, image_sample_type(img->sample_type));
                     }
                 }
-                for (int smp_index = 0; smp_index < Sampler::NUM; smp_index++) {
-                    const Sampler* smp = info.source->refl.bindings.find_sampler_by_slot(smp_index);
+                for (int smp_index = 0; smp_index < Sampler::Num; smp_index++) {
+                    const Sampler* smp = refl.bindings.find_sampler_by_slot(smp_index);
                     if (smp) {
                         const std::string sn = fmt::format("{}.samplers[{}]", dsn, smp_index);
                         l("{}.used = true;\n", sn);
                         l("{}.sampler_type = {};\n", sn, sampler_type(smp->type));
                     }
                 }
-                for (int img_smp_index = 0; img_smp_index < ImageSampler::NUM; img_smp_index++) {
-                    const ImageSampler* img_smp = info.source->refl.bindings.find_image_sampler_by_slot(img_smp_index);
+                for (int img_smp_index = 0; img_smp_index < ImageSampler::Num; img_smp_index++) {
+                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_slot(img_smp_index);
                     if (img_smp) {
                         const std::string isn = fmt::format("{}.image_sampler_pairs[{}]", dsn, img_smp_index);
                         l("{}.used = true;\n", isn);
-                        l("{}.image_slot = {};\n", isn, info.source->refl.bindings.find_image_by_name(img_smp->image_name)->slot);
-                        l("{}.sampler_slot = {};\n", isn, info.source->refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
+                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->slot);
+                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
                         if (Slang::is_glsl(slang)) {
                             l("{}.glsl_name = \"{}\";\n", isn, img_smp->name);
                         }
@@ -236,12 +236,10 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const Program& pr
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Program& prog) {
-    const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::VS, Slang::first_valid(gen.args.slang));
-    const Reflection& vs_refl = info.source->refl;
+void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)attr_name;\n");
-    for (const VertexAttr& attr: vs_refl.inputs) {
+    for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
             l_open("if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
             l("return {};\n", attr.slot);
@@ -252,15 +250,12 @@ void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Program&
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)img_name;\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.images.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Image& img: refl.bindings.images) {
                 if (img.slot >= 0) {
                     l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
@@ -275,15 +270,12 @@ void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const Program
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)smp_name;\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.samplers.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Sampler& smp: refl.bindings.samplers) {
                 if (smp.slot >= 0) {
                     l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
@@ -298,15 +290,12 @@ void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Progr
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -321,15 +310,12 @@ void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const 
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -344,15 +330,12 @@ void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const 
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -371,8 +354,7 @@ void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pro
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Program& prog) {
-    const Slang::Enum slang = Slang::first_valid(gen.args.slang);
+void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     l("#if defined(__cplusplus)\n");
@@ -380,11 +362,9 @@ void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Progr
     l("#else\n");
     l("sg_shader_uniform_desc desc = {{0}};\n");
     l("#endif\n");
-    for (int stage_index = 0; stage_index < 2; stage_index++) {
-        const ShaderStageInfo info = get_shader_stage_info(gen, prog, ShaderStage::from_index(stage_index), slang);
-        const Reflection& refl = info.source->refl;
+    for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(info.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -432,12 +412,12 @@ void SokolGenerator::gen_stb_impl_end(const GenInput& gen) {
     }
 }
 
-std::string SokolGenerator::shader_bytecode_array_name(const std::string& name, Slang::Enum slang) {
-    return fmt::format("{}{}_bytecode_{}", mod_prefix, name, Slang::to_str(slang));
+std::string SokolGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
+    return fmt::format("{}{}_bytecode_{}", mod_prefix, snippet_name, Slang::to_str(slang));
 }
 
-std::string SokolGenerator::shader_source_array_name(const std::string& name, Slang::Enum slang) {
-    return fmt::format("{}{}_source_{}", mod_prefix, name, Slang::to_str(slang));
+std::string SokolGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
+    return fmt::format("{}{}_source_{}", mod_prefix, snippet_name, Slang::to_str(slang));
 }
 
 std::string SokolGenerator::comment_block_start() {
@@ -542,7 +522,7 @@ std::string SokolGenerator::struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const refl::VertexAttr& attr) {
+std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const refl::StageAttr& attr) {
     return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
 }
 
@@ -558,7 +538,7 @@ std::string SokolGenerator::uniform_block_bind_slot_name(const refl::UniformBloc
     return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
 }
 
-std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const refl::VertexAttr& attr) {
+std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const refl::StageAttr& attr) {
     return fmt::format("#define {} ({})", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
