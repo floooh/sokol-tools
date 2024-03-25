@@ -27,7 +27,7 @@ void SokolZigGenerator::gen_prerequisites(const GenInput& gen) {
     // empty
 }
 
-void SokolZigGenerator::gen_uniformblock_decl(const GenInput& gen, const refl::UniformBlock& ub) {
+void SokolZigGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
     l_open("pub const {} = extern struct {{\n", struct_name(ub.struct_name));
     int cur_offset = 0;
     for (const Uniform& uniform: ub.uniforms) {
@@ -293,7 +293,7 @@ std::string SokolZigGenerator::image_type(ImageType::Enum e) {
     }
 }
 
-std::string SokolZigGenerator::image_sample_type(refl::ImageSampleType::Enum e) {
+std::string SokolZigGenerator::image_sample_type(ImageSampleType::Enum e) {
     switch (e) {
         case ImageSampleType::FLOAT: return ".FLOAT";
         case ImageSampleType::DEPTH: return ".DEPTH";
@@ -304,7 +304,7 @@ std::string SokolZigGenerator::image_sample_type(refl::ImageSampleType::Enum e) 
     }
 }
 
-std::string SokolZigGenerator::sampler_type(refl::SamplerType::Enum e) {
+std::string SokolZigGenerator::sampler_type(SamplerType::Enum e) {
     switch (e) {
         case SamplerType::FILTERING:     return ".FILTERING";
         case SamplerType::COMPARISON:    return ".COMPARISON";
@@ -332,35 +332,35 @@ std::string SokolZigGenerator::struct_name(const std::string& name) {
     return to_pascal_case(name);
 }
 
-std::string SokolZigGenerator::vertex_attr_name(const std::string& snippet_name, const refl::StageAttr& attr) {
+std::string SokolZigGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("ATTR_{}_{}", snippet_name, attr.name);
 }
 
-std::string SokolZigGenerator::image_bind_slot_name(const refl::Image& img) {
+std::string SokolZigGenerator::image_bind_slot_name(const Image& img) {
     return fmt::format("SLOT_{}", img.name);
 }
 
-std::string SokolZigGenerator::sampler_bind_slot_name(const refl::Sampler& smp) {
+std::string SokolZigGenerator::sampler_bind_slot_name(const Sampler& smp) {
     return fmt::format("SLOT_{}", smp.name);
 }
 
-std::string SokolZigGenerator::uniform_block_bind_slot_name(const refl::UniformBlock& ub) {
+std::string SokolZigGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("SLOT_{}", ub.struct_name);
 }
 
-std::string SokolZigGenerator::vertex_attr_definition(const std::string& snippet_name, const refl::StageAttr& attr) {
+std::string SokolZigGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("pub const {} = {};", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-std::string SokolZigGenerator::image_bind_slot_definition(const refl::Image& img) {
+std::string SokolZigGenerator::image_bind_slot_definition(const Image& img) {
     return fmt::format("pub const {} = {};", image_bind_slot_name(img), img.slot);
 }
 
-std::string SokolZigGenerator::sampler_bind_slot_definition(const refl::Sampler& smp) {
+std::string SokolZigGenerator::sampler_bind_slot_definition(const Sampler& smp) {
     return fmt::format("pub const {} = {};", sampler_bind_slot_name(smp), smp.slot);
 }
 
-std::string SokolZigGenerator::uniform_block_bind_slot_definition(const refl::UniformBlock& ub) {
+std::string SokolZigGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
     return fmt::format("pub const {} = {};", uniform_block_bind_slot_name(ub), ub.slot);
 }
 

@@ -486,7 +486,7 @@ std::string SokolGenerator::image_type(ImageType::Enum e) {
     }
 }
 
-std::string SokolGenerator::image_sample_type(refl::ImageSampleType::Enum e) {
+std::string SokolGenerator::image_sample_type(ImageSampleType::Enum e) {
     switch (e) {
         case ImageSampleType::FLOAT: return "SG_IMAGESAMPLETYPE_FLOAT";
         case ImageSampleType::DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
@@ -497,7 +497,7 @@ std::string SokolGenerator::image_sample_type(refl::ImageSampleType::Enum e) {
     }
 }
 
-std::string SokolGenerator::sampler_type(refl::SamplerType::Enum e) {
+std::string SokolGenerator::sampler_type(SamplerType::Enum e) {
     switch (e) {
         case SamplerType::FILTERING:     return "SG_SAMPLERTYPE_FILTERING";
         case SamplerType::COMPARISON:    return "SG_SAMPLERTYPE_COMPARISON";
@@ -525,35 +525,35 @@ std::string SokolGenerator::struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const refl::StageAttr& attr) {
+std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
 }
 
-std::string SokolGenerator::image_bind_slot_name(const refl::Image& img) {
+std::string SokolGenerator::image_bind_slot_name(const Image& img) {
     return fmt::format("SLOT_{}{}", mod_prefix, img.name);
 }
 
-std::string SokolGenerator::sampler_bind_slot_name(const refl::Sampler& smp) {
+std::string SokolGenerator::sampler_bind_slot_name(const Sampler& smp) {
     return fmt::format("SLOT_{}{}", mod_prefix, smp.name);
 }
 
-std::string SokolGenerator::uniform_block_bind_slot_name(const refl::UniformBlock& ub) {
+std::string SokolGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
 }
 
-std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const refl::StageAttr& attr) {
+std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("#define {} ({})", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-std::string SokolGenerator::image_bind_slot_definition(const refl::Image& img) {
+std::string SokolGenerator::image_bind_slot_definition(const Image& img) {
     return fmt::format("#define {} ({})", image_bind_slot_name(img), img.slot);
 }
 
-std::string SokolGenerator::sampler_bind_slot_definition(const refl::Sampler& smp) {
+std::string SokolGenerator::sampler_bind_slot_definition(const Sampler& smp) {
     return fmt::format("#define {} ({})", sampler_bind_slot_name(smp), smp.slot);
 }
 
-std::string SokolGenerator::uniform_block_bind_slot_definition(const refl::UniformBlock& ub) {
+std::string SokolGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
     return fmt::format("#define {} ({})", uniform_block_bind_slot_name(ub), ub.slot);
 }
 

@@ -106,6 +106,9 @@ protected:
         dedent();
         l(fmt, args...);
     }
+    template<typename... T> void l_close() {
+        dedent();
+    }
     // comment block lines
     void cbl_start() {
         l_open("{}\n", comment_block_start());
