@@ -222,6 +222,10 @@ void SokolZigGenerator::gen_shader_array_end(const GenInput& gen) {
     l("\n}};\n");
 }
 
+std::string SokolZigGenerator::lang_name() {
+    return "Zig";
+}
+
 std::string SokolZigGenerator::comment_block_start() {
     return "//";
 }
@@ -240,10 +244,6 @@ std::string SokolZigGenerator::shader_bytecode_array_name(const std::string& sni
 
 std::string SokolZigGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
     return fmt::format("{}_source_{}", snippet_name, Slang::to_str(slang));
-}
-
-std::string SokolZigGenerator::lang_name() {
-    return "Zig";
 }
 
 std::string SokolZigGenerator::get_shader_desc_help(const std::string& prog_name) {

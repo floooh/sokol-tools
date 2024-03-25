@@ -24,12 +24,12 @@ protected:
     virtual void gen_uniformblock_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual std::string lang_name();
     virtual std::string comment_block_start();
     virtual std::string comment_block_line_prefix();
     virtual std::string comment_block_end();
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang);
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang);
-    virtual std::string lang_name();
     virtual std::string get_shader_desc_help(const std::string& prog_name);
     virtual std::string uniform_type(refl::Uniform::Type t);
     virtual std::string flattened_uniform_type(refl::Uniform::Type t);

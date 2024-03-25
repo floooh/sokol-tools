@@ -415,6 +415,10 @@ void SokolGenerator::gen_stb_impl_end(const GenInput& gen) {
     }
 }
 
+std::string SokolGenerator::lang_name() {
+    return "C";
+}
+
 std::string SokolGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
     return fmt::format("{}{}_bytecode_{}", mod_prefix, snippet_name, Slang::to_str(slang));
 }
@@ -433,10 +437,6 @@ std::string SokolGenerator::comment_block_end() {
 
 std::string SokolGenerator::comment_block_line_prefix() {
     return "";
-}
-
-std::string SokolGenerator::lang_name() {
-    return "C";
 }
 
 std::string SokolGenerator::get_shader_desc_help(const std::string& prog_name) {
