@@ -4,7 +4,10 @@
 namespace shdc::gen {
 
 class SokolGenerator: public Generator {
+    std::string mod_prefix;
+    std::string func_prefix;
 protected:
+    virtual ErrMsg begin(const GenInput& gen);
     virtual void gen_prolog(const GenInput& gen);
     virtual void gen_epilog(const GenInput& gen);
     virtual void gen_prerequisites(const GenInput& gen);

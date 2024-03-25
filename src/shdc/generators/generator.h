@@ -11,14 +11,11 @@ public:
     virtual ErrMsg generate(const GenInput& gen);
 
 protected:
-    // the current module prefix, initialized by begin()
-    std::string mod_prefix;
-
     // called directly by generate() in this order
     virtual ErrMsg begin(const GenInput& gen);
-    virtual void gen_prolog(const GenInput& gen) { assert(false && "implement me"); };
+    virtual void gen_prolog(const GenInput& gen);
     virtual void gen_header(const GenInput& gen);
-    virtual void gen_prerequisites(const GenInput& gen) { assert(false && "implement me"); };
+    virtual void gen_prerequisites(const GenInput& gen);
     virtual void gen_vertex_attr_consts(const GenInput& gen);
     virtual void gen_bind_slot_consts(const GenInput& gen);
     virtual void gen_uniformblock_decls(const GenInput& gen);
@@ -26,7 +23,7 @@ protected:
     virtual void gen_shader_arrays(const GenInput& gen);
     virtual void gen_shader_desc_funcs(const GenInput& gen);
     virtual void gen_reflection_funcs(const GenInput& gen);
-    virtual void gen_epilog(const GenInput& gen) { assert(false && "implement me"); };
+    virtual void gen_epilog(const GenInput& gen);
     virtual void gen_stb_impl_end(const GenInput& gen) { };
     virtual ErrMsg end(const GenInput& gen);
 
@@ -93,9 +90,12 @@ protected:
     ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
 
     // line output
-    void reset_indent() { indentation = ""; };
     template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
-        const std::string str = fmt::format("{}{}", indentation, fmt::vformat(fmt, fmt::make_format_args(args...)));
+        const std::string str = fmt::format("{}{}", indentation, fmt::format(fmt, args...));
+        content.append(str);
+    }
+    template<typename... T> void l_append(fmt::format_string<T...> fmt, T&&... args) {
+        const std::string str = fmt::format(fmt, args...);
         content.append(str);
     }
     template<typename... T> void l_open(fmt::format_string<T...> fmt, T&&... args) {
@@ -111,7 +111,7 @@ protected:
         l_open("{}\n", comment_block_start());
     }
     template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
-        const std::string str = fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::vformat(fmt, fmt::make_format_args(args...)));
+        const std::string str = fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt, args...));
         content.append(str);
     }
     template<typename... T> void cbl_open(fmt::format_string<T...> fmt, T&&... args) {

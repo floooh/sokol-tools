@@ -27,16 +27,21 @@ static const char* sokol_define(Slang::Enum slang) {
     }
 }
 
-static std::string func_prefix(const Args& args) {
-    if (args.output_format != Format::SOKOL_IMPL) {
-        return std::string("static inline ");
-    } else {
-        return std::string();
+ErrMsg SokolGenerator::begin(const GenInput& gen) {
+    if (!gen.inp.module.empty()) {
+        mod_prefix = fmt::format("{}_", gen.inp.module);
     }
+    if (gen.args.output_format != Format::SOKOL_IMPL) {
+        func_prefix = "static inline ";
+    }
+    return Generator::begin(gen);
 }
 
 void SokolGenerator::gen_prolog(const GenInput& gen) {
     l("#pragma once\n");
+    for (const auto& header: gen.inp.headers) {
+        l("{}\n", header);
+    }
 }
 
 void SokolGenerator::gen_epilog(const GenInput& gen) {
@@ -72,7 +77,6 @@ void SokolGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlock& ub) {
-    reset_indent();
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
     l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_name));
@@ -125,8 +129,7 @@ void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlo
 }
 
 void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    reset_indent();
-    l_open("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix, mod_prefix, prog.name);
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
@@ -152,7 +155,7 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRefl
             for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                 const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
                 const StageReflection& refl = prog.stages[stage_index];
-                const std::string dsn = fmt::format("desc.{}", refl.stage_name);
+                const std::string dsn = fmt::format("desc.{}", pystring::lower(refl.stage_name));
                 if (info.has_bytecode) {
                     l("{}.bytecode.ptr = {};\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);
@@ -237,7 +240,7 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRefl
 }
 
 void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)attr_name;\n");
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
@@ -251,7 +254,7 @@ void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramR
 }
 
 void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)img_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.images.empty()) {
@@ -271,7 +274,7 @@ void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const Program
 }
 
 void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)smp_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.samplers.empty()) {
@@ -291,7 +294,7 @@ void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Progr
 }
 
 void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
@@ -311,7 +314,7 @@ void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const 
 }
 
 void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
@@ -331,7 +334,7 @@ void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const 
 }
 
 void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
@@ -355,7 +358,7 @@ void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pro
 }
 
 void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix(gen.args), mod_prefix, prog.name);
+    l_open("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     l("#if defined(__cplusplus)\n");
     l("sg_shader_uniform_desc desc = {{}};\n");
