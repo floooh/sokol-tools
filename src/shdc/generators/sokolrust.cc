@@ -12,16 +12,242 @@ namespace shdc::gen {
 using namespace util;
 using namespace refl;
 
-static std::string file_content;
+void SokolRustGenerator::gen_prolog(const GenInput& gen) {
+    l("#![allow(dead_code)]\n");
+    l("use sokol::gfx as sg;\n");
+    for (const auto& header: gen.inp.headers) {
+        l("{}\n", header);
+    }
+}
 
-#if defined(_MSC_VER)
-#define L(str, ...) file_content.append(fmt::format(str, __VA_ARGS__))
-#else
-#define L(str, ...) file_content.append(fmt::format(str, ##__VA_ARGS__))
-#endif
+void SokolRustGenerator::gen_epilog(const GenInput& gen) {
+    // empty
+}
 
-static const char* uniform_type_to_sokol_type_str(Uniform::Type type) {
-    switch (type) {
+void SokolRustGenerator::gen_prerequisites(const GenInput& gen) {
+    // empty
+}
+
+void SokolRustGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
+    l("#[repr(C), align(16)]\n");
+    l_open("pub struct {} {{\n", struct_name(ub.struct_name));
+    int cur_offset = 0;
+    for (const Uniform& uniform: ub.uniforms) {
+        int next_offset = uniform.offset;
+        if (next_offset > cur_offset) {
+            l("_pad_{}: [u8; {}],\n", cur_offset, next_offset - cur_offset);
+            cur_offset = next_offset;
+        }
+        if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
+            // user-provided type names
+            if (uniform.array_count == 1) {
+                l("pub {}: {},\n", uniform.name, gen.inp.ctype_map.at(uniform.type_as_glsl()));
+            } else {
+                l("pub {}: [{}; {}],\n", uniform.name, gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.array_count);
+            }
+        } else {
+            // default type names (float)
+            if (uniform.array_count == 1) {
+                switch (uniform.type) {
+                    case Uniform::FLOAT:   l("pub {}: f32,\n", uniform.name); break;
+                    case Uniform::FLOAT2:  l("pub {}: [f32; 2],\n", uniform.name); break;
+                    case Uniform::FLOAT3:  l("pub {}: [f32; 3],\n", uniform.name); break;
+                    case Uniform::FLOAT4:  l("pub {}: [f32; 4],\n", uniform.name); break;
+                    case Uniform::INT:     l("pub {}: i32,\n", uniform.name); break;
+                    case Uniform::INT2:    l("pub {}: [i32; 2],\n", uniform.name); break;
+                    case Uniform::INT3:    l("pub {}: [i32; 3],\n", uniform.name); break;
+                    case Uniform::INT4:    l("pub {}: [i32; 4],\n", uniform.name); break;
+                    case Uniform::MAT4:    l("pub {}: [f32; 16],\n", uniform.name); break;
+                    default:               l("INVALID_UNIFORM_TYPE"); break;
+                }
+            } else {
+                switch (uniform.type) {
+                    case Uniform::FLOAT4:  l("pub {}: [[f32; 4]; {}],\n", uniform.name, uniform.array_count); break;
+                    case Uniform::INT4:    l("pub {}: [[i32; 4]; {}],\n", uniform.name, uniform.array_count); break;
+                    case Uniform::MAT4:    l("pub {}: [[f32; 16]; {}],\n", uniform.name, uniform.array_count); break;
+                    default:               l("INVALID_UNIFORM_TYPE;\n"); break;
+                }
+            }
+        }
+        cur_offset += uniform.size_bytes();
+    }
+    // pad to multiple of 16-bytes struct size
+    const int round16 = roundup(cur_offset, 16);
+    if (cur_offset != round16) {
+        l("_pad_{}: [u8; {}],\n", cur_offset, round16 - cur_offset);
+    }
+    l_close("}}\n");
+}
+
+void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}_shader_desc(backend: sg::Backend) -> sg::ShaderDesc {{\n", prog.name);
+    l("let mut desc = sg::ShaderDesc::new();\n");
+    l("desc.label = b\"{}_shader\\0\".as_ptr() as *const _;\n", prog.name);
+    l_open("match backend {{\n");
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
+        if (gen.args.slang & Slang::bit(slang)) {
+            l_open("{} => {{\n", backend(slang));
+            for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
+                const StageAttr& attr = prog.vs().inputs[attr_index];
+                if (attr.slot >= 0) {
+                    if (Slang::is_glsl(slang)) {
+                        l("desc.attrs[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", attr_index, attr.name);
+                    } else if (Slang::is_hlsl(slang)) {
+                        l("desc.attrs[{}].sem_name = b\"{}\\0\".as_ptr() as *const _;\n", attr_index, attr.sem_name);
+                        l("desc.attrs[{}].sem_index = {};\n", attr_index, attr.sem_index);
+                    }
+                }
+            }
+            for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
+                const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+                const StageReflection& refl = prog.stages[stage_index];
+                const std::string dsn = fmt::format("desc.{}", pystring::lower(refl.stage_name));
+                if (info.has_bytecode) {
+                    l("{}.bytecode.ptr = &{} as *const _ as *const _;\n", dsn, info.bytecode_array_name);
+                    l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);
+                } else {
+                    l("{}.source = &{} as *const _ as *const _;\n", dsn, info.source_array_name);
+                    const char* d3d11_tgt = nullptr;
+                    if (slang == Slang::HLSL4) {
+                        d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
+                    } else if (slang == Slang::HLSL5) {
+                        d3d11_tgt = (0 == stage_index) ? "vs_5_0" : "ps_5_0";
+                    }
+                    if (d3d11_tgt) {
+                        l("{}.d3d11_target = b\"{}\\0\".as_ptr() as *const _;\n", dsn, d3d11_tgt);
+                    }
+                }
+                l("{}.entry = b\"{}\\0\".as_ptr() as *const _;\n", dsn, refl.entry_point);
+                for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
+                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
+                    if (ub) {
+                        const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
+                        l("{}.size = {};\n", ubn, roundup(ub->size, 16));
+                        l("{}.layout = sg::UniformLayout::Std140;;\n", ubn);
+                        if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
+                            if (ub->flattened) {
+                                l("{}.uniforms[0].name = b\"{}\\0\".as_ptr() as *const _;\n", ubn, ub->struct_name);
+                                l("{}.uniforms[0]._type = {};\n", ubn, flattened_uniform_type(ub->uniforms[0].type));
+                                l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->size, 16) / 16);
+                            } else {
+                                for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
+                                    const Uniform& u = ub->uniforms[u_index];
+                                    const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
+                                    l("{}.name = b\"{}:{}\\0\".as_ptr() as *const _;\n", un, ub->inst_name, u.name);
+                                    l("{}._type = {};\n", un, uniform_type(u.type));
+                                    l(".array_count = {};\n", un, u.array_count);
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int img_index = 0; img_index < Image::Num; img_index++) {
+                    const Image* img = refl.bindings.find_image_by_slot(img_index);
+                    if (img) {
+                        const std::string in = fmt::format("{}.images[{}]", dsn, img_index);
+                        l("{}.used = true;\n", in);
+                        l("{}.multisampled = {};\n", in, img->multisampled ? "true" : "false");
+                        l("{}.image_type = {};\n", in, image_type(img->type));
+                        l("{}.sample_type = {};\n", in, image_sample_type(img->sample_type));
+                    }
+                }
+                for (int smp_index = 0; smp_index < Sampler::Num; smp_index++) {
+                    const Sampler* smp = refl.bindings.find_sampler_by_slot(smp_index);
+                    if (smp) {
+                        const std::string sn = fmt::format("{}.samplers[{}]", dsn, smp_index);
+                        l("{}.used = true;\n", sn);
+                        l("{}.sampler_type = {};\n", sn, sampler_type(smp->type));
+                    }
+                }
+                for (int img_smp_index = 0; img_smp_index < ImageSampler::Num; img_smp_index++) {
+                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_slot(img_smp_index);
+                    if (img_smp) {
+                        const std::string isn = fmt::format("{}.image_sampler_pairs[{}]", dsn, img_smp_index);
+                        l("{}.used = true;\n", isn);
+                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->slot);
+                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
+                        if (Slang::is_glsl(slang)) {
+                            l("{}.glsl_name = b\"{}\\0\".as_ptr() as *const _;\n", isn, img_smp->name);
+                        }
+                    }
+                }
+            }
+            l_close("}},\n"); // current switch branch
+        }
+    }
+    l("_ => {{}},\n");
+    l_close("}}\n"); // close switch statement
+    l("desc\n");
+    l_close("}}\n"); // close function
+}
+
+void SokolRustGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    // FIXME
+}
+
+void SokolRustGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
+    l("pub const {}: [u8; {}] = [\n", array_name, num_bytes);
+}
+
+void SokolRustGenerator::gen_shader_array_end(const GenInput& gen) {
+    l("\n];\n");
+}
+
+std::string SokolRustGenerator::lang_name() {
+    return "Rust";
+}
+
+std::string SokolRustGenerator::comment_block_start() {
+    return "/*";
+}
+
+std::string SokolRustGenerator::comment_block_end() {
+    return "*/";
+}
+
+std::string SokolRustGenerator::comment_block_line_prefix() {
+    return "";
+}
+
+std::string SokolRustGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
+    return to_upper_case(fmt::format("{}_bytecode_{}", snippet_name, Slang::to_str(slang)));
+}
+
+std::string SokolRustGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
+    return to_upper_case(fmt::format("{}_source_{}", snippet_name, Slang::to_str(slang)));
+}
+
+std::string SokolRustGenerator::get_shader_desc_help(const std::string& prog_name) {
+    return fmt::format("{}_shader_desc(sg::query_backend());\n", prog_name);
+}
+
+std::string SokolRustGenerator::uniform_type(Uniform::Type t) {
+    switch (t) {
         case Uniform::FLOAT:  return "sg::UniformType::Float";
         case Uniform::FLOAT2: return "sg::UniformType::Float2";
         case Uniform::FLOAT3: return "sg::UniformType::Float3";
@@ -31,12 +257,12 @@ static const char* uniform_type_to_sokol_type_str(Uniform::Type type) {
         case Uniform::INT3:   return "sg::UniformType::Int3";
         case Uniform::INT4:   return "sg::UniformType::Int4";
         case Uniform::MAT4:   return "sg::UniformType::Mat4";
-        default: return "FIXME";
+        default: return "INVALID";
     }
 }
 
-static const char* uniform_type_to_flattened_sokol_type_str(Uniform::Type type) {
-    switch (type) {
+std::string SokolRustGenerator::flattened_uniform_type(Uniform::Type t) {
+    switch (t) {
         case Uniform::FLOAT:
         case Uniform::FLOAT2:
         case Uniform::FLOAT3:
@@ -48,12 +274,13 @@ static const char* uniform_type_to_flattened_sokol_type_str(Uniform::Type type) 
         case Uniform::INT3:
         case Uniform::INT4:
             return "sg::UniformType::Int4";
-        default: return "FIXME";
+        default:
+            return "INVALID";
     }
 }
 
-static const char* img_type_to_sokol_type_str(ImageType::Enum type) {
-    switch (type) {
+std::string SokolRustGenerator::image_type(ImageType::Enum e) {
+    switch (e) {
         case ImageType::_2D:     return "sg::ImageType::Dim2";
         case ImageType::CUBE:    return "sg::ImageType::Cube";
         case ImageType::_3D:     return "sg::ImageType::Dim3";
@@ -62,8 +289,8 @@ static const char* img_type_to_sokol_type_str(ImageType::Enum type) {
     }
 }
 
-static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::Enum type) {
-    switch (type) {
+std::string SokolRustGenerator::image_sample_type(ImageSampleType::Enum e) {
+    switch (e) {
         case ImageSampleType::FLOAT:               return "sg::ImageSampleType::Float";
         case ImageSampleType::DEPTH:               return "sg::ImageSampleType::Depth";
         case ImageSampleType::SINT:                return "sg::ImageSampleType::Sint";
@@ -73,8 +300,8 @@ static const char* img_basetype_to_sokol_sampletype_str(ImageSampleType::Enum ty
     }
 }
 
-static const char* smp_type_to_sokol_type_str(SamplerType::Enum type) {
-    switch (type) {
+std::string SokolRustGenerator::sampler_type(SamplerType::Enum e) {
+    switch (e) {
         case SamplerType::FILTERING:     return "sg::SamplerType::Filtering";
         case SamplerType::COMPARISON:    return "sg::SamplerType::Comparison";
         case SamplerType::NONFILTERING:  return "sg::SamplerType::Nonfiltering";
@@ -82,8 +309,8 @@ static const char* smp_type_to_sokol_type_str(SamplerType::Enum type) {
     }
 }
 
-static const char* sokol_backend(Slang::Enum slang) {
-    switch (slang) {
+std::string SokolRustGenerator::backend(Slang::Enum e) {
+    switch (e) {
         case Slang::GLSL410:      return "sg::Backend::Glcore";
         case Slang::GLSL430:      return "sg::Backend::Glcore";
         case Slang::GLSL300ES:    return "sg::Backend::Gles3";
@@ -93,425 +320,44 @@ static const char* sokol_backend(Slang::Enum slang) {
         case Slang::METAL_IOS:    return "sg::Backend::MetalIos";
         case Slang::METAL_SIM:    return "sg::Backend::MetalSimulator";
         case Slang::WGSL:         return "sg::Backend::Wgpu";
-        default: return "<INVALID>";
+        default: return "INVALID";
     }
 }
 
-static void write_header(const Args& args, const Input& inp, const Spirvcross& spirvcross) {
-    L("/*\n");
-    L("    #version:{}# (machine generated, don't edit!)\n", args.gen_version);
-    L("  \n");
-    L("    Generated by sokol-shdc (https://github.com/floooh/sokol-tools)\n");
-    L("  \n");
-    L("    Cmdline: {}\n", args.cmdline);
-    L("  \n");
-    L("    Overview:\n");
-    L("  \n");
-    for (const auto& item: inp.programs) {
-        const Program& prog = item.second;
-
-        const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-        const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-        assert(vs_src && fs_src);
-        L("        Shader program '{}':\n", prog.name);
-        L("            Get shader desc: {}{}_shader_desc(sg::query_backend());\n", mod_prefix(inp), prog.name);
-        L("            Vertex shader: {}\n", prog.vs_name);
-        L("                Attribute slots:\n");
-        const Snippet& vs_snippet = inp.snippets[vs_src->snippet_index];
-        for (const StageAttr& attr: vs_src->stage_refl.inputs) {
-            if (attr.slot >= 0) {
-                L("                    ATTR_{}{}_{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(vs_snippet.name), to_upper_case(attr.name), attr.slot);
-            }
-        }
-        for (const UniformBlock& ub: vs_src->stage_refl.bindings.uniform_blocks) {
-            L("                Uniform block '{}':\n", ub.struct_name);
-            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
-            L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
-        }
-        for (const Image& img: vs_src->stage_refl.bindings.images) {
-            L("                Image '{}':\n", img.name);
-            L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
-            L("                    Multisampled: {}\n", img.multisampled);
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
-        }
-        for (const Sampler& smp: vs_src->stage_refl.bindings.samplers) {
-            L("                Sampler '{}':\n", smp.name);
-            L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
-        }
-        for (const ImageSampler& img_smp: vs_src->stage_refl.bindings.image_samplers) {
-            L("                Image Sampler Pair '{}':\n", img_smp.name);
-            L("                    Image: {}\n", img_smp.image_name);
-            L("                    Sampler: {}\n", img_smp.sampler_name);
-        }
-        L("            Fragment shader: {}\n", prog.fs_name);
-        for (const UniformBlock& ub: fs_src->stage_refl.bindings.uniform_blocks) {
-            L("                Uniform block '{}':\n", ub.struct_name);
-            L("                    C struct: {}{}_t\n", mod_prefix(inp), ub.struct_name);
-            L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
-        }
-        for (const Image& img: fs_src->stage_refl.bindings.images) {
-            L("                Image '{}':\n", img.name);
-            L("                    Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
-        }
-        for (const Image& img: fs_src->stage_refl.bindings.images) {
-            L("                Image '{}':\n", img.name);
-            L("                    Image Type: {}\n", img_type_to_sokol_type_str(img.type));
-            L("                    Sample Type: {}\n", img_basetype_to_sokol_sampletype_str(img.sample_type));
-            L("                    Multisampled: {}\n", img.multisampled);
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), img.name, img.slot);
-        }
-        for (const Sampler& smp: fs_src->stage_refl.bindings.samplers) {
-            L("                Sampler '{}':\n", smp.name);
-            L("                    Type: {}\n", smp_type_to_sokol_type_str(smp.type));
-            L("                    Bind slot: SLOT_{}{} = {}\n", mod_prefix(inp), smp.name, smp.slot);
-        }
-        for (const ImageSampler& img_smp: fs_src->stage_refl.bindings.image_samplers) {
-            L("                Image Sampler Pair '{}':\n", img_smp.name);
-            L("                    Image: {}\n", img_smp.image_name);
-            L("                    Sampler: {}\n", img_smp.sampler_name);
-        }
-        L("  \n");
-    }
-    L("*/\n");
-    for (const auto& header: inp.headers) {
-        L("{};\n", header);
-    }
+std::string SokolRustGenerator::struct_name(const std::string& name) {
+    return to_pascal_case(name);
 }
 
-static void write_vertex_attrs(const Input& inp, const Spirvcross& spirvcross) {
-    for (const SpirvcrossSource& src: spirvcross.sources) {
-        if (src.stage_refl.stage == ShaderStage::Vertex) {
-            const Snippet& vs_snippet = inp.snippets[src.snippet_index];
-            for (const StageAttr& attr: src.stage_refl.inputs) {
-                if (attr.slot >= 0) {
-                    L("pub const ATTR_{}{}_{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(vs_snippet.name), to_upper_case(attr.name), attr.slot);
-                }
-            }
-        }
-    }
+std::string SokolRustGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
+    return to_upper_case(fmt::format("ATTR_{}_{}", snippet_name, attr.name));
 }
 
-static void write_image_bind_slots(const Input& inp, const Bindings& bindings) {
-    for (const Image& img: bindings.images) {
-        L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(img.name), img.slot);
-    }
+std::string SokolRustGenerator::image_bind_slot_name(const Image& img) {
+    return to_upper_case(fmt::format("SLOT_{}", img.name));
 }
 
-static void write_sampler_bind_slots(const Input& inp, const Bindings& bindings) {
-    for (const Sampler& smp: bindings.samplers) {
-        L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(smp.name), smp.slot);
-    }
+std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
+    return to_upper_case(fmt::format("SLOT_{}", smp.name));
 }
 
-static void write_uniform_blocks(const Input& inp, const Bindings& bindings) {
-    for (const UniformBlock& ub: bindings.uniform_blocks) {
-        L("pub const SLOT_{}{}: usize = {};\n", to_upper_case(mod_prefix(inp)), to_upper_case(ub.struct_name), ub.slot);
-
-        /*
-           TODO: Should this be "#[repr(C), align(16)]"? I saw that sokolzig.cc mentioned being 16-aligned
-                 but I saw nothing about in in the odin generator.
-        */
-        L("#[repr(C)]\n");
-        L("pub struct {} {{\n", to_pascal_case(fmt::format("{}{}", mod_prefix(inp), ub.struct_name)));
-        int cur_offset = 0;
-        for (const Uniform& uniform: ub.uniforms) {
-            int next_offset = uniform.offset;
-            if (next_offset > cur_offset) {
-                L("    pub _pad_{}: [u8; {}],\n", cur_offset, next_offset - cur_offset);
-                cur_offset = next_offset;
-            }
-            if (inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
-                // user-provided type names
-                if (uniform.array_count == 1) {
-                    L("    pub {}: {}", uniform.name, inp.ctype_map.at(uniform.type_as_glsl()));
-                } else {
-                    L("    pub {}: [{}]{}", uniform.name, uniform.array_count, inp.ctype_map.at(uniform.type_as_glsl()));
-                }
-            } else {
-                // default type names (float)
-                if (uniform.array_count == 1) {
-                    switch (uniform.type) {
-                        case Uniform::FLOAT:   L("    pub {}: f32", uniform.name); break;
-                        case Uniform::FLOAT2:  L("    pub {}: [f32; 2]", uniform.name); break;
-                        case Uniform::FLOAT3:  L("    pub {}: [f32; 3]", uniform.name); break;
-                        case Uniform::FLOAT4:  L("    pub {}: [f32; 4]", uniform.name); break;
-                        case Uniform::INT:     L("    pub {}: i32", uniform.name); break;
-                        case Uniform::INT2:    L("    pub {}: [i32; 2]", uniform.name); break;
-                        case Uniform::INT3:    L("    pub {}: [i32; 3]", uniform.name); break;
-                        case Uniform::INT4:    L("    pub {}: [i32; 4]", uniform.name); break;
-                        case Uniform::MAT4:    L("    pub {}: [f32; 16]", uniform.name); break;
-                        default:                 L("    INVALID_UNIFORM_TYPE"); break;
-                    }
-                } else {
-                    switch (uniform.type) {
-                        case Uniform::FLOAT4:  L("    pub {}: [[f32; 4]; {}]", uniform.name, uniform.array_count); break;
-                        case Uniform::INT4:    L("    pub {}: [[i32; 4]; {}]", uniform.name, uniform.array_count); break;
-                        case Uniform::MAT4:    L("    pub {}: [[f32; 16]; {}]", uniform.name, uniform.array_count); break;
-                        default:                 L("    INVALID_UNIFORM_TYPE"); break;
-                    }
-                }
-            }
-            // FIXME?
-            // if (0 == cur_offset) {
-            //     // align the first item
-            //     L(" align(16),\n");
-            // }
-            // else {
-            L(",\n");
-            // }
-            cur_offset += uniform.size_bytes();
-        }
-        /* pad to multiple of 16-bytes struct size */
-        const int round16 = roundup(cur_offset, 16);
-        if (cur_offset != round16) {
-            L("    pub _pad_{}: [u8; {}],\n", cur_offset, round16-cur_offset);
-        }
-        L("}}\n");
-    }
+std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
+    return to_upper_case(fmt::format("SLOT_{}", ub.struct_name));
 }
 
-static void write_shader_sources_and_blobs(const Input& inp,
-                                           const Spirvcross& spirvcross,
-                                           const Bytecode& bytecode,
-                                           Slang::Enum slang)
-{
-    for (int snippet_index = 0; snippet_index < (int)inp.snippets.size(); snippet_index++) {
-        const Snippet& snippet = inp.snippets[snippet_index];
-        if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
-            continue;
-        }
-        int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
-        assert(src_index >= 0);
-        const SpirvcrossSource& src = spirvcross.sources[src_index];
-        int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
-        const BytecodeBlob* blob = 0;
-        if (blob_index != -1) {
-            blob = &bytecode.blobs[blob_index];
-        }
-        std::vector<std::string> lines;
-        pystring::splitlines(src.source_code, lines);
-        /* first write the source code in a comment block */
-        L("/*\n");
-        for (const std::string& line: lines) {
-            L("   {}\n", util::replace_C_comment_tokens(line));
-        }
-        L("*/\n");
-        if (blob) {
-            std::string c_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", (mod_prefix(inp)), (snippet.name), (Slang::to_str(slang))));
-            L("pub const {}: [u8; {}] = [\n", c_name.c_str(), blob->data.size());
-            const size_t len = blob->data.size();
-            for (size_t i = 0; i < len; i++) {
-                if ((i & 15) == 0) {
-                    L("    ");
-                }
-                L("{:#04x},", blob->data[i]);
-                if ((i & 15) == 15) {
-                    L("\n");
-                } else {
-                    L(" ");
-                }
-            }
-            L("\n];\n");
-        } else {
-            /* if no bytecode exists, write the source code, but also a byte array with a trailing 0 */
-            std::string c_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), snippet.name, Slang::to_str(slang)));
-            const size_t len = src.source_code.length() + 1;
-            L("pub const {}: [u8; {}] = [\n", c_name.c_str(), len);
-            for (size_t i = 0; i < len; i++) {
-                if ((i & 15) == 0) {
-                    L("    ");
-                }
-                L("{:#04x},", src.source_code[i]);
-                if ((i & 15) == 15) {
-                    L("\n");
-                }
-            }
-            L("\n];\n");
-        }
-    }
+std::string SokolRustGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
+    return fmt::format("pub const {}: usize = {};", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-static void write_stage(const char* indent,
-                        const char* stage_name,
-                        const SpirvcrossSource* src,
-                        const std::string& src_name,
-                        const BytecodeBlob* blob,
-                        const std::string& blob_name,
-                        Slang::Enum slang)
-{
-    if (blob) {
-        L("{}desc.{}.bytecode.ptr = &{} as *const _ as *const _;\n", indent, stage_name, blob_name);
-        L("{}desc.{}.bytecode.size = {};\n", indent, stage_name, blob->data.size());
-    } else {
-        L("{}desc.{}.source = &{} as *const _ as *const _;\n", indent, stage_name, src_name);
-        const char* d3d11_tgt = nullptr;
-        if (slang == Slang::HLSL4) {
-            d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_4_0" : "ps_4_0";
-        } else if (slang == Slang::HLSL5) {
-            d3d11_tgt = (0 == strcmp("vs", stage_name)) ? "vs_5_0" : "ps_5_0";
-        }
-        if (d3d11_tgt) {
-            L("{}desc.{}.d3d11_target = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, d3d11_tgt);
-        }
-    }
-    assert(src);
-    L("{}desc.{}.entry = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, src->stage_refl.entry_point);
-    for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
-        const UniformBlock* ub = src->stage_refl.bindings.find_uniform_block_by_slot(ub_index);
-        if (ub) {
-            L("{}desc.{}.uniform_blocks[{}].size = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16));
-            L("{}desc.{}.uniform_blocks[{}].layout = sg::UniformLayout::Std140;\n", indent, stage_name, ub_index);
-            if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
-                if (ub->flattened) {
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, ub_index, ub->struct_name);
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0]._type = {};\n", indent, stage_name, ub_index, uniform_type_to_flattened_sokol_type_str(ub->uniforms[0].type));
-                    L("{}desc.{}.uniform_blocks[{}].uniforms[0].array_count = {};\n", indent, stage_name, ub_index, roundup(ub->size, 16) / 16);
-                } else {
-                    for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
-                        const Uniform& u = ub->uniforms[u_index];
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, ub_index, u_index, ub->inst_name, u.name);
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}]._type = {};\n", indent, stage_name, ub_index, u_index, uniform_type_to_sokol_type_str(u.type));
-                        L("{}desc.{}.uniform_blocks[{}].uniforms[{}].array_count = {};\n", indent, stage_name, ub_index, u_index, u.array_count);
-                    }
-                }
-            }
-        }
-    }
-    for (int img_index = 0; img_index < Image::Num; img_index++) {
-        const Image* img = src->stage_refl.bindings.find_image_by_slot(img_index);
-        if (img) {
-            L("{}desc.{}.images[{}].used = true;\n", indent, stage_name, img_index);
-            L("{}desc.{}.images[{}].multisampled = {};\n", indent, stage_name, img_index, img->multisampled ? "true" : "false");
-            L("{}desc.{}.images[{}].image_type = {};\n", indent, stage_name, img_index, img_type_to_sokol_type_str(img->type));
-            L("{}desc.{}.images[{}].sample_type = {};\n", indent, stage_name, img_index, img_basetype_to_sokol_sampletype_str(img->sample_type));
-        }
-    }
-    for (int smp_index = 0; smp_index < Sampler::Num; smp_index++) {
-        const Sampler* smp = src->stage_refl.bindings.find_sampler_by_slot(smp_index);
-        if (smp) {
-            L("{}desc.{}.samplers[{}].used = true;\n", indent, stage_name, smp_index);
-            L("{}desc.{}.samplers[{}].sampler_type = {};\n", indent, stage_name, smp_index, smp_type_to_sokol_type_str(smp->type));
-        }
-    }
-    for (int img_smp_index = 0; img_smp_index < ImageSampler::Num; img_smp_index++) {
-        const ImageSampler* img_smp = src->stage_refl.bindings.find_image_sampler_by_slot(img_smp_index);
-        if (img_smp) {
-            L("{}desc.{}.image_sampler_pairs[{}].used = true;\n", indent, stage_name, img_smp_index);
-            L("{}desc.{}.image_sampler_pairs[{}].image_slot = {};\n", indent, stage_name, img_smp_index, src->stage_refl.bindings.find_image_by_name(img_smp->image_name)->slot);
-            L("{}desc.{}.image_sampler_pairs[{}].sampler_slot = {};\n", indent, stage_name, img_smp_index, src->stage_refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
-            if (Slang::is_glsl(slang)) {
-                L("{}desc.{}.image_sampler_pairs[{}].glsl_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, stage_name, img_smp_index, img_smp->name);
-            }
-        }
-    }
+std::string SokolRustGenerator::image_bind_slot_definition(const Image& img) {
+    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(img), img.slot);
 }
 
-static void write_shader_desc_init(const char* indent, const Program& prog, const Input& inp, const Spirvcross& spirvcross, const Bytecode& bytecode, Slang::Enum slang) {
-    const SpirvcrossSource* vs_src = find_spirvcross_source_by_shader_name(prog.vs_name, inp, spirvcross);
-    const SpirvcrossSource* fs_src = find_spirvcross_source_by_shader_name(prog.fs_name, inp, spirvcross);
-    assert(vs_src && fs_src);
-    const BytecodeBlob* vs_blob = find_bytecode_blob_by_shader_name(prog.vs_name, inp, bytecode);
-    const BytecodeBlob* fs_blob = find_bytecode_blob_by_shader_name(prog.fs_name, inp, bytecode);
-    std::string vs_src_name, fs_src_name;
-    std::string vs_blob_name, fs_blob_name;
-    if (vs_blob) {
-        vs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
-    } else {
-        vs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.vs_name, Slang::to_str(slang)));
-    }
-    if (fs_blob) {
-        fs_blob_name = to_upper_case(fmt::format("{}{}_BYTECODE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
-    } else {
-        fs_src_name = to_upper_case(fmt::format("{}{}_SOURCE_{}", mod_prefix(inp), prog.fs_name, Slang::to_str(slang)));
-    }
-
-    /* write shader desc */
-    for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
-        const StageAttr& attr = vs_src->stage_refl.inputs[attr_index];
-        if (attr.slot >= 0) {
-            if (Slang::is_glsl(slang)) {
-                L("{}desc.attrs[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.name);
-            } else if (Slang::is_hlsl(slang)) {
-                L("{}desc.attrs[{}].sem_name = b\"{}\\0\".as_ptr() as *const _;\n", indent, attr_index, attr.sem_name);
-                L("{}desc.attrs[{}].sem_index = {};\n", indent, attr_index, attr.sem_index);
-            }
-        }
-    }
-    write_stage(indent, "vs", vs_src, (vs_src_name), vs_blob, vs_blob_name, slang);
-    write_stage(indent, "fs", fs_src, (fs_src_name), fs_blob, fs_blob_name, slang);
-    L("{}desc.label = b\"{}{}_shader\\0\".as_ptr() as *const _;\n", indent, mod_prefix(inp), prog.name);
+std::string SokolRustGenerator::sampler_bind_slot_definition(const Sampler& smp) {
+    return fmt::format("pub const {}: usize = {};", sampler_bind_slot_name(smp), smp.slot);
 }
 
-static ErrMsg _generate(const GenInput& gen) {
-    // first write everything into a string, and only when no errors occur,
-    // dump this into a file (so we don't have half-written files lying around)
-    file_content.clear();
-
-    L("#![allow(dead_code)]\n\n");
-    L("use sokol::gfx as sg;\n\n");
-    bool comment_header_written = false;
-    bool common_decls_written = false;
-    for (int i = 0; i < Slang::Num; i++) {
-        Slang::Enum slang = (Slang::Enum) i;
-        if (gen.args.slang & Slang::bit(slang)) {
-            ErrMsg err = check_errors(gen.inp, gen.spirvcross[i], slang);
-            if (err.valid()) {
-                return err;
-            }
-            if (!comment_header_written) {
-                write_header(gen.args, gen.inp, gen.spirvcross[i]);
-                comment_header_written = true;
-            }
-            if (!common_decls_written) {
-                common_decls_written = true;
-                write_vertex_attrs(gen.inp, gen.spirvcross[i]);
-                write_image_bind_slots(gen.inp, gen.refl.bindings);
-                write_sampler_bind_slots(gen.inp, gen.refl.bindings);
-                write_uniform_blocks(gen.inp, gen.refl.bindings);
-            }
-            write_shader_sources_and_blobs(gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
-        }
-    }
-
-    L("\n");
-
-    // write access functions which return sg::ShaderDesc structs
-    for (const auto& item: gen.inp.programs) {
-        const Program& prog = item.second;
-        L("pub fn {}{}_shader_desc(backend: sg::Backend) -> sg::ShaderDesc {{\n", mod_prefix(gen.inp), prog.name);
-        L("    let mut desc = sg::ShaderDesc::new();\n");
-        L("    match backend {{\n");
-        for (int i = 0; i < Slang::Num; i++) {
-            Slang::Enum slang = (Slang::Enum) i;
-            if (gen.args.slang & Slang::bit(slang)) {
-                L("        {} => {{\n", sokol_backend(slang));
-                write_shader_desc_init("            ", prog, gen.inp, gen.spirvcross[i], gen.bytecode[i], slang);
-                L("        }},\n");
-            }
-        }
-        L("        _ => {{}},\n");
-        L("    }}\n");
-        L("    desc\n");
-        L("}}\n");
-    }
-
-    // write result into output file
-    FILE* f = fopen(gen.args.output.c_str(), "w");
-    if (!f) {
-        return ErrMsg::error(gen.inp.base_path, 0, fmt::format("failed to open output file '{}'", gen.args.output));
-    }
-    fwrite(file_content.c_str(), file_content.length(), 1, f);
-    fclose(f);
-    return ErrMsg();
-}
-
-//------------------------------------------------------------------------------
-ErrMsg SokolRustGenerator::generate(const GenInput& gen) {
-    return _generate(gen);
+std::string SokolRustGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
+    return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(ub), ub.slot);
 }
 
 } // namespace

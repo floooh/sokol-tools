@@ -3,7 +3,7 @@
 
 namespace shdc::gen {
 
-class SokolGenerator: public Generator {
+class SokolCGenerator: public Generator {
     std::string mod_prefix;
     std::string func_prefix;
 protected:

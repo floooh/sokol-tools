@@ -1,7 +1,7 @@
 /*
     Generate output header in C for sokol_gfx.h
 */
-#include "sokol.h"
+#include "sokolc.h"
 #include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
@@ -27,7 +27,7 @@ static const char* sokol_define(Slang::Enum slang) {
     }
 }
 
-ErrMsg SokolGenerator::begin(const GenInput& gen) {
+ErrMsg SokolCGenerator::begin(const GenInput& gen) {
     if (!gen.inp.module.empty()) {
         mod_prefix = fmt::format("{}_", gen.inp.module);
     }
@@ -37,18 +37,18 @@ ErrMsg SokolGenerator::begin(const GenInput& gen) {
     return Generator::begin(gen);
 }
 
-void SokolGenerator::gen_prolog(const GenInput& gen) {
+void SokolCGenerator::gen_prolog(const GenInput& gen) {
     l("#pragma once\n");
     for (const auto& header: gen.inp.headers) {
         l("{}\n", header);
     }
 }
 
-void SokolGenerator::gen_epilog(const GenInput& gen) {
+void SokolCGenerator::gen_epilog(const GenInput& gen) {
     // empty
 }
 
-void SokolGenerator::gen_prerequisites(const GenInput& gen) {
+void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
     l("#if !defined(SOKOL_GFX_INCLUDED)\n");
     l("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
     l("#endif\n");
@@ -76,7 +76,7 @@ void SokolGenerator::gen_prerequisites(const GenInput& gen) {
     }
 }
 
-void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlock& ub) {
+void SokolCGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlock& ub) {
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
     l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_name));
@@ -128,7 +128,7 @@ void SokolGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBlo
     l("#pragma pack(pop)\n");
 }
 
-void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}const sg_shader_desc* {}{}_shader_desc(sg_backend backend) {{\n", func_prefix, mod_prefix, prog.name);
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
@@ -239,7 +239,7 @@ void SokolGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRefl
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_attr_slot(const char* attr_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)attr_name;\n");
     for (const StageAttr& attr: prog.vs().inputs) {
@@ -253,12 +253,12 @@ void SokolGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramR
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_image_slot(sg_shader_stage stage, const char* img_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)img_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.images.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const Image& img: refl.bindings.images) {
                 if (img.slot >= 0) {
                     l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
@@ -273,12 +273,12 @@ void SokolGenerator::gen_image_slot_refl_func(const GenInput& gen, const Program
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)smp_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.samplers.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const Sampler& smp: refl.bindings.samplers) {
                 if (smp.slot >= 0) {
                     l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
@@ -293,12 +293,12 @@ void SokolGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Progr
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -313,12 +313,12 @@ void SokolGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const 
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -333,12 +333,12 @@ void SokolGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const 
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -357,7 +357,7 @@ void SokolGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pro
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     l("#if defined(__cplusplus)\n");
@@ -367,7 +367,7 @@ void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Progr
     l("#endif\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -389,61 +389,61 @@ void SokolGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Progr
     l_close("}}\n");
 }
 
-void SokolGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
+void SokolCGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
     if (gen.args.ifdef) {
         l("#if defined({})\n", sokol_define(slang));
     }
     l("static const uint8_t {}[{}] = {{\n", array_name, num_bytes);
 }
 
-void SokolGenerator::gen_shader_array_end(const GenInput& gen) {
+void SokolCGenerator::gen_shader_array_end(const GenInput& gen) {
     l("\n}};\n");
     if (gen.args.ifdef) {
         l("#endif\n");
     }
 }
 
-void SokolGenerator::gen_stb_impl_start(const GenInput &gen) {
+void SokolCGenerator::gen_stb_impl_start(const GenInput &gen) {
     if (gen.args.output_format == Format::SOKOL_IMPL) {
         l("#if defined(SOKOL_SHDC_IMPL)\n");
     }
 }
 
-void SokolGenerator::gen_stb_impl_end(const GenInput& gen) {
+void SokolCGenerator::gen_stb_impl_end(const GenInput& gen) {
     if (gen.args.output_format == Format::SOKOL_IMPL) {
         l("#endif // SOKOL_SHDC_IMPL");
     }
 }
 
-std::string SokolGenerator::lang_name() {
+std::string SokolCGenerator::lang_name() {
     return "C";
 }
 
-std::string SokolGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
+std::string SokolCGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
     return fmt::format("{}{}_bytecode_{}", mod_prefix, snippet_name, Slang::to_str(slang));
 }
 
-std::string SokolGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
+std::string SokolCGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
     return fmt::format("{}{}_source_{}", mod_prefix, snippet_name, Slang::to_str(slang));
 }
 
-std::string SokolGenerator::comment_block_start() {
+std::string SokolCGenerator::comment_block_start() {
     return "/*";
 }
 
-std::string SokolGenerator::comment_block_end() {
+std::string SokolCGenerator::comment_block_end() {
     return "*/";
 }
 
-std::string SokolGenerator::comment_block_line_prefix() {
+std::string SokolCGenerator::comment_block_line_prefix() {
     return "";
 }
 
-std::string SokolGenerator::get_shader_desc_help(const std::string& prog_name) {
+std::string SokolCGenerator::get_shader_desc_help(const std::string& prog_name) {
     return fmt::format("{}{}_shader_desc(sg_query_backend());\n", mod_prefix, prog_name);
 }
 
-std::string SokolGenerator::uniform_type(Uniform::Type t) {
+std::string SokolCGenerator::uniform_type(Uniform::Type t) {
     switch (t) {
         case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
         case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
@@ -458,7 +458,7 @@ std::string SokolGenerator::uniform_type(Uniform::Type t) {
     }
 }
 
-std::string SokolGenerator::flattened_uniform_type(Uniform::Type t) {
+std::string SokolCGenerator::flattened_uniform_type(Uniform::Type t) {
     switch (t) {
         case Uniform::FLOAT:
         case Uniform::FLOAT2:
@@ -476,7 +476,7 @@ std::string SokolGenerator::flattened_uniform_type(Uniform::Type t) {
     }
 }
 
-std::string SokolGenerator::image_type(ImageType::Enum e) {
+std::string SokolCGenerator::image_type(ImageType::Enum e) {
     switch (e) {
         case ImageType::_2D:     return "SG_IMAGETYPE_2D";
         case ImageType::CUBE:    return "SG_IMAGETYPE_CUBE";
@@ -486,7 +486,7 @@ std::string SokolGenerator::image_type(ImageType::Enum e) {
     }
 }
 
-std::string SokolGenerator::image_sample_type(ImageSampleType::Enum e) {
+std::string SokolCGenerator::image_sample_type(ImageSampleType::Enum e) {
     switch (e) {
         case ImageSampleType::FLOAT: return "SG_IMAGESAMPLETYPE_FLOAT";
         case ImageSampleType::DEPTH: return "SG_IMAGESAMPLETYPE_DEPTH";
@@ -497,7 +497,7 @@ std::string SokolGenerator::image_sample_type(ImageSampleType::Enum e) {
     }
 }
 
-std::string SokolGenerator::sampler_type(SamplerType::Enum e) {
+std::string SokolCGenerator::sampler_type(SamplerType::Enum e) {
     switch (e) {
         case SamplerType::FILTERING:     return "SG_SAMPLERTYPE_FILTERING";
         case SamplerType::COMPARISON:    return "SG_SAMPLERTYPE_COMPARISON";
@@ -506,7 +506,7 @@ std::string SokolGenerator::sampler_type(SamplerType::Enum e) {
     }
 }
 
-std::string SokolGenerator::backend(Slang::Enum e) {
+std::string SokolCGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:      return "SG_BACKEND_GLCORE";
         case Slang::GLSL430:      return "SG_BACKEND_GLCORE";
@@ -521,39 +521,39 @@ std::string SokolGenerator::backend(Slang::Enum e) {
     }
 }
 
-std::string SokolGenerator::struct_name(const std::string& name) {
+std::string SokolCGenerator::struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
+std::string SokolCGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("ATTR_{}{}_{}", mod_prefix, snippet_name, attr.name);
 }
 
-std::string SokolGenerator::image_bind_slot_name(const Image& img) {
+std::string SokolCGenerator::image_bind_slot_name(const Image& img) {
     return fmt::format("SLOT_{}{}", mod_prefix, img.name);
 }
 
-std::string SokolGenerator::sampler_bind_slot_name(const Sampler& smp) {
+std::string SokolCGenerator::sampler_bind_slot_name(const Sampler& smp) {
     return fmt::format("SLOT_{}{}", mod_prefix, smp.name);
 }
 
-std::string SokolGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
+std::string SokolCGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("SLOT_{}{}", mod_prefix, ub.struct_name);
 }
 
-std::string SokolGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
+std::string SokolCGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("#define {} ({})", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
-std::string SokolGenerator::image_bind_slot_definition(const Image& img) {
+std::string SokolCGenerator::image_bind_slot_definition(const Image& img) {
     return fmt::format("#define {} ({})", image_bind_slot_name(img), img.slot);
 }
 
-std::string SokolGenerator::sampler_bind_slot_definition(const Sampler& smp) {
+std::string SokolCGenerator::sampler_bind_slot_definition(const Sampler& smp) {
     return fmt::format("#define {} ({})", sampler_bind_slot_name(smp), smp.slot);
 }
 
-std::string SokolGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
+std::string SokolCGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
     return fmt::format("#define {} ({})", uniform_block_bind_slot_name(ub), ub.slot);
 }
 

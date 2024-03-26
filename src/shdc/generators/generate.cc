@@ -4,7 +4,7 @@
 #include "generate.h"
 #include "types/format.h"
 #include "bare.h"
-#include "sokol.h"
+#include "sokolc.h"
 #include "sokolnim.h"
 #include "sokolodin.h"
 #include "sokolrust.h"
@@ -29,7 +29,7 @@ std::unique_ptr<Generator> make_generator(Format::Enum format) {
         case Format::SOKOL_RUST:
             return std::make_unique<SokolRustGenerator>();
         default:
-            return std::make_unique<SokolGenerator>();
+            return std::make_unique<SokolCGenerator>();
     }
 }
 
