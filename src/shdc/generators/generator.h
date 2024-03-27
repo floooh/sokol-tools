@@ -134,6 +134,10 @@ protected:
 
     // utility methods
     static ErrMsg check_errors(const GenInput& gen);
+    static std::string replace_C_comment_tokens(const std::string& str);
+    static std::string to_camel_case(const std::string& str);
+    static std::string to_pascal_case(const std::string& str);
+    static std::string to_ada_case(const std::string& str);
 
 private:
     void indent() { indentation += "    "; };
