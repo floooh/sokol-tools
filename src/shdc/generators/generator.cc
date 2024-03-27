@@ -177,13 +177,11 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                 if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
                     continue;
                 }
-                int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
-                assert(src_index >= 0);
-                const SpirvcrossSource& src = spirvcross.sources[src_index];
-                int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
-                const BytecodeBlob* blob = (blob_index != -1) ? &bytecode.blobs[blob_index] : nullptr;
+                const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(snippet_index);
+                assert(src);
+                const BytecodeBlob* blob = bytecode.find_blob_by_snippet_index(snippet_index);
                 std::vector<std::string> lines;
-                pystring::splitlines(src.source_code, lines);
+                pystring::splitlines(src->source_code, lines);
                 // first write the source code in a comment block
                 cbl_start();
                 for (const std::string& line: lines) {
@@ -207,13 +205,13 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                 } else {
                     // if no bytecode exists, write the source code, but also a byte array with a trailing 0
                     const std::string array_name = shader_source_array_name(snippet.name, slang);
-                    const size_t len = src.source_code.length() + 1;
+                    const size_t len = src->source_code.length() + 1;
                     gen_shader_array_start(gen, array_name, len, slang);
                     for (size_t i = 0; i < len; i++) {
                         if ((i & 15) == 0) {
                             l("    ");
                         }
-                        l("{},", (int)src.source_code[i]);
+                        l("{},", (int)src->source_code[i]);
                         if ((i & 15) == 15) {
                             l("\n");
                         }
@@ -263,14 +261,14 @@ ErrMsg Generator::check_errors(const GenInput& gen) {
                 const Program& prog = item.second;
                 int vs_snippet_index = gen.inp.snippet_map.at(prog.vs_name);
                 int fs_snippet_index = gen.inp.snippet_map.at(prog.fs_name);
-                int vs_src_index = gen.spirvcross[i].find_source_by_snippet_index(vs_snippet_index);
-                int fs_src_index = gen.spirvcross[i].find_source_by_snippet_index(fs_snippet_index);
-                if (vs_src_index < 0) {
+                const SpirvcrossSource* vs_src = gen.spirvcross[i].find_source_by_snippet_index(vs_snippet_index);
+                const SpirvcrossSource* fs_src = gen.spirvcross[i].find_source_by_snippet_index(fs_snippet_index);
+                if (vs_src == nullptr) {
                     return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
                         fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
                         Slang::to_str(slang), prog.vs_name, prog.name));
                 }
-                if (fs_src_index < 0) {
+                if (fs_src == nullptr) {
                     return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
                         fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                         Slang::to_str(slang), prog.fs_name, prog.name));

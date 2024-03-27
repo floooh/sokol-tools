@@ -17,7 +17,7 @@ struct Spirvcross {
 
     static Spirvcross translate(const Input& inp, const Spirv& spirv, Slang::Enum slang);
     static bool can_flatten_uniform_block(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& ub_res);
-    int find_source_by_snippet_index(int snippet_index) const;
+    const SpirvcrossSource* find_source_by_snippet_index(int snippet_index) const;
     void dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const;
 };
 

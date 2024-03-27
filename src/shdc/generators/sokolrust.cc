@@ -235,11 +235,11 @@ std::string SokolRustGenerator::comment_block_line_prefix() {
 }
 
 std::string SokolRustGenerator::shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) {
-    return to_upper_case(fmt::format("{}_bytecode_{}", snippet_name, Slang::to_str(slang)));
+    return pystring::upper(fmt::format("{}_bytecode_{}", snippet_name, Slang::to_str(slang)));
 }
 
 std::string SokolRustGenerator::shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) {
-    return to_upper_case(fmt::format("{}_source_{}", snippet_name, Slang::to_str(slang)));
+    return pystring::upper(fmt::format("{}_source_{}", snippet_name, Slang::to_str(slang)));
 }
 
 std::string SokolRustGenerator::get_shader_desc_help(const std::string& prog_name) {
@@ -329,19 +329,19 @@ std::string SokolRustGenerator::struct_name(const std::string& name) {
 }
 
 std::string SokolRustGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
-    return to_upper_case(fmt::format("ATTR_{}_{}", snippet_name, attr.name));
+    return pystring::upper(fmt::format("ATTR_{}_{}", snippet_name, attr.name));
 }
 
 std::string SokolRustGenerator::image_bind_slot_name(const Image& img) {
-    return to_upper_case(fmt::format("SLOT_{}", img.name));
+    return pystring::upper(fmt::format("SLOT_{}", img.name));
 }
 
 std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
-    return to_upper_case(fmt::format("SLOT_{}", smp.name));
+    return pystring::upper(fmt::format("SLOT_{}", smp.name));
 }
 
 std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return to_upper_case(fmt::format("SLOT_{}", ub.struct_name));
+    return pystring::upper(fmt::format("SLOT_{}", ub.struct_name));
 }
 
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {

@@ -17,14 +17,14 @@ ErrMsg check_errors(const Input& inp,
         const Program& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-        if (vs_src_index < 0) {
+        const SpirvcrossSource* vs_src = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+        const SpirvcrossSource* fs_src = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        if (vs_src == nullptr) {
             return inp.error(inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
                     Slang::to_str(slang), prog.vs_name, prog.name));
         }
-        if (fs_src_index < 0) {
+        if (fs_src == nullptr) {
             return inp.error(inp.snippets[vs_snippet_index].lines[0],
                 fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
                     Slang::to_str(slang), prog.fs_name, prog.name));
@@ -49,23 +49,13 @@ std::string mod_prefix(const Input& inp) {
 const SpirvcrossSource* find_spirvcross_source_by_shader_name(const std::string& shader_name, const Input& inp, const Spirvcross& spirvcross) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
-    int src_index = spirvcross.find_source_by_snippet_index(snippet_index);
-    if (src_index >= 0) {
-        return &spirvcross.sources[src_index];
-    } else {
-        return nullptr;
-    }
+    return spirvcross.find_source_by_snippet_index(snippet_index);
 }
 
 const BytecodeBlob* find_bytecode_blob_by_shader_name(const std::string& shader_name, const Input& inp, const Bytecode& bytecode) {
     assert(!shader_name.empty());
     int snippet_index = inp.snippet_map.at(shader_name);
-    int blob_index = bytecode.find_blob_by_snippet_index(snippet_index);
-    if (blob_index >= 0) {
-        return &bytecode.blobs[blob_index];
-    } else {
-        return nullptr;
-    }
+    return bytecode.find_blob_by_snippet_index(snippet_index);
 }
 
 std::string to_pascal_case(const std::string& str) {
@@ -92,10 +82,6 @@ std::string to_camel_case(const std::string& str) {
     std::string res = to_pascal_case(str);
     res[0] = tolower(res[0]);
     return res;
-}
-
-std::string to_upper_case(const std::string& str) {
-    return pystring::upper(str);
 }
 
 std::string replace_C_comment_tokens(const std::string& str) {

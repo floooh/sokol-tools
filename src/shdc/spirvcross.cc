@@ -27,13 +27,13 @@ namespace shdc {
 
 using namespace refl;
 
-int Spirvcross::find_source_by_snippet_index(int snippet_index) const {
+const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)sources.size(); i++) {
         if (sources[i].snippet_index == snippet_index) {
-            return i;
+            return &sources[i];
         }
     }
-    return -1;
+    return nullptr;
 }
 
 static void fix_ub_matrix_force_colmajor(Compiler& compiler) {

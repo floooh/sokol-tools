@@ -56,12 +56,13 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
         int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
         const Slang::Enum slang = Slang::first_valid(args.slang);
         const Spirvcross& spirvcross = spirvcross_array[slang];
-        int vs_src_index = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        int fs_src_index = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        const SpirvcrossSource* vs_src = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+        const SpirvcrossSource* fs_src = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+        assert(vs_src && fs_src);
         ProgramReflection prog_refl;
         prog_refl.name = prog.name;
-        prog_refl.stages[ShaderStage::Vertex] = spirvcross.sources[vs_src_index].stage_refl;
-        prog_refl.stages[ShaderStage::Fragment] = spirvcross.sources[fs_src_index].stage_refl;
+        prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
+        prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
 
         // check that the outputs of the vertex stage match the input stage
         res.error = validate_linking(inp, prog, prog_refl);

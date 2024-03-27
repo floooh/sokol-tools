@@ -20,13 +20,13 @@
 
 namespace shdc {
 
-int Bytecode::find_blob_by_snippet_index(int snippet_index) const {
+const BytecodeBlob* Bytecode::find_blob_by_snippet_index(int snippet_index) const {
     for (int i = 0; i < (int)blobs.size(); i++) {
         if (blobs[i].snippet_index == snippet_index) {
-            return i;
+            return &blobs[i];
         }
     }
-    return -1;
+    return nullptr;
 }
 
 // MacOS/Metal specific stuff...

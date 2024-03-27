@@ -14,7 +14,7 @@ struct Bytecode {
     std::vector<BytecodeBlob> blobs;
 
     static Bytecode compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang);
-    int find_blob_by_snippet_index(int snippet_index) const;
+    const BytecodeBlob* find_blob_by_snippet_index(int snippet_index) const;
     void dump_debug() const;
 };
 

@@ -258,7 +258,7 @@ void SokolCGenerator::gen_image_slot_refl_func(const GenInput& gen, const Progra
     l("(void)stage; (void)img_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.images.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Image& img: refl.bindings.images) {
                 if (img.slot >= 0) {
                     l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
@@ -278,7 +278,7 @@ void SokolCGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Prog
     l("(void)stage; (void)smp_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.samplers.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Sampler& smp: refl.bindings.samplers) {
                 if (smp.slot >= 0) {
                     l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
@@ -298,7 +298,7 @@ void SokolCGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -318,7 +318,7 @@ void SokolCGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -338,7 +338,7 @@ void SokolCGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pr
     l("(void)stage; (void)ub_name; (void)u_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
@@ -367,7 +367,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
     l("#endif\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
-            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", to_upper_case(refl.stage_name));
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_name);
