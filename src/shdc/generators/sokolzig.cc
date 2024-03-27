@@ -15,7 +15,7 @@ using namespace refl;
 void SokolZigGenerator::gen_prolog(const GenInput& gen) {
     l("const sg = @import(\"sokol\").gfx;\n");
     for (const auto& header: gen.inp.headers) {
-        l("{}\n", header);
+        l("{};\n", header);
     }
 }
 

@@ -16,7 +16,7 @@ void SokolRustGenerator::gen_prolog(const GenInput& gen) {
     l("#![allow(dead_code)]\n");
     l("use sokol::gfx as sg;\n");
     for (const auto& header: gen.inp.headers) {
-        l("{}\n", header);
+        l("{};\n", header);
     }
 }
 
@@ -29,7 +29,7 @@ void SokolRustGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolRustGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
-    l("#[repr(C), align(16)]\n");
+    l("#[repr(C, align(16))]\n");
     l_open("pub struct {} {{\n", struct_name(ub.struct_name));
     int cur_offset = 0;
     for (const Uniform& uniform: ub.uniforms) {
@@ -82,7 +82,7 @@ void SokolRustGenerator::gen_uniformblock_decl(const GenInput& gen, const Unifor
 void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("pub fn {}_shader_desc(backend: sg::Backend) -> sg::ShaderDesc {{\n", prog.name);
     l("let mut desc = sg::ShaderDesc::new();\n");
-    l("desc.label = b\"{}_shader\\0\".as_ptr() as *const _;\n", prog.name);
+    l("desc.label = c\"{}_shader\".as_ptr();\n", prog.name);
     l_open("match backend {{\n");
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
@@ -92,9 +92,9 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 const StageAttr& attr = prog.vs().inputs[attr_index];
                 if (attr.slot >= 0) {
                     if (Slang::is_glsl(slang)) {
-                        l("desc.attrs[{}].name = b\"{}\\0\".as_ptr() as *const _;\n", attr_index, attr.name);
+                        l("desc.attrs[{}].name = c\"{}\".as_ptr();\n", attr_index, attr.name);
                     } else if (Slang::is_hlsl(slang)) {
-                        l("desc.attrs[{}].sem_name = b\"{}\\0\".as_ptr() as *const _;\n", attr_index, attr.sem_name);
+                        l("desc.attrs[{}].sem_name = c\"{}\".as_ptr();\n", attr_index, attr.sem_name);
                         l("desc.attrs[{}].sem_index = {};\n", attr_index, attr.sem_index);
                     }
                 }
@@ -115,26 +115,26 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         d3d11_tgt = (0 == stage_index) ? "vs_5_0" : "ps_5_0";
                     }
                     if (d3d11_tgt) {
-                        l("{}.d3d11_target = b\"{}\\0\".as_ptr() as *const _;\n", dsn, d3d11_tgt);
+                        l("{}.d3d11_target = c\"{}\".as_ptr();\n", dsn, d3d11_tgt);
                     }
                 }
-                l("{}.entry = b\"{}\\0\".as_ptr() as *const _;\n", dsn, refl.entry_point);
+                l("{}.entry = c\"{}\".as_ptr();\n", dsn, refl.entry_point);
                 for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
                     const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
                         l("{}.size = {};\n", ubn, roundup(ub->size, 16));
-                        l("{}.layout = sg::UniformLayout::Std140;;\n", ubn);
+                        l("{}.layout = sg::UniformLayout::Std140;\n", ubn);
                         if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                             if (ub->flattened) {
-                                l("{}.uniforms[0].name = b\"{}\\0\".as_ptr() as *const _;\n", ubn, ub->struct_name);
+                                l("{}.uniforms[0].name = c\"{}\".as_ptr();\n", ubn, ub->struct_name);
                                 l("{}.uniforms[0]._type = {};\n", ubn, flattened_uniform_type(ub->uniforms[0].type));
                                 l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->size, 16) / 16);
                             } else {
                                 for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                                     const Uniform& u = ub->uniforms[u_index];
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
-                                    l("{}.name = b\"{}:{}\\0\".as_ptr() as *const _;\n", un, ub->inst_name, u.name);
+                                    l("{}.name = c\"{}:{}\".as_ptr();\n", un, ub->inst_name, u.name);
                                     l("{}._type = {};\n", un, uniform_type(u.type));
                                     l(".array_count = {};\n", un, u.array_count);
                                 }
@@ -168,7 +168,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->slot);
                         l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
                         if (Slang::is_glsl(slang)) {
-                            l("{}.glsl_name = b\"{}\\0\".as_ptr() as *const _;\n", isn, img_smp->name);
+                            l("{}.glsl_name = c\"{}\".as_ptr();\n", isn, img_smp->name);
                         }
                     }
                 }
