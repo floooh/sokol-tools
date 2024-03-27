@@ -2,7 +2,7 @@
     compile GLSL to SPIRV, wrapper around https://github.com/KhronosGroup/glslang
 */
 #include <stdlib.h>
-#include "shdc.h"
+#include "spirv.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include "ShaderLang.h"
@@ -13,11 +13,11 @@
 
 namespace shdc {
 
-void spirv_t::initialize_spirv_tools() {
+void Spirv::initialize_spirv_tools() {
     glslang::InitializeProcess();
 }
 
-void spirv_t::finalize_spirv_tools() {
+void Spirv::finalize_spirv_tools() {
     glslang::FinalizeProcess();
 }
 
@@ -25,18 +25,18 @@ void spirv_t::finalize_spirv_tools() {
 extern const TBuiltInResource DefaultTBuiltInResource;
 
 /* merge shader snippet source into a single string */
-static std::string merge_source(const input_t& inp, const snippet_t& snippet, slang_t::type_t slang, const std::vector<std::string>& defines) {
+static std::string merge_source(const Input& inp, const Snippet& snippet, Slang::Enum slang, const std::vector<std::string>& defines) {
     std::string src = "#version 450\n";
-    if (slang_t::is_glsl(slang)) {
+    if (Slang::is_glsl(slang)) {
         src += "#define SOKOL_GLSL (1)\n";
     }
-    if (slang_t::is_hlsl(slang)) {
+    if (Slang::is_hlsl(slang)) {
         src += "#define SOKOL_HLSL (1)\n";
     }
-    if (slang_t::is_msl(slang)) {
+    if (Slang::is_msl(slang)) {
         src += "#define SOKOL_MSL (1)\n";
     }
-    if (slang_t::is_wgsl(slang)) {
+    if (Slang::is_wgsl(slang)) {
         src += "#define SOKOL_WGSL (1)\n";
     }
     for (const std::string& define : defines) {
@@ -48,13 +48,13 @@ static std::string merge_source(const input_t& inp, const snippet_t& snippet, sl
     return src;
 }
 
-/* convert a glslang info-log string to errmsg_t's and append to out_errors */
-static void infolog_to_errors(const std::string& log, const input_t& inp, int snippet_index, std::vector<errmsg_t>& out_errors) {
+/* convert a glslang info-log string to ErrMsg's and append to out_errors */
+static void infolog_to_errors(const std::string& log, const Input& inp, int snippet_index, std::vector<ErrMsg>& out_errors) {
     /*
         format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
         And a last line we need to ignore: "ERROR: N compilation errors. ..."
     */
-    const snippet_t& snippet = inp.snippets[snippet_index];
+    const Snippet& snippet = inp.snippets[snippet_index];
 
     std::vector<std::string> lines;
     pystring::splitlines(log, lines);
@@ -82,8 +82,7 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
                 for (int i = 3; i < (int)tokens.size(); i++) {
                     if (msg.empty()) {
                         msg = tokens[i];
-                    }
-                    else {
+                    } else {
                         msg = fmt::format("{}:{}", msg, tokens[i]);
                     }
                 }
@@ -97,12 +96,10 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
             if (ok) {
                 if (tokens[0] == "ERROR") {
                     out_errors.push_back(inp.error(line_index, msg));
-                }
-                else {
+                } else {
                     out_errors.push_back(inp.warning(line_index, msg));
                 }
-            }
-            else {
+            } else {
                 // some error during parsing, still create an error object so the error isn't lost in the void
                 out_errors.push_back(inp.error(0, line));
             }
@@ -116,8 +113,8 @@ static void infolog_to_errors(const std::string& log, const input_t& inp, int sn
     bounded for-loops are converted to what looks like an unbounded loop
     ("for (;;) { }") to WebGL
 */
-static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) {
-    if (slang == slang_t::WGSL) {
+static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
+    if (slang == Slang::WGSL) {
         return;
     }
     spv_target_env target_env;
@@ -164,7 +161,7 @@ static void spirv_optimize(slang_t::type_t slang, std::vector<uint32_t>& spirv) 
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string& src, const input_t& inp, int snippet_index, spirv_t& out_spirv) {
+static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src, const Input& inp, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { src.c_str() };
     const int sourcesLen[1] = { (int) src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -218,12 +215,12 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
     spv_options.validate = false;
     spv_options.emitNonSemanticShaderDebugInfo = false;
     spv_options.emitNonSemanticShaderDebugSource = false;
-    out_spirv.blobs.push_back(spirv_blob_t(snippet_index));
+    out_spirv.blobs.push_back(SpirvBlob(snippet_index));
     out_spirv.blobs.back().source = src;
     glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
-        // FIXME: need to parse string for errors and translate to errmsg_t objects?
+        // FIXME: need to parse string for errors and translate to ErrMsg objects?
         // haven't seen a case yet where this generates log messages
         fmt::print("{}", spirv_log);
     }
@@ -233,20 +230,20 @@ static bool compile(EShLanguage stage, slang_t::type_t slang, const std::string&
 }
 
 // compile all shader-snippets into SPIRV bytecode
-spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const std::vector<std::string>& defines) {
-    spirv_t out_spirv;
+Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
+    Spirv out_spirv;
 
     // compile shader-snippets
     int snippet_index = 0;
-    for (const snippet_t& snippet: inp.snippets) {
-        if (snippet.type == snippet_t::VS) {
+    for (const Snippet& snippet: inp.snippets) {
+        if (snippet.type == Snippet::VS) {
             // vertex shader
             std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
-        } else if (snippet.type == snippet_t::FS) {
+        } else if (snippet.type == Snippet::FS) {
             // fragment shader
             std::string src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
@@ -262,13 +259,13 @@ spirv_t spirv_t::compile_glsl(const input_t& inp, slang_t::type_t slang, const s
     return out_spirv;
 }
 
-bool spirv_t::write_to_file(const args_t& args, const input_t& inp, slang_t::type_t slang) {
+bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::Enum slang) {
     std::string base_dir;
     std::string base_filename;
     pystring::os::path::split(base_dir, base_filename, inp.base_path);
-    std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, slang_t::to_str(slang));
-    for (const spirv_blob_t& blob: blobs) {
-        const snippet_t& snippet = inp.snippets[blob.snippet_index];
+    std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
+    for (const SpirvBlob& blob: blobs) {
+        const Snippet& snippet = inp.snippets[blob.snippet_index];
         {
             const std::string path = fmt::format("{}{}.spv", base_path, snippet.name);
             FILE* fp = fopen(path.c_str(), "wb");
@@ -295,19 +292,18 @@ bool spirv_t::write_to_file(const args_t& args, const input_t& inp, slang_t::typ
     return true;
 }
 
-void spirv_t::dump_debug(const input_t& inp, errmsg_t::msg_format_t err_fmt) const {
-    fmt::print(stderr, "spirv_t:\n");
+void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
+    fmt::print(stderr, "Spirv:\n");
     if (errors.size() > 0) {
         fmt::print(stderr, "  error:\n");
-        for (const errmsg_t& err: errors) {
+        for (const ErrMsg& err: errors) {
             fmt::print(stderr, "    {}\n", err.as_string(err_fmt));
         }
         fmt::print(stderr, "\n");
-    }
-    else {
+    } else {
         fmt::print(stderr, "  errors: none\n\n");
     }
-    for (const spirv_blob_t& blob : blobs) {
+    for (const SpirvBlob& blob : blobs) {
         fmt::print(stderr, "  source for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);
