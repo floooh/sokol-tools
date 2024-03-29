@@ -9,7 +9,6 @@
 
 namespace shdc::gen {
 
-using namespace util;
 using namespace refl;
 
 static const char* sokol_define(Slang::Enum slang) {

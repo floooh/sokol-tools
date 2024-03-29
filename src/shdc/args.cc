@@ -207,7 +207,7 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_FORMAT:
                     args.output_format = Format::from_str(ctx.current_opt_arg);
                     if (args.output_format == Format::INVALID) {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|base_yaml]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;

@@ -10,7 +10,6 @@
 namespace shdc::gen {
 
 using namespace refl;
-using namespace util;
 
 static ErrMsg write_file(const std::string& file_path, const SpirvcrossSource* src, const BytecodeBlob* blob) {
     FILE* f = fopen(file_path.c_str(), "wb");
@@ -38,7 +37,7 @@ static ErrMsg write_file(const std::string& file_path, const SpirvcrossSource* s
 
 // completely override the generate function since there's no overlap with code-generators
 ErrMsg BareGenerator::generate(const GenInput& gen) {
-    const std::string mod_prefix = gen.inp.module.empty() ? "" : fmt::format("{}_", gen.inp.module);
+    mod_prefix = gen.inp.module.empty() ? "" : fmt::format("{}_", gen.inp.module);
     ErrMsg err = check_errors(gen);
     if (err.valid()) {
         return err;
@@ -53,13 +52,7 @@ ErrMsg BareGenerator::generate(const GenInput& gen) {
                     const StageReflection& refl = prog.stages[stage_index];
                     const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(refl.snippet_index);
                     const BytecodeBlob* blob = bytecode.find_blob_by_snippet_index(refl.snippet_index);
-                    const std::string file_path = fmt::format("{}_{}{}_{}_{}{}",
-                        gen.args.output,
-                        mod_prefix,
-                        prog.name,
-                        Slang::to_str(slang),
-                        pystring::lower(refl.stage_name),
-                        slang_file_extension(slang, blob != nullptr));
+                    const std::string file_path = shader_file_path(gen, prog.name, refl.stage_name, slang, blob != nullptr);
                     err = write_file(file_path, src, blob);
                     if (err.valid()) {
                         return err;
@@ -69,6 +62,36 @@ ErrMsg BareGenerator::generate(const GenInput& gen) {
         }
     }
     return ErrMsg();
+}
+
+static const char* slang_file_extension(Slang::Enum c, bool binary) {
+    switch (c) {
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+        case Slang::GLSL300ES:
+            return ".glsl";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return binary ? ".fxc" : ".hlsl";
+        case Slang::METAL_MACOS:
+        case Slang::METAL_IOS:
+        case Slang::METAL_SIM:
+            return binary ? ".metallib" : ".metal";
+        case Slang::WGSL:
+            return ".wgsl";
+        default:
+            return "";
+    }
+}
+
+std::string BareGenerator::shader_file_path(const GenInput& gen, const std::string& prog_name, const std::string& stage_name, Slang::Enum slang, bool is_binary) {
+    return fmt::format("{}_{}{}_{}_{}{}",
+        gen.args.output,
+        mod_prefix,
+        prog_name,
+        Slang::to_str(slang),
+        pystring::lower(stage_name),
+        slang_file_extension(slang, is_binary));
 }
 
 } // namespace

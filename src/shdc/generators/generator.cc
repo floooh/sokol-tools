@@ -5,7 +5,6 @@
 #include "util.h"
 #include "pystring.h"
 
-using namespace shdc::gen::util;
 using namespace shdc::refl;
 
 namespace shdc::gen {
@@ -36,7 +35,7 @@ ErrMsg Generator::generate(const GenInput& gen) {
 
 Generator::ShaderStageArrayInfo Generator::shader_stage_array_info(const GenInput& gen, const ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang) {
     ShaderStageArrayInfo info;
-    const BytecodeBlob* bytecode_blob = find_bytecode_blob_by_shader_name(prog.stage(stage).snippet_name, gen.inp, gen.bytecode[slang]);
+    const BytecodeBlob* bytecode_blob = gen.bytecode[slang].find_blob_by_snippet_index(prog.stage(stage).snippet_index);
     if (bytecode_blob) {
         info.has_bytecode = true;
         info.bytecode_array_size = bytecode_blob->data.size();
@@ -278,6 +277,10 @@ ErrMsg Generator::check_errors(const GenInput& gen) {
     }
     // all ok
     return ErrMsg();
+}
+
+int Generator::roundup(int val, int round_to) {
+    return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
 std::string Generator::replace_C_comment_tokens(const std::string& str) {

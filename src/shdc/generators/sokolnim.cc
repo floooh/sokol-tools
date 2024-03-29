@@ -9,7 +9,6 @@
 
 namespace shdc::gen {
 
-using namespace util;
 using namespace refl;
 
 // need to special-case the gen-shader-arrays function because Nim

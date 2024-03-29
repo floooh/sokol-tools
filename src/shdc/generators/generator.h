@@ -134,17 +134,20 @@ protected:
 
     // utility methods
     static ErrMsg check_errors(const GenInput& gen);
+    static int roundup(int val, int round_to);
     static std::string replace_C_comment_tokens(const std::string& str);
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
 
-private:
-    void indent() { indentation += "    "; };
-    void dedent() { for (int i = 0; i < 4; i++) { if (indentation.length() > 0) { indentation.pop_back(); } } };
-
-    std::string indentation;
     std::string content;
+    int tab_width = 4;
+    std::string indentation;
+
+private:
+    void indent() { for (int i = 0; i < tab_width; i++) { indentation.push_back(' '); } };
+    void dedent() { for (int i = 0; i < tab_width; i++) { if (indentation.length() > 0) { indentation.pop_back(); } } };
+
 };
 
 } // namespace

@@ -9,7 +9,6 @@
 
 namespace shdc::gen {
 
-using namespace util;
 using namespace refl;
 
 void SokolZigGenerator::gen_prolog(const GenInput& gen) {
