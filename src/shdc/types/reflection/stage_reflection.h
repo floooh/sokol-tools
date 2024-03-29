@@ -16,8 +16,6 @@ struct StageReflection {
     std::array<StageAttr, StageAttr::Num> inputs;       // index == attribute slot
     std::array<StageAttr, StageAttr::Num> outputs;      // index == attribute slot
     Bindings bindings;
-
-    bool has_bytecode() const;
 };
 
 } // namespace

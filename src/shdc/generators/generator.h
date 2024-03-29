@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "types/gen/gen_input.h"
+#include "types/gen_input.h"
 
 namespace shdc::gen {
 
