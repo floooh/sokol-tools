@@ -14,13 +14,6 @@
 
 #include "spirv_glsl.hpp"
 
-static const int wgsl_vs_ub_bind_offset = 0;
-static const int wgsl_fs_ub_bind_offset = 4;
-static const int wgsl_vs_img_bind_offset = 0;
-static const int wgsl_vs_smp_bind_offset = 16;
-static const int wgsl_fs_img_bind_offset = 32;
-static const int wgsl_fs_smp_bind_offset = 48;
-
 using namespace spirv_cross;
 
 namespace shdc {
@@ -91,6 +84,24 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
+
+    // storage buffers
+    {
+        uint32_t binding = 0;
+        if (Slang::is_msl(slang)) {
+            // FIXME: vertex buffer bindings should be moved after storage buffer bindings?
+            // in Metal, on the vertex stage, storage buffers are bound after uniform- and vertex-buffers,
+            // and on the fragment stage, after the uniform buffers
+            binding = Snippet::is_vs(type) ? 12 : 4;
+        } else if (Slang::is_hlsl(slang)) {
+            // in D3D11, storage buffers share bind slots with textures
+            binding = 16;
+        }
+        for (const Resource& res: shader_resources.storage_buffers) {
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
+        }
+    }
 }
 
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
@@ -103,16 +114,29 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
     //  - bindgroup 0 for uniform buffer bindings
     //      - vertex stage bindings start at 0
     //      - fragment stage bindings start at 4
-    //  - bindgroup 1 for all images and samplers
+    //  - bindgroup 1 for all images, samplers and storage buffers
     //      - vertex stage image bindings start at 0
     //      - vertex stage sampler bindings start at 16
-    //      - fragment stage image bindings start at 32
-    //      - fragment stage sampler bindings start at 48
+    //      - vertex stage storage buffer bindings start at 32
+    //      - fragment stage image bindings start at 48
+    //      - fragment stage sampler bindings start at 64
+    //      - fragment stage storage buffer bindings start at 80
+    const uint32_t wgsl_vs_ub_bind_offset = 0;
+    const uint32_t wgsl_fs_ub_bind_offset = 4;
+    const uint32_t wgsl_vs_img_bind_offset = 0;
+    const uint32_t wgsl_vs_smp_bind_offset = 16;
+    const uint32_t wgsl_vs_sbuf_bind_offset = 32;
+    const uint32_t wgsl_fs_img_bind_offset = 48;
+    const uint32_t wgsl_fs_smp_bind_offset = 64;
+    const uint32_t wgsl_fs_sbuf_bind_offset = 80;
+
     const uint32_t ub_bindgroup = 0;
     const uint32_t res_bindgroup = 1;
     uint32_t cur_ub_binding = Snippet::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
     uint32_t cur_image_binding = Snippet::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
     uint32_t cur_sampler_binding = Snippet::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
+    uint32_t cur_sbuf_binding = Snippet::is_vs(type) ? wgsl_vs_sbuf_bind_offset : wgsl_fs_sbuf_bind_offset;
+
 
     // uniform buffers
     {
@@ -162,6 +186,24 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
                 inout_bytecode[out_offset] = cur_sampler_binding;
                 cur_sampler_binding += 1;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+
+    // storage buffers
+    {
+        for (const Resource& res: shader_resources.storage_buffers) {
+            uint32_t out_offset = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                inout_bytecode[out_offset] = res_bindgroup;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                inout_bytecode[out_offset] = cur_sbuf_binding;
+                cur_sbuf_binding += 1;
             } else {
                 // FIXME: handle error
             }
