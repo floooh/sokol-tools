@@ -34,6 +34,7 @@ static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
         column-major, this is needed in the HLSL backend to fix the
         multiplication order
     */
+    // FIXME: what about matrices in storage buffers?
     ShaderResources res = compiler.get_shader_resources();
     for (const Resource& ub_res: res.uniform_buffers) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
@@ -278,7 +279,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::Enum slang) {
+static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::Enum slang, ErrMsg& out_error) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -297,7 +298,7 @@ static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>&
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
-    return Reflection::parse_snippet_reflection(compiler, snippet, slang);
+    return Reflection::parse_snippet_reflection(compiler, snippet, slang, out_error);
 }
 
 static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
@@ -336,10 +337,10 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
-        res.valid = true;
         res.source_code = std::move(src);
-        res.stage_refl = Reflection::parse_snippet_reflection(compiler, snippet, slang);
+        res.stage_refl = Reflection::parse_snippet_reflection(compiler, snippet, slang, res.error);
     }
+    res.valid = !res.error.valid();
     return res;
 }
 
@@ -367,10 +368,10 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
-        res.valid = true;
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang);
+        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
     }
+    res.valid = !res.error.valid();
     return res;
 }
 
@@ -397,12 +398,12 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
-        res.valid = true;
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang);
+        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
         // Metal's entry point function are called main0() because main() is reserved
         res.stage_refl.entry_point += "0";
     }
+    res.valid = !res.error.valid();
     return res;
 }
 
@@ -420,15 +421,15 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
         const tint::writer::wgsl::Options wgsl_options;
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
-            res.valid = true;
             res.source_code = result.wgsl;
-            res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang);
+            res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }
     } else {
         res.error = inp.error(blob.snippet_index, program.Diagnostics().str());
     }
+    res.valid = !res.error.valid();
     return res;
 }
 

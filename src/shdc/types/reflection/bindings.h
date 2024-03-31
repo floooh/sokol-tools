@@ -3,11 +3,13 @@
 #include "image.h"
 #include "sampler.h"
 #include "image_sampler.h"
+#include "storage_buffer.h"
 
 namespace shdc::refl {
 
 struct Bindings {
     std::vector<UniformBlock> uniform_blocks;
+    std::vector<StorageBuffer> storage_buffers;
     std::vector<Image> images;
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;

@@ -3,6 +3,7 @@
 #include <vector>
 #include "uniform.h"
 #include "shader_stage.h"
+#include "type.h"
 
 namespace shdc::refl {
 
@@ -15,6 +16,7 @@ struct UniformBlock {
     std::string inst_name;
     std::vector<Uniform> uniforms;
     bool flattened = false;
+    Type struct_refl;      // FIXME: replace struct_name and uniforms with this
 
     bool equals(const UniformBlock& other) const;
 };

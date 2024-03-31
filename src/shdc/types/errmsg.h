@@ -23,6 +23,8 @@ struct ErrMsg {
 
     static ErrMsg error(const std::string& file, int line, const std::string& msg);
     static ErrMsg warning(const std::string& file, int line, const std::string& msg);
+    static ErrMsg error(const std::string& msg);
+    static ErrMsg warning(const std::string& msg);
     static const char* format_to_str(Format fmt);
     std::string as_string(Format fmt) const;
     void print(Format fmt) const;
@@ -45,6 +47,20 @@ inline ErrMsg ErrMsg::warning(const std::string& file, int line, const std::stri
     err.file = file;
     err.msg = msg;
     err.line_index = line;
+    return err;
+}
+
+inline ErrMsg ErrMsg::error(const std::string& msg) {
+    ErrMsg err;
+    err.type = ERROR;
+    err.msg = msg;
+    return err;
+}
+
+inline ErrMsg ErrMsg::warning(const std::string& msg) {
+    ErrMsg err;
+    err.type = WARNING;
+    err.msg = msg;
     return err;
 }
 

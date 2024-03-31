@@ -608,17 +608,17 @@ Input Input::load_and_parse(const std::string& path, const std::string& module_o
     return inp;
 }
 
-ErrMsg Input::error(int index, const std::string& msg) const {
-    if (index < (int)lines.size()) {
-        const Line& line = lines[index];
+ErrMsg Input::error(int line_index, const std::string& msg) const {
+    if (line_index < (int)lines.size()) {
+        const Line& line = lines[line_index];
         return ErrMsg::error(filenames[line.filename], line.index, msg);
     } else {
         return ErrMsg::error(base_path, 0, msg);
     }
 };
-ErrMsg Input::warning(int index, const std::string& msg) const {
-    if (index < (int)lines.size()) {
-        const Line& line = lines[index];
+ErrMsg Input::warning(int line_index, const std::string& msg) const {
+    if (line_index < (int)lines.size()) {
+        const Line& line = lines[line_index];
         return ErrMsg::warning(filenames[line.filename], line.index, msg);
     } else {
         return ErrMsg::warning(base_path, 0, msg);
