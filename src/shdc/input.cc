@@ -2,7 +2,7 @@
     code for loading and parsing the input .glsl file with custom-tags
 */
 #include "input.h"
-#include "types/reflection/uniform.h"
+#include "types/reflection/type.h"
 #include "types/option.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -170,8 +170,8 @@ static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_s
         inp.out_error = inp.error(line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
         return false;
     }
-    if (!Uniform::is_valid_glsl_uniform_type(tokens[1])) {
-        inp.out_error = inp.error(line_index, fmt::format("first arg of type tag must be one of {}", Uniform::valid_glsl_uniform_types_as_str()));
+    if (!Type::is_valid_glsl_type(tokens[1])) {
+        inp.out_error = inp.error(line_index, fmt::format("first arg of @ctype tag must be one of {}", Type::valid_glsl_types_as_str()));
         return false;
     }
     return true;

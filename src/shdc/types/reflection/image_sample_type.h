@@ -13,7 +13,6 @@ struct ImageSampleType {
         DEPTH,
         UNFILTERABLE_FLOAT,
     };
-
     static const char* to_str(Enum e);
     static ImageSampleType::Enum from_str(const std::string& str);
     static bool is_valid_str(const std::string& str);

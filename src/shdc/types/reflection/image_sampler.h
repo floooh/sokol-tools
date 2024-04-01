@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "fmt/format.h"
 #include "shader_stage.h"
 
 namespace shdc::refl {
@@ -14,6 +15,7 @@ struct ImageSampler {
     std::string sampler_name;
 
     bool equals(const ImageSampler& other) const;
+    void dump_debug(const std::string& indent) const;
 };
 
 inline bool ImageSampler::equals(const ImageSampler& other) const {
@@ -22,6 +24,16 @@ inline bool ImageSampler::equals(const ImageSampler& other) const {
         && (name == other.name)
         && (image_name == other.image_name)
         && (sampler_name == other.sampler_name);
+}
+
+inline void ImageSampler::dump_debug(const std::string& indent) const {
+    const std::string indent2 = indent + "  ";
+    fmt::print(stderr, "{}-\n", indent);
+    fmt::print(stderr, "{}stage: {}\n", indent2, ShaderStage::to_str(stage));
+    fmt::print(stderr, "{}slot: {}\n", indent2, slot);
+    fmt::print(stderr, "{}name: {}\n", indent2, name);
+    fmt::print(stderr, "{}image_name: {}\n", indent2, image_name);
+    fmt::print(stderr, "{}sampler_name: {}\n", indent2, sampler_name);
 }
 
 } // namespace

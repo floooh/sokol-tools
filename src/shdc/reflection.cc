@@ -82,7 +82,11 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
             }
         }
     }
-    res.bindings = merge_bindings(snippet_bindings, inp.base_path, res.error);
+    ErrMsg error;
+    res.bindings = merge_bindings(snippet_bindings, error);
+    if (error.valid()) {
+        res.error = inp.error(0, error.msg);
+    }
     return res;
 }
 
@@ -221,7 +225,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
-        for (size_t m_index = 0; m_index < ub_type.member_types.size(); m_index++) {
+        for (uint32_t m_index = 0; m_index < ub_type.member_types.size(); m_index++) {
             Uniform refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
             const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
@@ -308,7 +312,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     return refl;
 }
 
-Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, const std::string& inp_base_path, ErrMsg& out_error) {
+Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error) {
     Bindings out_bindings;
     out_error = ErrMsg();
     for (const Bindings& src_bindings: in_bindings) {
@@ -319,11 +323,25 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, co
             if (other_ub) {
                 // another uniform block of the same name exists, make sure it's identical
                 if (!ub.equals(*other_ub)) {
-                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
+                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
                     return Bindings();
                 }
             } else {
                 out_bindings.uniform_blocks.push_back(ub);
+            }
+        }
+
+        // merge identical storage buffers
+        for (const StorageBuffer& sbuf: src_bindings.storage_buffers) {
+            const StorageBuffer* other_sbuf = out_bindings.find_storage_buffer_by_name(sbuf.struct_refl.name);
+            if (other_sbuf) {
+                // another storage buffer of the same name exists, make sure it's identical
+                if (!sbuf.equals(*other_sbuf)) {
+                    out_error = ErrMsg::error(fmt::format("conflicting storage buffer definitions found for '{}'", sbuf.struct_refl.name));
+                    return Bindings();
+                }
+            } else {
+                out_bindings.storage_buffers.push_back(sbuf);
             }
         }
 
@@ -333,7 +351,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, co
             if (other_img) {
                 // another image of the same name exists, make sure it's identical
                 if (!img.equals(*other_img)) {
-                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting texture definitions found for '{}'", img.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting texture definitions found for '{}'", img.name));
                     return Bindings();
                 }
             } else {
@@ -347,7 +365,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, co
             if (other_smp) {
                 // another sampler of the same name exists, make sure it's identical
                 if (!smp.equals(*other_smp)) {
-                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting sampler definitions found for '{}'", smp.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting sampler definitions found for '{}'", smp.name));
                     return Bindings();
                 }
             } else {
@@ -361,7 +379,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, co
             if (other_img_smp) {
                 // another image sampler of the same name exists, make sure it's identical
                 if (!img_smp.equals(*other_img_smp)) {
-                    out_error = ErrMsg::error(inp_base_path, 0, fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
                     return Bindings();
                 }
             } else {
@@ -402,9 +420,9 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
             return out;
     }
     if (out.base_type == Type::Struct) {
-        out.size = compiler.get_declared_struct_size_runtime_array(item_type, 1);
+        out.size = (int) compiler.get_declared_struct_size_runtime_array(item_type, 1);
     } else {
-        out.size = compiler.get_declared_struct_member_size(struct_type, item_index);
+        out.size = (int) compiler.get_declared_struct_member_size(struct_type, item_index);
     }
     out.vecsize = item_type.vecsize;
     out.columns = item_type.columns;
@@ -420,7 +438,7 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
         return out;
     }
     if (out.base_type == Type::Struct) {
-        for (size_t nested_item_index = 0; nested_item_index < item_type.member_types.size(); nested_item_index++) {
+        for (uint32_t nested_item_index = 0; nested_item_index < item_type.member_types.size(); nested_item_index++) {
             const Type nested_type = parse_struct_item(compiler, item_type_id, nested_item_index, out_error);
             if (out_error.valid()) {
                 return out;
@@ -441,7 +459,7 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const TypeID& s
     }
     out.base_type = Type::Struct;
     out.size = (int) compiler.get_declared_struct_size_runtime_array(struct_type, 1);
-    for (size_t item_index = 0; item_index < struct_type.member_types.size(); item_index++) {
+    for (uint32_t item_index = 0; item_index < struct_type.member_types.size(); item_index++) {
         const Type item_type = parse_struct_item(compiler, struct_type_id, item_index, out_error);
         if (out_error.valid()) {
             return out;
@@ -449,6 +467,23 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const TypeID& s
         out.struct_items.push_back(item_type);
     }
     return out;
+}
+
+void Reflection::dump_debug(ErrMsg::Format err_fmt) const {
+    const std::string indent = "  ";
+    const std::string indent2 = indent + "  ";
+    fmt::print(stderr, "Reflection:\n");
+    if (error.valid()) {
+        fmt::print(stderr, "{}error: {}\n", indent, error.as_string(err_fmt));
+    } else {
+        fmt::print(stderr, "{}error: not set\n", indent);
+    }
+    fmt::print(stderr, "{}merged bindings:\n", indent);
+    bindings.dump_debug(indent2);
+    fmt::print(stderr, "{}programs:\n", indent);
+    for (const auto& prog: progs) {
+        prog.dump_debug(indent2);
+    }
 }
 
 } // namespace

@@ -27,8 +27,6 @@ struct Uniform {
     int size_bytes() const;
 
     static const char* type_to_str(Type t);
-    static bool is_valid_glsl_uniform_type(const std::string& str);
-    static const char* valid_glsl_uniform_types_as_str();
 };
 
 inline const char* Uniform::type_to_str(Type t) {
@@ -44,22 +42,6 @@ inline const char* Uniform::type_to_str(Type t) {
         case MAT4:      return "mat4";
         default:        return "invalid";
     }
-}
-
-inline bool Uniform::is_valid_glsl_uniform_type(const std::string& str) {
-    return (str == "float")
-        || (str == "vec2")
-        || (str == "vec3")
-        || (str == "vec4")
-        || (str == "int")
-        || (str == "int2")
-        || (str == "int3")
-        || (str == "int4")
-        || (str == "mat4");
-}
-
-inline const char* Uniform::valid_glsl_uniform_types_as_str() {
-    return "float|vec2|vec3|vec4|int|int2|int3|int4|mat4";
 }
 
 inline bool Uniform::equals(const Uniform& other) const {

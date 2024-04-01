@@ -113,6 +113,9 @@ int main(int argc, const char** argv) {
         refl.error.print(args.error_format);
         return 10;
     }
+    if (args.debug_dump) {
+        refl.dump_debug(args.error_format);
+    }
 
     // generate output files
     const GenInput gen_input(args, inp, spirvcross, bytecode, refl);

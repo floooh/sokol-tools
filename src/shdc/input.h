@@ -26,8 +26,8 @@ struct Input {
     std::map<std::string, Program> programs;    // all @program definitions
 
     static Input load_and_parse(const std::string& path, const std::string& module_override);
-    ErrMsg error(int index, const std::string& msg) const;
-    ErrMsg warning(int index, const std::string& msg) const;
+    ErrMsg error(int line_index, const std::string& msg) const;
+    ErrMsg warning(int line_index, const std::string& msg) const;
     void dump_debug(ErrMsg::Format err_fmt) const;
 };
 

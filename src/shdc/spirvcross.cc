@@ -489,7 +489,6 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
     return spv_cross;
 }
 
-// FIXME: most of this should go into Reflection::dump_debug()
 void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
     fmt::print(stderr, "Spirvcross ({}):\n", Slang::to_str(slang));
     if (error.valid()) {
@@ -503,42 +502,6 @@ void Spirvcross::dump_debug(ErrMsg::Format err_fmt, Slang::Enum slang) const {
         pystring::splitlines(source.source_code, lines);
         for (const std::string& line: lines) {
             fmt::print(stderr, "      {}\n", line);
-        }
-        fmt::print(stderr, "    reflection for snippet {}:\n", source.snippet_index);
-        fmt::print(stderr, "      stage: {}\n", source.stage_refl.stage_name);
-        fmt::print(stderr, "      entry: {}\n", source.stage_refl.entry_point);
-        fmt::print(stderr, "      inputs:\n");
-        for (const StageAttr& attr: source.stage_refl.inputs) {
-            if (attr.slot >= 0) {
-                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
-            }
-        }
-        fmt::print(stderr, "      outputs:\n");
-        for (const StageAttr& attr: source.stage_refl.outputs) {
-            if (attr.slot >= 0) {
-                fmt::print(stderr, "        {}: slot={}, sem_name={}, sem_index={}\n", attr.name, attr.slot, attr.sem_name, attr.sem_index);
-            }
-        }
-        for (const UniformBlock& ub: source.stage_refl.bindings.uniform_blocks) {
-            fmt::print(stderr, "      uniform block: {}, slot: {}, size: {}\n", ub.struct_name, ub.slot, ub.size);
-            for (const Uniform& uniform: ub.uniforms) {
-                fmt::print(stderr, "          member: {}, type: {}, array_count: {}, offset: {}\n",
-                    uniform.name,
-                    Uniform::type_to_str(uniform.type),
-                    uniform.array_count,
-                    uniform.offset);
-            }
-        }
-        for (const Image& img: source.stage_refl.bindings.images) {
-            fmt::print(stderr, "      image: {}, slot: {}, type: {}, sampletype: {}\n",
-                img.name, img.slot, ImageType::to_str(img.type), ImageSampleType::to_str(img.sample_type));
-        }
-        for (const Sampler& smp: source.stage_refl.bindings.samplers) {
-            fmt::print(stderr, "      sampler: {}, slot: {}\n", smp.name, smp.slot);
-        }
-        for (const ImageSampler& img_smp: source.stage_refl.bindings.image_samplers) {
-            fmt::print(stderr, "      image sampler: {}, slot: {}, image: {}, sampler: {}\n",
-                img_smp.name, img_smp.slot, img_smp.image_name, img_smp.sampler_name);
         }
         fmt::print(stderr, "\n");
     }
