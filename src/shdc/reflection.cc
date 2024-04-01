@@ -90,40 +90,6 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     return res;
 }
 
-static Uniform::Type spirtype_to_uniform_type(const SPIRType& type) {
-    switch (type.basetype) {
-        case SPIRType::Float:
-            if (type.columns == 1) {
-                // scalar or vec
-                switch (type.vecsize) {
-                    case 1: return Uniform::FLOAT;
-                    case 2: return Uniform::FLOAT2;
-                    case 3: return Uniform::FLOAT3;
-                    case 4: return Uniform::FLOAT4;
-                }
-            } else {
-                // a matrix
-                if ((type.vecsize == 4) && (type.columns == 4)) {
-                    return Uniform::MAT4;
-                }
-            }
-            break;
-        case SPIRType::Int:
-            if (type.columns == 1) {
-                switch (type.vecsize) {
-                    case 1: return Uniform::INT;
-                    case 2: return Uniform::INT2;
-                    case 3: return Uniform::INT3;
-                    case 4: return Uniform::INT4;
-                }
-            }
-            break;
-        default: break;
-    }
-    // fallthrough: invalid type
-    return Uniform::INVALID;
-}
-
 static ImageType::Enum spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
@@ -219,19 +185,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res.base_type_id, ub_res.name, out_error);
         if (out_error.valid()) {
             return refl;
-        }
-        // FIXME: obsolete
-        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        for (uint32_t m_index = 0; m_index < ub_type.member_types.size(); m_index++) {
-            Uniform refl_uniform;
-            refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
-            const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
-            refl_uniform.type = spirtype_to_uniform_type(m_type);
-            if (m_type.array.size() > 0) {
-                refl_uniform.array_count = m_type.array[0];
-            }
-            refl_uniform.offset = compiler.type_struct_member_offset(ub_type, m_index);
-            refl_ub.uniforms.push_back(refl_uniform);
         }
         refl.bindings.uniform_blocks.push_back(refl_ub);
     }

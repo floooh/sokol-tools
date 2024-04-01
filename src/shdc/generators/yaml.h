@@ -7,8 +7,8 @@ class YamlGenerator: public BareGenerator {
 public:
     virtual ErrMsg generate(const GenInput& gen);
 protected:
-    virtual std::string uniform_type(refl::Uniform::Type t);
-    virtual std::string flattened_uniform_type(refl::Uniform::Type t);
+    virtual std::string uniform_type(refl::Type::Enum e);
+    virtual std::string flattened_uniform_type(refl::Type::Enum e);
     virtual std::string image_type(refl::ImageType::Enum e);
     virtual std::string image_sample_type(refl::ImageSampleType::Enum e);
     virtual std::string sampler_type(refl::SamplerType::Enum e);

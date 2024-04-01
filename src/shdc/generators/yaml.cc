@@ -126,13 +126,13 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     l_open("uniforms:\n");
     if (ub.flattened) {
         l_open("-\n");
-        l("name: {}\n", ub.uniforms[0].name);
-        l("type: {}\n", flattened_uniform_type(ub.uniforms[0].type));
-        l("array_count: {}\n", roundup(ub.struct_info.size, 16) / 16);
+        l("name: {}\n", ub.struct_info.struct_items[0].name);
+        l("type: {}\n", flattened_uniform_type(ub.struct_info.struct_items[0].type));
+        l("array_count: {}\n", roundup(ub.struct_info.struct_items[0].size, 16) / 16);
         l("offset: 0\n");
         l_close();
     } else {
-        for (const Uniform& u: ub.uniforms) {
+        for (const Type& u: ub.struct_info.struct_items) {
             l_open("-\n");
             l("name: {}\n", u.name);
             l("type: {}\n", uniform_type(u.type));
@@ -172,25 +172,25 @@ void YamlGenerator::gen_image_sampler(const ImageSampler& image_sampler) {
     l_close();
 }
 
-std::string YamlGenerator::uniform_type(Uniform::Type t) {
-    return Uniform::type_to_str(t);
+std::string YamlGenerator::uniform_type(Type::Enum e) {
+    return Type::type_to_glsl(e);
 }
 
-std::string YamlGenerator::flattened_uniform_type(Uniform::Type t) {
-    switch (t) {
-        case Uniform::FLOAT:
-        case Uniform::FLOAT2:
-        case Uniform::FLOAT3:
-        case Uniform::FLOAT4:
-        case Uniform::MAT4:
-             return Uniform::type_to_str(Uniform::FLOAT4);
-        case Uniform::INT:
-        case Uniform::INT2:
-        case Uniform::INT3:
-        case Uniform::INT4:
-            return Uniform::type_to_str(Uniform::INT4);
+std::string YamlGenerator::flattened_uniform_type(Type::Enum e) {
+    switch (e) {
+        case Type::Float:
+        case Type::Float2:
+        case Type::Float3:
+        case Type::Float4:
+        case Type::Mat4x4:
+             return Type::type_to_glsl(Type::Float4);
+        case Type::Int:
+        case Type::Int2:
+        case Type::Int3:
+        case Type::Int4:
+            return Type::type_to_glsl(Type::Int4);
         default:
-            return Uniform::type_to_str(Uniform::INVALID);
+            return Type::type_to_glsl(Type::Invalid);
     }
 }
 

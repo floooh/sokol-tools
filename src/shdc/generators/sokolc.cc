@@ -79,7 +79,7 @@ void SokolCGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBl
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
     l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_info.name));
-    for (const Uniform& uniform: ub.uniforms) {
+    for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
             l("uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
@@ -87,36 +87,36 @@ void SokolCGenerator::gen_uniformblock_decl(const GenInput &gen, const UniformBl
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
-            if (uniform.array_count == 1) {
+            if (!uniform.is_array) {
                 l("{} {};\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name);
             } else {
                 l("{} {}[{}];\n", gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.name, uniform.array_count);
             }
         } else {
             // default type names (float)
-            if (uniform.array_count == 1) {
+            if (!uniform.is_array) {
                 switch (uniform.type) {
-                    case Uniform::FLOAT:      l("float {};\n", uniform.name); break;
-                    case Uniform::FLOAT2:     l("float {}[2];\n", uniform.name); break;
-                    case Uniform::FLOAT3:     l("float {}[3];\n", uniform.name); break;
-                    case Uniform::FLOAT4:     l("float {}[4];\n", uniform.name); break;
-                    case Uniform::INT:        l("int {};\n", uniform.name); break;
-                    case Uniform::INT2:       l("int {}[2];\n", uniform.name); break;
-                    case Uniform::INT3:       l("int {}[3];\n", uniform.name); break;
-                    case Uniform::INT4:       l("int {}[4];\n", uniform.name); break;
-                    case Uniform::MAT4:       l("float {}[16];\n", uniform.name); break;
-                    default:                  l("INVALID_UNIFORM_TYPE;\n"); break;
+                    case Type::Float:   l("float {};\n", uniform.name); break;
+                    case Type::Float2:  l("float {}[2];\n", uniform.name); break;
+                    case Type::Float3:  l("float {}[3];\n", uniform.name); break;
+                    case Type::Float4:  l("float {}[4];\n", uniform.name); break;
+                    case Type::Int:     l("int {};\n", uniform.name); break;
+                    case Type::Int2:    l("int {}[2];\n", uniform.name); break;
+                    case Type::Int3:    l("int {}[3];\n", uniform.name); break;
+                    case Type::Int4:    l("int {}[4];\n", uniform.name); break;
+                    case Type::Mat4x4:  l("float {}[16];\n", uniform.name); break;
+                    default:            l("INVALID_UNIFORM_TYPE;\n"); break;
                 }
             } else {
                 switch (uniform.type) {
-                    case Uniform::FLOAT4:     l("float {}[{}][4];\n", uniform.name, uniform.array_count); break;
-                    case Uniform::INT4:       l("int {}[{}][4];\n",   uniform.name, uniform.array_count); break;
-                    case Uniform::MAT4:       l("float {}[{}][16];\n", uniform.name, uniform.array_count); break;
-                    default:                  l("INVALID_UNIFORM_TYPE;\n"); break;
+                    case Type::Float4:  l("float {}[{}][4];\n", uniform.name, uniform.array_count); break;
+                    case Type::Int4:    l("int {}[{}][4];\n",   uniform.name, uniform.array_count); break;
+                    case Type::Mat4x4:  l("float {}[{}][16];\n", uniform.name, uniform.array_count); break;
+                    default:            l("INVALID_UNIFORM_TYPE;\n"); break;
                 }
             }
         }
-        cur_offset += uniform.size_bytes();
+        cur_offset += uniform.size;
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
@@ -177,14 +177,14 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
                         l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
                         l("{}.layout = SG_UNIFORMLAYOUT_STD140;\n", ubn);
-                        if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
+                        if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                             if (ub->flattened) {
                                 l("{}.uniforms[0].name = \"{}\";\n", ubn, ub->struct_info.name);
-                                l("{}.uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->uniforms[0].type));
-                                l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
+                                l("{}.uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
+                                l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.struct_items[0].size, 16) / 16);
                             } else {
-                                for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
-                                    const Uniform& u = ub->uniforms[u_index];
+                                for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
+                                    const Type& u = ub->struct_info.struct_items[u_index];
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
                                     l("{}.name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                                     l("{}.type = {};\n", un, uniform_type(u.type));
@@ -341,7 +341,7 @@ void SokolCGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pr
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
-                    for (const Uniform& u: ub.uniforms) {
+                    for (const Type& u: ub.struct_info.struct_items) {
                         l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                         l("return {};\n", u.offset);
                         l_close("}}\n");
@@ -370,7 +370,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
                 if (ub.slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
-                    for (const Uniform& u: ub.uniforms) {
+                    for (const Type& u: ub.struct_info.struct_items) {
                         l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                         l("desc.name = \"{}\";\n", u.name);
                         l("desc.type = {};\n", uniform_type(u.type));
@@ -442,21 +442,6 @@ std::string SokolCGenerator::get_shader_desc_help(const std::string& prog_name) 
     return fmt::format("{}{}_shader_desc(sg_query_backend());\n", mod_prefix, prog_name);
 }
 
-std::string SokolCGenerator::uniform_type(Uniform::Type t) {
-    switch (t) {
-        case Uniform::FLOAT:  return "SG_UNIFORMTYPE_FLOAT";
-        case Uniform::FLOAT2: return "SG_UNIFORMTYPE_FLOAT2";
-        case Uniform::FLOAT3: return "SG_UNIFORMTYPE_FLOAT3";
-        case Uniform::FLOAT4: return "SG_UNIFORMTYPE_FLOAT4";
-        case Uniform::INT:    return "SG_UNIFORMTYPE_INT";
-        case Uniform::INT2:   return "SG_UNIFORMTYPE_INT2";
-        case Uniform::INT3:   return "SG_UNIFORMTYPE_INT3";
-        case Uniform::INT4:   return "SG_UNIFORMTYPE_INT4";
-        case Uniform::MAT4:   return "SG_UNIFORMTYPE_MAT4";
-        default: return "INVALID";
-    }
-}
-
 std::string SokolCGenerator::uniform_type(Type::Enum e) {
     switch (e) {
         case Type::Float:  return "SG_UNIFORMTYPE_FLOAT";
@@ -469,24 +454,6 @@ std::string SokolCGenerator::uniform_type(Type::Enum e) {
         case Type::Int4:   return "SG_UNIFORMTYPE_INT4";
         case Type::Mat4x4: return "SG_UNIFORMTYPE_MAT4";
         default: return "INVALID";
-    }
-}
-
-std::string SokolCGenerator::flattened_uniform_type(Uniform::Type t) {
-    switch (t) {
-        case Uniform::FLOAT:
-        case Uniform::FLOAT2:
-        case Uniform::FLOAT3:
-        case Uniform::FLOAT4:
-        case Uniform::MAT4:
-             return "SG_UNIFORMTYPE_FLOAT4";
-        case Uniform::INT:
-        case Uniform::INT2:
-        case Uniform::INT3:
-        case Uniform::INT4:
-            return "SG_UNIFORMTYPE_INT4";
-        default:
-            return "INVALID";
     }
 }
 

@@ -26,8 +26,8 @@ protected:
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang);
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang);
     virtual std::string get_shader_desc_help(const std::string& prog_name);
-    virtual std::string uniform_type(refl::Uniform::Type t);
-    virtual std::string flattened_uniform_type(refl::Uniform::Type t);
+    virtual std::string uniform_type(refl::Type::Enum e);
+    virtual std::string flattened_uniform_type(refl::Type::Enum e);
     virtual std::string image_type(refl::ImageType::Enum e);
     virtual std::string image_sample_type(refl::ImageSampleType::Enum e);
     virtual std::string sampler_type(refl::SamplerType::Enum e);

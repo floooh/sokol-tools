@@ -4,7 +4,6 @@
 #include "fmt/format.h"
 #include "shader_stage.h"
 #include "type.h"
-#include "uniform.h"
 
 namespace shdc::refl {
 
@@ -15,9 +14,6 @@ struct UniformBlock {
     std::string inst_name;
     bool flattened = false;
     Type struct_info;
-
-    // FIXME: remove
-    std::vector<Uniform> uniforms;
 
     bool equals(const UniformBlock& other) const;
     void dump_debug(const std::string& indent) const;

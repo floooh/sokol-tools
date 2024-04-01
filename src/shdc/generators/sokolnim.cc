@@ -96,7 +96,7 @@ void SokolNimGenerator::gen_prerequisites(const GenInput& gen) {
 void SokolNimGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
     l_open("type {}* {{.packed}} = object\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
-    for (const Uniform& uniform: ub.uniforms) {
+    for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
             l("_pad_{}: array[{}, uint8]\n", cur_offset, next_offset - cur_offset);
@@ -105,36 +105,36 @@ void SokolNimGenerator::gen_uniformblock_decl(const GenInput& gen, const Uniform
         const char* align = (0 == cur_offset) ? " {.align(16).}" : "";
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
-            if (uniform.array_count == 1) {
+            if (!uniform.is_array) {
                 l("{}*{}: {}\n", uniform.name, align, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             } else {
                 l("{}*{}: [{}]{}\n", uniform.name, align, uniform.array_count, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             }
         } else {
             // default type names (float)
-            if (uniform.array_count == 1) {
+            if (!uniform.is_array) {
                 switch (uniform.type) {
-                    case Uniform::FLOAT:      l("{}*{}: float32\n", uniform.name, align); break;
-                    case Uniform::FLOAT2:     l("{}*{}: array[2, float32]\n", uniform.name, align); break;
-                    case Uniform::FLOAT3:     l("{}*{}: array[3, float32]\n", uniform.name, align); break;
-                    case Uniform::FLOAT4:     l("{}*{}: array[4, float32]\n", uniform.name, align); break;
-                    case Uniform::INT:        l("{}*{}: int32\n", uniform.name, align); break;
-                    case Uniform::INT2:       l("{}*{}: array[2, int32]\n", uniform.name, align); break;
-                    case Uniform::INT3:       l("{}*{}: array[3, int32]\n", uniform.name, align); break;
-                    case Uniform::INT4:       l("{}*{}: array[4, int32]\n", uniform.name, align); break;
-                    case Uniform::MAT4:       l("{}*{}: array[16, float32\n", uniform.name, align); break;
-                    default:                  l("INVALID_UNIFORM_TYPE"); break;
+                    case Type::Float:   l("{}*{}: float32\n", uniform.name, align); break;
+                    case Type::Float2:  l("{}*{}: array[2, float32]\n", uniform.name, align); break;
+                    case Type::Float3:  l("{}*{}: array[3, float32]\n", uniform.name, align); break;
+                    case Type::Float4:  l("{}*{}: array[4, float32]\n", uniform.name, align); break;
+                    case Type::Int:     l("{}*{}: int32\n", uniform.name, align); break;
+                    case Type::Int2:    l("{}*{}: array[2, int32]\n", uniform.name, align); break;
+                    case Type::Int3:    l("{}*{}: array[3, int32]\n", uniform.name, align); break;
+                    case Type::Int4:    l("{}*{}: array[4, int32]\n", uniform.name, align); break;
+                    case Type::Mat4x4:  l("{}*{}: array[16, float32\n", uniform.name, align); break;
+                    default:            l("INVALID_UNIFORM_TYPE"); break;
                 }
             } else {
                 switch (uniform.type) {
-                    case Uniform::FLOAT4:     l("{}*{}: array[{}, array[4, float32]]\n", uniform.name, align, uniform.array_count); break;
-                    case Uniform::INT4:       l("{}*{}: array[{}, array[4, int32]]\n", uniform.name, align, uniform.array_count); break;
-                    case Uniform::MAT4:       l("{}*{}: array[{}, array[16, float32]]\n", uniform.name, align, uniform.array_count); break;
-                    default:                  l("INVALID_UNIFORM_TYPE\n"); break;
+                    case Type::Float4:  l("{}*{}: array[{}, array[4, float32]]\n", uniform.name, align, uniform.array_count); break;
+                    case Type::Int4:    l("{}*{}: array[{}, array[4, int32]]\n", uniform.name, align, uniform.array_count); break;
+                    case Type::Mat4x4:  l("{}*{}: array[{}, array[16, float32]]\n", uniform.name, align, uniform.array_count); break;
+                    default:            l("INVALID_UNIFORM_TYPE\n"); break;
                 }
             }
         }
-        cur_offset += uniform.size_bytes();
+        cur_offset += uniform.size;
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
@@ -189,14 +189,14 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         const std::string ubn = fmt::format("{}.uniformBlocks[{}]", dsn, ub_index);
                         l("{}.size = {}\n", ubn, roundup(ub->struct_info.size, 16));
                         l("{}.layout = uniformLayoutStd140\n", ubn);
-                        if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
+                        if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                             if (ub->flattened) {
                                 l("{}.uniforms[0].name = \"{}\"\n", ubn, ub->struct_info.name);
-                                l("{}.uniforms[0].type = {}\n", ubn, flattened_uniform_type(ub->uniforms[0].type));
-                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->struct_info.size, 16) / 16);
+                                l("{}.uniforms[0].type = {}\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
+                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->struct_info.struct_items[0].size, 16) / 16);
                             } else {
-                                for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
-                                    const Uniform& u = ub->uniforms[u_index];
+                                for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
+                                    const Type& u = ub->struct_info.struct_items[u_index];
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
                                     l("{}.name = \"{}.{}\"\n", un, ub->inst_name, u.name);
                                     l("{}.type = {}\n", un, uniform_type(u.type));
@@ -309,33 +309,33 @@ std::string SokolNimGenerator::get_shader_desc_help(const std::string& prog_name
     return fmt::format("{}ShaderDesc(sg.queryBackend())\n", to_camel_case(prog_name));
 }
 
-std::string SokolNimGenerator::uniform_type(Uniform::Type t) {
-    switch (t) {
-        case Uniform::FLOAT:  return "uniformTypeFloat";
-        case Uniform::FLOAT2: return "uniformTypeFloat2";
-        case Uniform::FLOAT3: return "uniformTypeFloat3";
-        case Uniform::FLOAT4: return "uniformTypeFloat4";
-        case Uniform::INT:    return "uniformTypeInt";
-        case Uniform::INT2:   return "uniformTypeInt2";
-        case Uniform::INT3:   return "uniformTypeInt3";
-        case Uniform::INT4:   return "uniformTypeInt4";
-        case Uniform::MAT4:   return "uniformTypeMat4";
+std::string SokolNimGenerator::uniform_type(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return "uniformTypeFloat";
+        case Type::Float2:  return "uniformTypeFloat2";
+        case Type::Float3:  return "uniformTypeFloat3";
+        case Type::Float4:  return "uniformTypeFloat4";
+        case Type::Int:     return "uniformTypeInt";
+        case Type::Int2:    return "uniformTypeInt2";
+        case Type::Int3:    return "uniformTypeInt3";
+        case Type::Int4:    return "uniformTypeInt4";
+        case Type::Mat4x4:  return "uniformTypeMat4";
         default: return "INVALID";
     }
 }
 
-std::string SokolNimGenerator::flattened_uniform_type(Uniform::Type t) {
-    switch (t) {
-        case Uniform::FLOAT:
-        case Uniform::FLOAT2:
-        case Uniform::FLOAT3:
-        case Uniform::FLOAT4:
-        case Uniform::MAT4:
+std::string SokolNimGenerator::flattened_uniform_type(Type::Enum e) {
+    switch (e) {
+        case Type::Float:
+        case Type::Float2:
+        case Type::Float3:
+        case Type::Float4:
+        case Type::Mat4x4:
              return "uniformTypeFloat4";
-        case Uniform::INT:
-        case Uniform::INT2:
-        case Uniform::INT3:
-        case Uniform::INT4:
+        case Type::Int:
+        case Type::Int2:
+        case Type::Int3:
+        case Type::Int4:
             return "uniformTypeInt4";
         default:
             return "INVALID";

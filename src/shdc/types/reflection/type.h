@@ -52,6 +52,8 @@ struct Type {
     bool equals(const Type& other) const;
     std::string type_as_str() const;
     std::string type_as_glsl() const;
+    static std::string type_to_str(Type::Enum e);
+    static std::string type_to_glsl(Type::Enum e);
     void dump_debug(const std::string& indent) const;
     static bool is_valid_glsl_type(const std::string& str);
     static std::string valid_glsl_types_as_str();
@@ -94,7 +96,11 @@ inline bool Type::equals(const Type& other) const {
 }
 
 inline std::string Type::type_as_str() const {
-    switch (type) {
+    return type_to_str(type);
+}
+
+inline std::string Type::type_to_str(Type::Enum e) {
+    switch (e) {
         case Bool:      return "Bool";
         case Bool2:     return "Bool22";
         case Bool3:     return "Bool3";
@@ -129,7 +135,11 @@ inline std::string Type::type_as_str() const {
 }
 
 inline std::string Type::type_as_glsl() const {
-    switch (type) {
+    return type_to_glsl(type);
+}
+
+inline std::string Type::type_to_glsl(Type::Enum e) {
+    switch (e) {
         case Bool:      return "bool";
         case Bool2:     return "bvec2";
         case Bool3:     return "bvec3";
@@ -204,7 +214,7 @@ inline void Type::dump_debug(const std::string& indent) const {
     const std::string indent2 = indent + "  ";
     fmt::print(stderr, "{}-\n", indent);
     fmt::print(stderr, "{}name: {}\n", indent2, name);
-    fmt::print(stderr, "{}type: {}\n", indent2, type_as_str());
+    fmt::print(stderr, "{}type: {}\n", indent2, type_to_str(type));
     fmt::print(stderr, "{}is_matrix: {}\n", indent2, is_matrix);
     fmt::print(stderr, "{}is_array: {}\n", indent2, is_array);
     fmt::print(stderr, "{}offset: {}\n", indent2, offset);
