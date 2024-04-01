@@ -110,8 +110,8 @@ void Generator::gen_fragment_shader_info(const GenInput& gen, const ProgramRefle
 
 void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings) {
     for (const UniformBlock& ub: bindings.uniform_blocks) {
-        cbl_open("Uniform block '{}':\n", ub.struct_name);
-        cbl("{} struct: {}\n", lang_name(), struct_name(ub.struct_name));
+        cbl_open("Uniform block '{}':\n", ub.struct_refl.name);
+        cbl("{} struct: {}\n", lang_name(), struct_name(ub.struct_refl.name));
         cbl("Bind slot: {} => {}\n", uniform_block_bind_slot_name(ub), ub.slot);
         cbl_close();
     }

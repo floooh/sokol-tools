@@ -121,7 +121,7 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     l_open("-\n");
     l("slot: {}\n", ub.slot);
     l("size: {}\n", ub.size);
-    l("struct_name: {}\n", ub.struct_name);
+    l("struct_name: {}\n", ub.struct_refl.name);
     l("inst_name: {}\n", ub.inst_name);
     l_open("uniforms:\n");
     if (ub.flattened) {

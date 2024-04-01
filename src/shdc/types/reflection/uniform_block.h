@@ -2,9 +2,9 @@
 #include <string>
 #include <vector>
 #include "fmt/format.h"
-#include "uniform.h"
 #include "shader_stage.h"
 #include "type.h"
+#include "uniform.h"
 
 namespace shdc::refl {
 
@@ -13,33 +13,24 @@ struct UniformBlock {
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     int size = 0;
-    std::string struct_name;
     std::string inst_name;
-    std::vector<Uniform> uniforms;
     bool flattened = false;
-    Type struct_refl;      // FIXME: replace struct_name and uniforms with this
+    Type struct_refl;
+
+    // FIXME: remove
+    std::vector<Uniform> uniforms;
 
     bool equals(const UniformBlock& other) const;
     void dump_debug(const std::string& indent) const;
 };
 
-// FIXME: hmm is this correct??
 inline bool UniformBlock::equals(const UniformBlock& other) const {
-    if ((stage != other.stage) ||
-        (slot != other.slot) ||
-        (size != other.size) ||
-        (struct_name != other.struct_name) ||
-        (uniforms.size() != other.uniforms.size()) ||
-        (flattened != other.flattened))
-    {
-        return false;
-    }
-    for (int i = 0; i < (int)uniforms.size(); i++) {
-        if (!uniforms[i].equals(other.uniforms[i])) {
-            return false;
-        }
-    }
-    return true;
+    return (stage == other.stage)
+        && (slot == other.slot)
+        && (size == other.size)
+        // NOTE: ignore inst_name
+        && (flattened == other.flattened)
+        && struct_refl.equals(other.struct_refl);
 }
 
 inline void UniformBlock::dump_debug(const std::string& indent) const {

@@ -84,7 +84,7 @@ static void print_help_string(getopt_context_t& ctx) {
     fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
 }
 
-/* parse string of format 'hlsl4|glsl100|...' args.slang bitmask */
+/* parse string of format 'hlsl4|...' args.slang bitmask */
 static bool parse_slang(Args& args, const char* str) {
     args.slang = 0;
     std::vector<std::string> splits;

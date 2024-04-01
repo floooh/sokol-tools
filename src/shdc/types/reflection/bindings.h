@@ -76,7 +76,7 @@ inline const ImageSampler* Bindings::find_image_sampler_by_slot(int slot) const 
 
 inline const UniformBlock* Bindings::find_uniform_block_by_name(const std::string& name) const {
     for (const UniformBlock& ub: uniform_blocks) {
-        if (ub.struct_name == name) {
+        if (ub.struct_refl.name == name) {
             return &ub;
         }
     }

@@ -213,18 +213,16 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_ub.stage = refl.stage;
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
         refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
-        // FIXME: struct_name is obsolete
-        refl_ub.struct_name = ub_res.name;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
-        // FIXME uniforms array is obsolete
         refl_ub.struct_refl = parse_toplevel_struct(compiler, ub_res.base_type_id, ub_res.name, out_error);
         if (out_error.valid()) {
             return refl;
         }
+        // FIXME: obsolete
         for (uint32_t m_index = 0; m_index < ub_type.member_types.size(); m_index++) {
             Uniform refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
@@ -319,11 +317,11 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
 
         // merge identical uniform blocks
         for (const UniformBlock& ub: src_bindings.uniform_blocks) {
-            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_name);
+            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_refl.name);
             if (other_ub) {
                 // another uniform block of the same name exists, make sure it's identical
                 if (!ub.equals(*other_ub)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_name));
+                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_refl.name));
                     return Bindings();
                 }
             } else {
@@ -390,42 +388,73 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
     return out_bindings;
 }
 
+static const Type::Enum bool_types[4][4] = {
+    { Type::Bool,    Type::Bool2,   Type::Bool3,   Type::Bool4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum int_types[4][4] = {
+    { Type::Int,     Type::Int2,    Type::Int3,    Type::Int4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum uint_types[4][4] = {
+    { Type::UInt,    Type::UInt2,   Type::UInt3,   Type::UInt4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum float_types[4][4] = {
+    { Type::Float,  Type::Float2, Type::Float3, Type::Float4 },
+    { Type::Mat2x1, Type::Mat2x2, Type::Mat2x3, Type::Mat2x4 },
+    { Type::Mat3x1, Type::Mat3x2, Type::Mat3x3, Type::Mat3x4 },
+    { Type::Mat4x1, Type::Mat4x2, Type::Mat4x3, Type::Mat4x4 },
+};
+
 Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struct_type_id, uint32_t item_index, ErrMsg& out_error) {
     const SPIRType& struct_type = compiler.get_type(struct_type_id);
     const TypeID& item_type_id = struct_type.member_types[item_index];
     const SPIRType& item_type = compiler.get_type(item_type_id);
     Type out;
     out.name = compiler.get_member_name(struct_type.self, item_index);
-    switch (item_type.basetype) {
-        case SPIRType::Boolean:
-            out.base_type = Type::Bool;
-            break;
-        case SPIRType::Int:
-            out.base_type = Type::Int;
-            break;
-        case SPIRType::UInt:
-            out.base_type = Type::UInt;
-            break;
-        case SPIRType::Float:
-            out.base_type = Type::Float;
-            break;
-        case SPIRType::Half:
-            out.base_type = Type::Half;
-            break;
-        case SPIRType::Struct:
-            out.base_type = Type::Struct;
-            break;
-        default:
-            out_error = ErrMsg::error(fmt::format("struct item {} has unsupported type", out.name));
-            return out;
+    out.type = Type::Invalid;
+    uint32_t col_idx = item_type.columns - 1;
+    uint32_t vec_idx = item_type.vecsize - 1;
+    if ((col_idx < 4) && (vec_idx < 4)) {
+        switch (item_type.basetype) {
+            case SPIRType::Boolean:
+                out.type = bool_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Int:
+                out.type = int_types[col_idx][vec_idx];
+                break;
+            case SPIRType::UInt:
+                out.type = uint_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Float:
+                out.type = float_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Struct:
+                out.type = Type::Struct;
+                break;
+            default:
+                break;
+        }
     }
-    if (out.base_type == Type::Struct) {
+    if (Type::Invalid == out.type) {
+        out_error = ErrMsg::error(fmt::format("struct item {} has unsupported type", out.name));
+    }
+    if (out.type == Type::Struct) {
         out.size = (int) compiler.get_declared_struct_size_runtime_array(item_type, 1);
     } else {
         out.size = (int) compiler.get_declared_struct_member_size(struct_type, item_index);
     }
-    out.vecsize = item_type.vecsize;
-    out.columns = item_type.columns;
+    out.is_matrix = item_type.columns > 1;
+    if (out.is_matrix) {
+        out.matrix_stride = compiler.type_struct_member_matrix_stride(struct_type, item_index);
+    }
     out.offset = compiler.type_struct_member_offset(struct_type, item_index);
     if (item_type.array.size() == 0) {
         out.is_array = false;
@@ -437,7 +466,7 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
         out_error = ErrMsg::error(fmt::format("arrays of arrays are not supported (struct item {})", out.name));
         return out;
     }
-    if (out.base_type == Type::Struct) {
+    if (out.type == Type::Struct) {
         for (uint32_t nested_item_index = 0; nested_item_index < item_type.member_types.size(); nested_item_index++) {
             const Type nested_type = parse_struct_item(compiler, item_type_id, nested_item_index, out_error);
             if (out_error.valid()) {
@@ -457,7 +486,7 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const TypeID& s
         out_error = ErrMsg::error(fmt::format("toplevel item {} is not a struct", name));
         return out;
     }
-    out.base_type = Type::Struct;
+    out.type = Type::Struct;
     out.size = (int) compiler.get_declared_struct_size_runtime_array(struct_type, 1);
     for (uint32_t item_index = 0; item_index < struct_type.member_types.size(); item_index++) {
         const Type item_type = parse_struct_item(compiler, struct_type_id, item_index, out_error);

@@ -9,6 +9,7 @@ struct vertex {
 };
 
 readonly buffer ssbo {
+    float x_offset;
     vertex vtx[];
 };
 
@@ -16,6 +17,7 @@ out vec4 color;
 
 void main() {
     gl_Position = mvp * vtx[gl_VertexIndex].pos;
+    gl_Position.x += x_offset;
     color = vtx[gl_VertexIndex].color;
 }
 @end
