@@ -11,7 +11,7 @@ struct StorageBuffer {
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     std::string inst_name;
-    Type struct_refl;
+    Type struct_info;
 
     bool equals(const StorageBuffer& other) const;
     void dump_debug(const std::string& indent) const;
@@ -21,7 +21,7 @@ inline bool StorageBuffer::equals(const StorageBuffer& other) const {
     return (stage == other.stage)
         && (slot == other.slot)
         && (inst_name == other.inst_name)
-        && (struct_refl.equals(other.struct_refl));
+        && (struct_info.equals(other.struct_info));
 }
 
 inline void StorageBuffer::dump_debug(const std::string& indent) const {
@@ -31,7 +31,7 @@ inline void StorageBuffer::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}slot: {}\n", indent2, slot);
     fmt::print(stderr, "{}inst_name: {}\n", indent2, inst_name);
     fmt::print(stderr, "{}struct:\n", indent2);
-    struct_refl.dump_debug(indent2);
+    struct_info.dump_debug(indent2);
 }
 
 } // namespace

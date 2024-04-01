@@ -94,7 +94,7 @@ void SokolNimGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolNimGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
-    l_open("type {}* {{.packed}} = object\n", struct_name(ub.struct_refl.name));
+    l_open("type {}* {{.packed}} = object\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
     for (const Uniform& uniform: ub.uniforms) {
         int next_offset = uniform.offset;
@@ -187,13 +187,13 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniformBlocks[{}]", dsn, ub_index);
-                        l("{}.size = {}\n", ubn, roundup(ub->size, 16));
+                        l("{}.size = {}\n", ubn, roundup(ub->struct_info.size, 16));
                         l("{}.layout = uniformLayoutStd140\n", ubn);
                         if (Slang::is_glsl(slang) && (ub->uniforms.size() > 0)) {
                             if (ub->flattened) {
-                                l("{}.uniforms[0].name = \"{}\"\n", ubn, ub->struct_refl.name);
+                                l("{}.uniforms[0].name = \"{}\"\n", ubn, ub->struct_info.name);
                                 l("{}.uniforms[0].type = {}\n", ubn, flattened_uniform_type(ub->uniforms[0].type));
-                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->size, 16) / 16);
+                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->struct_info.size, 16) / 16);
                             } else {
                                 for (int u_index = 0; u_index < (int)ub->uniforms.size(); u_index++) {
                                     const Uniform& u = ub->uniforms[u_index];
@@ -404,7 +404,7 @@ std::string SokolNimGenerator::sampler_bind_slot_name(const Sampler& smp) {
 }
 
 std::string SokolNimGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return to_camel_case(fmt::format("SLOT_{}", ub.struct_refl.name));
+    return to_camel_case(fmt::format("SLOT_{}", ub.struct_info.name));
 }
 
 std::string SokolNimGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {

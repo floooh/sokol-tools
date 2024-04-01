@@ -209,20 +209,19 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
         UniformBlock refl_ub;
-        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         refl_ub.stage = refl.stage;
         refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
-        refl_ub.size = (int) compiler.get_declared_struct_size(ub_type);
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
-        refl_ub.struct_refl = parse_toplevel_struct(compiler, ub_res.base_type_id, ub_res.name, out_error);
+        refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res.base_type_id, ub_res.name, out_error);
         if (out_error.valid()) {
             return refl;
         }
         // FIXME: obsolete
+        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         for (uint32_t m_index = 0; m_index < ub_type.member_types.size(); m_index++) {
             Uniform refl_uniform;
             refl_uniform.name = compiler.get_member_name(ub_res.base_type_id, m_index);
@@ -245,7 +244,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
         }
-        refl_sbuf.struct_refl = parse_toplevel_struct(compiler, sbuf_res.base_type_id, sbuf_res.name, out_error);
+        refl_sbuf.struct_info = parse_toplevel_struct(compiler, sbuf_res.base_type_id, sbuf_res.name, out_error);
         if (out_error.valid()) {
             return refl;
         }
@@ -317,11 +316,11 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
 
         // merge identical uniform blocks
         for (const UniformBlock& ub: src_bindings.uniform_blocks) {
-            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_refl.name);
+            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_info.name);
             if (other_ub) {
                 // another uniform block of the same name exists, make sure it's identical
                 if (!ub.equals(*other_ub)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_refl.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_info.name));
                     return Bindings();
                 }
             } else {
@@ -331,11 +330,11 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
 
         // merge identical storage buffers
         for (const StorageBuffer& sbuf: src_bindings.storage_buffers) {
-            const StorageBuffer* other_sbuf = out_bindings.find_storage_buffer_by_name(sbuf.struct_refl.name);
+            const StorageBuffer* other_sbuf = out_bindings.find_storage_buffer_by_name(sbuf.struct_info.name);
             if (other_sbuf) {
                 // another storage buffer of the same name exists, make sure it's identical
                 if (!sbuf.equals(*other_sbuf)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting storage buffer definitions found for '{}'", sbuf.struct_refl.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting storage buffer definitions found for '{}'", sbuf.struct_info.name));
                     return Bindings();
                 }
             } else {

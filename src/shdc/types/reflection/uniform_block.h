@@ -12,10 +12,9 @@ struct UniformBlock {
     static const int Num = 4;     // must be identical with SG_MAX_SHADERSTAGE_UBS
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
-    int size = 0;
     std::string inst_name;
     bool flattened = false;
-    Type struct_refl;
+    Type struct_info;
 
     // FIXME: remove
     std::vector<Uniform> uniforms;
@@ -27,10 +26,9 @@ struct UniformBlock {
 inline bool UniformBlock::equals(const UniformBlock& other) const {
     return (stage == other.stage)
         && (slot == other.slot)
-        && (size == other.size)
         // NOTE: ignore inst_name
         && (flattened == other.flattened)
-        && struct_refl.equals(other.struct_refl);
+        && struct_info.equals(other.struct_info);
 }
 
 inline void UniformBlock::dump_debug(const std::string& indent) const {
@@ -41,7 +39,7 @@ inline void UniformBlock::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}inst_name: {}\n", indent2, inst_name);
     fmt::print(stderr, "{}flattened: {}\n", indent2, flattened);
     fmt::print(stderr, "{}struct:\n", indent2);
-    struct_refl.dump_debug(indent2);
+    struct_info.dump_debug(indent2);
 }
 
 } // namespace

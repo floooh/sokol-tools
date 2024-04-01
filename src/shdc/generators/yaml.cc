@@ -120,15 +120,15 @@ void YamlGenerator::gen_attr(const StageAttr& att) {
 void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     l_open("-\n");
     l("slot: {}\n", ub.slot);
-    l("size: {}\n", ub.size);
-    l("struct_name: {}\n", ub.struct_refl.name);
+    l("size: {}\n", ub.struct_info.size);
+    l("struct_name: {}\n", ub.struct_info.name);
     l("inst_name: {}\n", ub.inst_name);
     l_open("uniforms:\n");
     if (ub.flattened) {
         l_open("-\n");
         l("name: {}\n", ub.uniforms[0].name);
         l("type: {}\n", flattened_uniform_type(ub.uniforms[0].type));
-        l("array_count: {}\n", roundup(ub.size, 16) / 16);
+        l("array_count: {}\n", roundup(ub.struct_info.size, 16) / 16);
         l("offset: 0\n");
         l_close();
     } else {
