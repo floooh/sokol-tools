@@ -68,6 +68,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
                 l("int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniform_block_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
                 l("size_t {}{}_uniform_block_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
+                l("int {}{}_storage_buffer_slot(sg_shader_stage stage, const char* sbuf_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
                 l("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
             }
@@ -320,7 +321,6 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     if (sbuf) {
                         const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
                         l("{}.used = true;\n", sbn);
-                        l("{}.size = {};\n", sbn, sbuf->struct_info.size);
                     }
                 }
                 for (int img_index = 0; img_index < Image::Num; img_index++) {
@@ -458,6 +458,26 @@ void SokolCGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, cons
         }
     }
     l("return 0;\n");
+    l_close("}}\n");
+}
+
+void SokolCGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}int {}{}_storage_buffer_slot(sg_shader_stage stage, const char* sbuf_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l("(void)stage; (void)sbuf_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.storage_buffers.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const StorageBuffer& sbuf: refl.bindings.storage_buffers) {
+                if (sbuf.slot >= 0) {
+                    l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.struct_info.name);
+                    l("return {};\n", sbuf.slot);
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
     l_close("}}\n");
 }
 

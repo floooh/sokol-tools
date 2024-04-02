@@ -54,8 +54,7 @@ protected:
     virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
     virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
     virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_storagebuffer_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_storagebuffer_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    virtual void gen_storage_buffer_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
 
     // general helper methods
     virtual std::string lang_name() { assert(false && "implement me"); return ""; };

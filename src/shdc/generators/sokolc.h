@@ -25,6 +25,7 @@ protected:
     virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_storage_buffer_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual std::string lang_name();
     virtual std::string comment_block_start();
     virtual std::string comment_block_line_prefix();
