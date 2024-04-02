@@ -27,7 +27,7 @@ void SokolRustGenerator::gen_prerequisites(const GenInput& gen) {
     // empty
 }
 
-void SokolRustGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
+void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
     l("#[repr(C, align(16))]\n");
     l_open("pub struct {} {{\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
@@ -193,11 +193,11 @@ void SokolRustGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const P
     // FIXME
 }
 
-void SokolRustGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolRustGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 
-void SokolRustGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolRustGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 

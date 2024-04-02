@@ -20,7 +20,8 @@ ErrMsg Generator::generate(const GenInput& gen) {
     gen_prerequisites(gen);
     gen_vertex_attr_consts(gen);
     gen_bind_slot_consts(gen);
-    gen_uniformblock_decls(gen);
+    gen_uniform_block_decls(gen);
+    gen_storage_buffer_decls(gen);
     gen_stb_impl_start(gen);
     gen_shader_arrays(gen);
     gen_shader_desc_funcs(gen);
@@ -115,6 +116,12 @@ void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings)
         cbl("Bind slot: {} => {}\n", uniform_block_bind_slot_name(ub), ub.slot);
         cbl_close();
     }
+    for (const StorageBuffer& sbuf: bindings.storage_buffers) {
+        cbl_open("Storage buffer '{}':\n", sbuf.struct_info.name);
+        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.struct_info.name));
+        cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(sbuf), sbuf.slot);
+        cbl_close();
+    }
     for (const Image& img: bindings.images) {
         cbl_open("Image '{}':\n", img.name);
         cbl("Image type: {}\n", image_type(img.type));
@@ -151,6 +158,9 @@ void Generator::gen_bind_slot_consts(const GenInput& gen) {
     for (const UniformBlock& ub: gen.refl.bindings.uniform_blocks) {
         l("{}\n", uniform_block_bind_slot_definition(ub));
     }
+    for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
+        l("{}\n", storage_buffer_bind_slot_definition(sbuf));
+    }
     for (const Image& img: gen.refl.bindings.images) {
         l("{}\n", image_bind_slot_definition(img));
     }
@@ -159,9 +169,15 @@ void Generator::gen_bind_slot_consts(const GenInput& gen) {
     }
 }
 
-void Generator::gen_uniformblock_decls(const GenInput& gen) {
+void Generator::gen_uniform_block_decls(const GenInput& gen) {
     for (const UniformBlock& ub: gen.refl.bindings.uniform_blocks) {
-        gen_uniformblock_decl(gen, ub);
+        gen_uniform_block_decl(gen, ub);
+    }
+}
+
+void Generator::gen_storage_buffer_decls(const GenInput& gen) {
+    for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
+        gen_storage_buffer_decl(gen, sbuf);
     }
 }
 
@@ -233,8 +249,8 @@ void Generator::gen_reflection_funcs(const GenInput& gen) {
         gen_attr_slot_refl_func(gen, prog);
         gen_image_slot_refl_func(gen, prog);
         gen_sampler_slot_refl_func(gen, prog);
-        gen_uniformblock_slot_refl_func(gen, prog);
-        gen_uniformblock_size_refl_func(gen, prog);
+        gen_uniform_block_slot_refl_func(gen, prog);
+        gen_uniform_block_size_refl_func(gen, prog);
         gen_uniform_offset_refl_func(gen, prog);
         gen_uniform_desc_refl_func(gen, prog);
     }

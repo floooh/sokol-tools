@@ -10,15 +10,15 @@ protected:
     virtual void gen_prolog(const GenInput& gen);
     virtual void gen_epilog(const GenInput& gen);
     virtual void gen_prerequisites(const GenInput& gen);
-    virtual void gen_uniformblock_decl(const GenInput& gen, const refl::UniformBlock& ub);
+    virtual void gen_uniform_block_decl(const GenInput& gen, const refl::UniformBlock& ub);
     virtual void gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang);
     virtual void gen_shader_array_end(const GenInput& gen);
     virtual void gen_shader_desc_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm);
-    virtual void gen_uniformblock_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
-    virtual void gen_uniformblock_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_uniform_block_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual std::string lang_name();

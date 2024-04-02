@@ -93,7 +93,7 @@ void SokolNimGenerator::gen_prerequisites(const GenInput& gen) {
     // empty
 }
 
-void SokolNimGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
+void SokolNimGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
     l_open("type {}* {{.packed}} = object\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
@@ -257,11 +257,11 @@ void SokolNimGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Pr
     // FIXME
 }
 
-void SokolNimGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolNimGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 
-void SokolNimGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolNimGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 

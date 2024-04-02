@@ -26,7 +26,7 @@ void SokolZigGenerator::gen_prerequisites(const GenInput& gen) {
     // empty
 }
 
-void SokolZigGenerator::gen_uniformblock_decl(const GenInput& gen, const UniformBlock& ub) {
+void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
     l_open("pub const {} = extern struct {{\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
@@ -197,11 +197,11 @@ void SokolZigGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Pr
     // FIXME
 }
 
-void SokolZigGenerator::gen_uniformblock_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 
-void SokolZigGenerator::gen_uniformblock_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     // FIXME
 }
 
