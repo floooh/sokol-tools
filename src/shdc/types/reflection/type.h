@@ -72,7 +72,7 @@ inline bool Type::equals(const Type& other) const {
     if (size != other.size) {
         return false;
     }
-    if (size != other.matrix_stride) {
+    if (matrix_stride != other.matrix_stride) {
         return false;
     }
     if (is_array != other.is_array) {
