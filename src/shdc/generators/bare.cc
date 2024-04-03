@@ -2,7 +2,6 @@
     Generate bare output in text or binary format
 */
 #include "bare.h"
-#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>

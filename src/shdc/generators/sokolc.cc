@@ -2,7 +2,6 @@
     Generate output header in C for sokol_gfx.h
 */
 #include "sokolc.h"
-#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>

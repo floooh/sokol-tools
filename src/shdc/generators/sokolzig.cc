@@ -2,7 +2,6 @@
     Generate sokol-zig module.
 */
 #include "sokolzig.h"
-#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>

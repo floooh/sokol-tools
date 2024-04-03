@@ -2,7 +2,6 @@
     Generator base class implementation.
 */
 #include "generator.h"
-#include "util.h"
 #include "pystring.h"
 
 using namespace shdc::refl;

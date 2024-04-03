@@ -3,7 +3,6 @@
 */
 #include "yaml.h"
 #include "bare.h"
-#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>
@@ -207,4 +206,3 @@ std::string YamlGenerator::sampler_type(SamplerType::Enum e) {
 }
 
 } // namespace
-

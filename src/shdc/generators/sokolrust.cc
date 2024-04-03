@@ -2,7 +2,6 @@
     Generate sokol-rust module.
 */
 #include "sokolrust.h"
-#include "util.h"
 #include "fmt/format.h"
 #include "pystring.h"
 #include <stdio.h>
