@@ -212,9 +212,16 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
     }
 }
 
-static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const Input& inp, const SpirvBlob& blob) {
+static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& blob) {
     CompilerGLSL compiler(blob.bytecode);
     ShaderResources res = compiler.get_shader_resources();
+    // - uniform blocks:
+    //   - must only have float and int base types
+    //   - arrays must be of type vec4[], ivec4[] or mat4[]
+    //   - arrays must be 1-dimensional
+    // - storage buffers:
+    //   - must only have a single 1-dimensional, unbounded array item
+    // - must use separate image and sampler objects
     for (const Resource& ub_res: res.uniform_buffers) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
@@ -230,6 +237,21 @@ static ErrMsg validate_uniform_blocks_and_separate_image_samplers(const Input& i
                     return ErrMsg::error(inp.base_path, 0, fmt::format("uniform block '{}': arrays must be 1-dimensional", ub_res.name));
                 }
             }
+        }
+    }
+    for (const Resource& sbuf_res: res.storage_buffers) {
+        const SPIRType& sbuf_type = compiler.get_type(sbuf_res.base_type_id);
+        bool valid = false;
+        if (sbuf_type.member_types.size() == 1) {
+            const SPIRType& item_type = compiler.get_type(sbuf_type.member_types[0]);
+            if (item_type.array.size() == 1) {
+                if (item_type.array[0] == 0) {
+                    valid = true;
+                }
+            }
+        }
+        if (!valid) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one unbounded array and nothing else", sbuf_res.name));
         }
     }
     if (res.sampled_images.size() > 0) {
@@ -447,7 +469,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
         uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
         const Snippet& snippet = inp.snippets[blob.snippet_index];
         assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
-        spv_cross.error = validate_uniform_blocks_and_separate_image_samplers(inp, blob);
+        spv_cross.error = validate_resource_restrictions(inp, blob);
         if (spv_cross.error.valid()) {
             return spv_cross;
         }
