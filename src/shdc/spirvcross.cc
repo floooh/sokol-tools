@@ -88,7 +88,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 
     // storage buffers
     {
-        uint32_t binding = 0;
+        uint32_t binding;
         if (Slang::is_msl(slang)) {
             // FIXME: vertex buffer bindings should be moved after storage buffer bindings?
             // in Metal, on the vertex stage, storage buffers are bound after uniform- and vertex-buffers,
@@ -97,6 +97,8 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
         } else if (Slang::is_hlsl(slang)) {
             // in D3D11, storage buffers share bind slots with textures
             binding = 16;
+        } else {
+            binding = 0;
         }
         for (const Resource& res: shader_resources.storage_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
@@ -301,7 +303,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, Slang::Enum slang, ErrMsg& out_error) {
+static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
     // use a separate CompilerGLSL instance to parse reflection, this is used
     // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
     CompilerGLSL compiler(bytecode);
@@ -315,12 +317,12 @@ static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>&
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
-    fix_bind_slots(compiler, snippet.type, slang);
+    fix_bind_slots(compiler, snippet.type, Slang::GLSL430); // GLSL430 uses zero-based bind slots for everything
     fix_ub_matrix_force_colmajor(compiler);
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
-    return Reflection::parse_snippet_reflection(compiler, snippet, slang, out_error);
+    return Reflection::parse_snippet_reflection(compiler, snippet, out_error);
 }
 
 static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
@@ -360,7 +362,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = Reflection::parse_snippet_reflection(compiler, snippet, slang, res.error);
+        res.stage_refl = Reflection::parse_snippet_reflection(compiler, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -391,7 +393,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
+        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -421,7 +423,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
+        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
         // Metal's entry point function are called main0() because main() is reserved
         res.stage_refl.entry_point += "0";
     }
@@ -444,7 +446,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
             res.source_code = result.wgsl;
-            res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, slang, res.error);
+            res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }

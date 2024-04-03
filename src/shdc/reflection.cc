@@ -130,7 +130,7 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, Slang::Enum slang, ErrMsg& out_error) {
+StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
 
