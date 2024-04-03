@@ -105,14 +105,14 @@ void SokolNimGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
         const char* align = (0 == cur_offset) ? " {.align(16).}" : "";
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 l("{}*{}: {}\n", uniform.name, align, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             } else {
                 l("{}*{}: [{}]{}\n", uniform.name, align, uniform.array_count, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             }
         } else {
             // default type names (float)
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 switch (uniform.type) {
                     case Type::Float:   l("{}*{}: float32\n", uniform.name, align); break;
                     case Type::Float2:  l("{}*{}: array[2, float32]\n", uniform.name, align); break;

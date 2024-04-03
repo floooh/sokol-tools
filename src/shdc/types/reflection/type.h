@@ -45,7 +45,7 @@ struct Type {
     int offset = 0;
     int size = 0;
     int matrix_stride = 0;  // only set when columns > 1
-    int array_count = 0;    // NOTE: is_array == true and array_count == 0 means 'unbounded array'
+    int array_count = 0;    // this can be zero for unbounded arrays
     int array_stride = 0;
     std::vector<Type> struct_items;
 

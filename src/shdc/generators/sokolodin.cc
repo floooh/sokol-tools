@@ -36,14 +36,14 @@ void SokolOdinGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifo
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 l("{}: {},\n", uniform.name, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             } else {
                 l("{}: [{}]{},\n", uniform.name, uniform.array_count, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             }
         } else {
             // default type names (float)
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 switch (uniform.type) {
                     case Type::Float:   l("{}: f32,\n", uniform.name); break;
                     case Type::Float2:  l("{}: [2]f32,\n", uniform.name); break;

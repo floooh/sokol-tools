@@ -39,14 +39,14 @@ void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifo
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 l("pub {}: {},\n", uniform.name, gen.inp.ctype_map.at(uniform.type_as_glsl()));
             } else {
                 l("pub {}: [{}; {}],\n", uniform.name, gen.inp.ctype_map.at(uniform.type_as_glsl()), uniform.array_count);
             }
         } else {
             // default type names (float)
-            if (!uniform.is_array) {
+            if (uniform.array_count == 0) {
                 switch (uniform.type) {
                     case Type::Float:   l("pub {}: f32,\n", uniform.name); break;
                     case Type::Float2:  l("pub {}: [f32; 2],\n", uniform.name); break;

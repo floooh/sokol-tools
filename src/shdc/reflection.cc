@@ -412,7 +412,7 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
         out.is_array = false;
     } else if (item_type.array.size() == 1) {
         out.is_array = true;
-        out.array_count = item_type.array[0];   // NOTE: may be 0 for unbounded array
+        out.array_count = item_type.array[0];   // NOTE: may be 0 for unbounded array!
         out.array_stride = compiler.type_struct_member_array_stride(struct_type, item_index);
     } else {
         out_error = ErrMsg::error(fmt::format("arrays of arrays are not supported (struct item {})", out.name));
