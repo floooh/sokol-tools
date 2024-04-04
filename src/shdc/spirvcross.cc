@@ -466,49 +466,53 @@ struct SnippetRefls {
 
 Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::Enum slang) {
     Spirvcross spv_cross;
-    for (const auto& blob: spirv.blobs) {
-        SpirvcrossSource src;
-        uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
-        const Snippet& snippet = inp.snippets[blob.snippet_index];
-        assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
-        spv_cross.error = validate_resource_restrictions(inp, blob);
-        if (spv_cross.error.valid()) {
-            return spv_cross;
-        }
-        switch (slang) {
-            case Slang::GLSL410:
-            case Slang::GLSL430:
-            case Slang::GLSL300ES:
-                src = to_glsl(inp, blob, slang, opt_mask, snippet);
-                break;
-            case Slang::HLSL4:
-            case Slang::HLSL5:
-                src = to_hlsl(inp, blob, slang, opt_mask, snippet);
-                break;
-            case Slang::METAL_MACOS:
-            case Slang::METAL_IOS:
-            case Slang::METAL_SIM:
-                src = to_msl(inp, blob, slang, opt_mask, snippet);
-                break;
-            case Slang::WGSL:
-                src = to_wgsl(inp, blob, slang, opt_mask, snippet);
-                break;
-            default: break;
-        }
-        if (src.valid) {
-            assert(src.snippet_index == blob.snippet_index);
-            spv_cross.sources.push_back(std::move(src));
-        } else {
-            const int line_index = snippet.lines[0];
-            std::string err_msg;
-            if (src.error.valid()) {
-                err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", Slang::to_str(slang), src.error.msg);
-            } else {
-                err_msg = fmt::format("Failed to cross-compile to {}\n", Slang::to_str(slang));
+    try {
+        for (const auto& blob: spirv.blobs) {
+            SpirvcrossSource src;
+            uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
+            const Snippet& snippet = inp.snippets[blob.snippet_index];
+            assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
+            spv_cross.error = validate_resource_restrictions(inp, blob);
+            if (spv_cross.error.valid()) {
+                return spv_cross;
             }
-            spv_cross.error = inp.error(line_index, err_msg);
-            return spv_cross;
+            switch (slang) {
+                case Slang::GLSL410:
+                case Slang::GLSL430:
+                case Slang::GLSL300ES:
+                    src = to_glsl(inp, blob, slang, opt_mask, snippet);
+                    break;
+                case Slang::HLSL4:
+                case Slang::HLSL5:
+                    src = to_hlsl(inp, blob, slang, opt_mask, snippet);
+                    break;
+                case Slang::METAL_MACOS:
+                case Slang::METAL_IOS:
+                case Slang::METAL_SIM:
+                    src = to_msl(inp, blob, slang, opt_mask, snippet);
+                    break;
+                case Slang::WGSL:
+                    src = to_wgsl(inp, blob, slang, opt_mask, snippet);
+                    break;
+                default: break;
+            }
+            if (src.valid) {
+                assert(src.snippet_index == blob.snippet_index);
+                spv_cross.sources.push_back(std::move(src));
+            } else {
+                const int line_index = snippet.lines[0];
+                std::string err_msg;
+                if (src.error.valid()) {
+                    err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", Slang::to_str(slang), src.error.msg);
+                } else {
+                    err_msg = fmt::format("Failed to cross-compile to {}\n", Slang::to_str(slang));
+                }
+                spv_cross.error = inp.error(line_index, err_msg);
+                return spv_cross;
+            }
         }
+    } catch (const std::runtime_error& err) {
+        spv_cross.error = inp.error(0, fmt::format("SPIRVCross exception: {}\n", err.what()));
     }
     return spv_cross;
 }

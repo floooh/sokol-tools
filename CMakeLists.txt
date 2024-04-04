@@ -10,6 +10,9 @@ project(sokol-tools)
 get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
 include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
 
+set(FIPS_EXCEPTIONS ON)
+set(FIPS_RTTI ON)
+
 fips_setup()
 if (FIPS_CLANG OR FIPS_GCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers")
