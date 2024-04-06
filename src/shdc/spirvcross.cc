@@ -222,7 +222,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     //   - arrays must be of type vec4[], ivec4[] or mat4[]
     //   - arrays must be 1-dimensional
     // - storage buffers:
-    //   - must only have a single 1-dimensional, unbounded array item
+    //   - must only have a single flexible array struct item
     // - must use separate image and sampler objects
     for (const Resource& ub_res: res.uniform_buffers) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
@@ -246,14 +246,14 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
         bool valid = false;
         if (sbuf_type.member_types.size() == 1) {
             const SPIRType& item_type = compiler.get_type(sbuf_type.member_types[0]);
-            if (item_type.array.size() == 1) {
+            if ((item_type.basetype == SPIRType::Struct) && (item_type.array.size() == 1)) {
                 if (item_type.array[0] == 0) {
                     valid = true;
                 }
             }
         }
         if (!valid) {
-            return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one unbounded array and nothing else", sbuf_res.name));
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one flexible array of a struct", sbuf_res.name));
         }
     }
     if (res.sampled_images.size() > 0) {
