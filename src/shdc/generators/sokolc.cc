@@ -227,14 +227,14 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         }
         cur_offset += item.size;
     }
-    // FIXME: end padding needed?
 }
 
 void SokolCGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
     l("#pragma pack(push,1)\n");
-    l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(sbuf.struct_info.name));
-    gen_struct_interior_decl_std430(gen, sbuf.struct_info);
-    l_close("}} {};\n", struct_name(sbuf.struct_info.name));
+    const auto& item = sbuf.struct_info.struct_items[0];
+    l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(item.struct_typename));
+    gen_struct_interior_decl_std430(gen, item);
+    l_close("}} {};\n", struct_name(item.struct_typename));
     l("#pragma pack(pop)\n");
 }
 

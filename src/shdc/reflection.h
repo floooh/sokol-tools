@@ -29,9 +29,9 @@ private:
     // create a set of unique resource bindings from shader snippet input bindings
     static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error);
     // parse a struct
-    static Type parse_toplevel_struct(const spirv_cross::Compiler& compiler, const spirv_cross::TypeID& type_id, const std::string& name, ErrMsg& out_error);
+    static Type parse_toplevel_struct(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& res, ErrMsg& out_error);
     // parse a struct item
-    static Type parse_struct_item(const spirv_cross::Compiler& compiler, const spirv_cross::TypeID& struct_type_id, uint32_t item_index, ErrMsg& out_error);
+    static Type parse_struct_item(const spirv_cross::Compiler& compiler, const spirv_cross::TypeID& type_id, const spirv_cross::TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error);
     // debug-dump a bindings struct
     static void dump_bindings(const std::string& indent, const Bindings& bindings);
 };

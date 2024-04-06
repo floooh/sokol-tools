@@ -182,7 +182,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
-        refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res.base_type_id, ub_res.name, out_error);
+        refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
             return refl;
         }
@@ -197,7 +197,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
         }
-        refl_sbuf.struct_info = parse_toplevel_struct(compiler, sbuf_res.base_type_id, sbuf_res.name, out_error);
+        refl_sbuf.struct_info = parse_toplevel_struct(compiler, sbuf_res, out_error);
         if (out_error.valid()) {
             return refl;
         }
@@ -365,17 +365,19 @@ static const Type::Enum float_types[4][4] = {
     { Type::Mat4x1, Type::Mat4x2, Type::Mat4x3, Type::Mat4x4 },
 };
 
-Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struct_type_id, uint32_t item_index, ErrMsg& out_error) {
-    const SPIRType& struct_type = compiler.get_type(struct_type_id);
-    const TypeID& item_type_id = struct_type.member_types[item_index];
-    const SPIRType& item_type = compiler.get_type(item_type_id);
+Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_id, const TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error) {
+    const SPIRType& base_type = compiler.get_type(base_type_id);
+    const TypeID& item_base_type_id = base_type.member_types[item_index];
+    const SPIRType& item_base_type = compiler.get_type(item_base_type_id);
+    const SPIRType& type = compiler.get_type(type_id);
+    const TypeID& item_type_id = type.member_types[item_index];
     Type out;
-    out.name = compiler.get_member_name(struct_type.self, item_index);
+    out.name = compiler.get_member_name(base_type.self, item_index);
     out.type = Type::Invalid;
-    uint32_t col_idx = item_type.columns - 1;
-    uint32_t vec_idx = item_type.vecsize - 1;
+    uint32_t col_idx = item_base_type.columns - 1;
+    uint32_t vec_idx = item_base_type.vecsize - 1;
     if ((col_idx < 4) && (vec_idx < 4)) {
-        switch (item_type.basetype) {
+        switch (item_base_type.basetype) {
             case SPIRType::Boolean:
                 out.type = bool_types[col_idx][vec_idx];
                 break;
@@ -395,32 +397,35 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
                 break;
         }
     }
+    if (out.type == Type::Struct) {
+        out.struct_typename = compiler.get_name(compiler.get_type(item_type_id).self);
+    }
     if (Type::Invalid == out.type) {
         out_error = ErrMsg::error(fmt::format("struct item {} has unsupported type", out.name));
     }
     if (out.type == Type::Struct) {
-        out.size = (int) compiler.get_declared_struct_size_runtime_array(item_type, 1);
+        out.size = (int) compiler.get_declared_struct_size_runtime_array(item_base_type, 1);
     } else {
-        out.size = (int) compiler.get_declared_struct_member_size(struct_type, item_index);
+        out.size = (int) compiler.get_declared_struct_member_size(base_type, item_index);
     }
-    out.is_matrix = item_type.columns > 1;
+    out.is_matrix = item_base_type.columns > 1;
     if (out.is_matrix) {
-        out.matrix_stride = compiler.type_struct_member_matrix_stride(struct_type, item_index);
+        out.matrix_stride = compiler.type_struct_member_matrix_stride(base_type, item_index);
     }
-    out.offset = compiler.type_struct_member_offset(struct_type, item_index);
-    if (item_type.array.size() == 0) {
+    out.offset = compiler.type_struct_member_offset(base_type, item_index);
+    if (item_base_type.array.size() == 0) {
         out.is_array = false;
-    } else if (item_type.array.size() == 1) {
+    } else if (item_base_type.array.size() == 1) {
         out.is_array = true;
-        out.array_count = item_type.array[0];   // NOTE: may be 0 for unbounded array!
-        out.array_stride = compiler.type_struct_member_array_stride(struct_type, item_index);
+        out.array_count = item_base_type.array[0];   // NOTE: may be 0 for unbounded array!
+        out.array_stride = compiler.type_struct_member_array_stride(base_type, item_index);
     } else {
         out_error = ErrMsg::error(fmt::format("arrays of arrays are not supported (struct item {})", out.name));
         return out;
     }
     if (out.type == Type::Struct) {
-        for (uint32_t nested_item_index = 0; nested_item_index < item_type.member_types.size(); nested_item_index++) {
-            const Type nested_type = parse_struct_item(compiler, item_type_id, nested_item_index, out_error);
+        for (uint32_t nested_item_index = 0; nested_item_index < item_base_type.member_types.size(); nested_item_index++) {
+            const Type nested_type = parse_struct_item(compiler, item_type_id, item_base_type_id, nested_item_index, out_error);
             if (out_error.valid()) {
                 return out;
             }
@@ -430,18 +435,19 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& struc
     return out;
 }
 
-Type Reflection::parse_toplevel_struct(const Compiler& compiler, const TypeID& struct_type_id, const std::string& name, ErrMsg& out_error) {
+Type Reflection::parse_toplevel_struct(const Compiler& compiler, const Resource& res, ErrMsg& out_error) {
     Type out;
-    out.name = name;
-    const SPIRType& struct_type = compiler.get_type(struct_type_id);
+    out.name = res.name;
+    const SPIRType& struct_type = compiler.get_type(res.base_type_id);
     if (struct_type.basetype != SPIRType::Struct) {
-        out_error = ErrMsg::error(fmt::format("toplevel item {} is not a struct", name));
+        out_error = ErrMsg::error(fmt::format("toplevel item {} is not a struct", out.name));
         return out;
     }
     out.type = Type::Struct;
+    out.struct_typename = compiler.get_name(compiler.get_type(res.type_id).self);
     out.size = (int) compiler.get_declared_struct_size_runtime_array(struct_type, 1);
     for (uint32_t item_index = 0; item_index < struct_type.member_types.size(); item_index++) {
-        const Type item_type = parse_struct_item(compiler, struct_type_id, item_index, out_error);
+        const Type item_type = parse_struct_item(compiler, res.type_id, res.base_type_id, item_index, out_error);
         if (out_error.valid()) {
             return out;
         }

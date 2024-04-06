@@ -39,6 +39,7 @@ struct Type {
         Struct,
     };
     std::string name;
+    std::string struct_typename;
     Enum type = Invalid;
     bool is_matrix = false;
     bool is_array = false;
