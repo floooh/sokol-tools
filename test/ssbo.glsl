@@ -3,13 +3,13 @@ uniform vs_params {
     mat4 mvp;
 };
 
-struct vertex {
+struct sb_vertex {
     vec4 pos;
     vec4 color;
 };
 
 readonly buffer ssbo {
-    vertex vtx[];
+    sb_vertex vtx[];
 };
 
 out vec4 color;

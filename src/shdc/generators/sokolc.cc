@@ -270,7 +270,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     l("{}.bytecode.ptr = {};\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);
                 } else {
-                    l("{}.source = {};\n", dsn, info.source_array_name);
+                    l("{}.source = (const char*){};\n", dsn, info.source_array_name);
                     const char* d3d11_tgt = nullptr;
                     if (slang == Slang::HLSL4) {
                         d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
@@ -299,7 +299,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
                                     l("{}.name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                                     l("{}.type = {};\n", un, uniform_type(u.type));
-                                    l(".array_count = {};\n", un, u.array_count);
+                                    l("{}.array_count = {};\n", un, u.array_count);
                                 }
                             }
                         }
@@ -310,6 +310,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     if (sbuf) {
                         const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
                         l("{}.used = true;\n", sbn);
+                        l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     }
                 }
                 for (int img_index = 0; img_index < Image::Num; img_index++) {

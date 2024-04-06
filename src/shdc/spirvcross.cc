@@ -10,6 +10,7 @@
 #include "pystring.h"
 #include "spirv_hlsl.hpp"
 #include "spirv_msl.hpp"
+#include "spirv_reflect.hpp"
 #include "tint/tint.h"
 
 #include "spirv_glsl.hpp"
@@ -303,11 +304,9 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static StageReflection to_glsl_and_parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
-    // use a separate CompilerGLSL instance to parse reflection, this is used
-    // for HLSL, MSL and WGSL output and avoids the generation of dummy samplers
-    CompilerGLSL compiler(bytecode);
-    CompilerGLSL::Options options;
+static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
+    CompilerReflection compiler(bytecode);
+    CompilerReflection::Options options;
     options.emit_line_directives = false;
     options.version = 430;
     options.es = false;
@@ -362,7 +361,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = Reflection::parse_snippet_reflection(compiler, snippet, res.error);
+        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -393,7 +392,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -423,7 +422,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
         // Metal's entry point function are called main0() because main() is reserved
         res.stage_refl.entry_point += "0";
     }
@@ -446,7 +445,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
             res.source_code = result.wgsl;
-            res.stage_refl = to_glsl_and_parse_reflection(blob.bytecode, snippet, res.error);
+            res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }

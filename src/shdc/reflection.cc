@@ -194,6 +194,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_sbuf.stage = refl.stage;
         refl_sbuf.slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
+        refl_sbuf.readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
         }
