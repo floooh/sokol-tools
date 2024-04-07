@@ -119,7 +119,7 @@ void YamlGenerator::gen_attr(const StageAttr& att) {
 void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     l_open("-\n");
     l("slot: {}\n", ub.slot);
-    l("size: {}\n", ub.struct_info.size);
+    l("size: {}\n", roundup(ub.struct_info.size, 16));
     l("struct_name: {}\n", ub.struct_info.name);
     l("inst_name: {}\n", ub.inst_name);
     l_open("uniforms:\n");

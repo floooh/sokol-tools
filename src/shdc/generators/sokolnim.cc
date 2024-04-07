@@ -191,15 +191,16 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                             if (ub->flattened) {
                                 l("{}.uniforms[0].name = \"{}\"\n", ubn, ub->struct_info.name);
+                                // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
                                 l("{}.uniforms[0].type = {}\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
-                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->struct_info.struct_items[0].size, 16) / 16);
+                                l("{}.uniforms[0].arrayCount = {}\n", ubn, roundup(ub->struct_info.size, 16) / 16);
                             } else {
                                 for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
                                     const Type& u = ub->struct_info.struct_items[u_index];
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
                                     l("{}.name = \"{}.{}\"\n", un, ub->inst_name, u.name);
                                     l("{}.type = {}\n", un, uniform_type(u.type));
-                                    l(".arrayAount = {}\n", un, u.array_count);
+                                    l(".arrayCount = {}\n", un, u.array_count);
                                 }
                             }
                         }
