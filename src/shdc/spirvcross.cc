@@ -349,6 +349,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     options.vulkan_semantics = false;
     options.enable_420pack_extension = false;
     options.emit_uniform_buffer_as_plain_uniforms = true;
+    options.vertex.support_nonzero_base_instance = false;
     options.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
     compiler.set_common_options(options);
@@ -373,6 +374,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     commonOptions.emit_line_directives = false;
     commonOptions.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
     commonOptions.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
+    commonOptions.vertex.support_nonzero_base_instance = false;
     compiler.set_common_options(commonOptions);
     CompilerHLSL::Options hlslOptions;
     switch (slang) {
@@ -384,6 +386,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
             break;
     }
     hlslOptions.point_size_compat = true;
+    hlslOptions.support_nonzero_base_vertex_base_instance = false;
     compiler.set_hlsl_options(hlslOptions);
     fix_bind_slots(compiler, snippet.type, slang);
     fix_ub_matrix_force_colmajor(compiler);
