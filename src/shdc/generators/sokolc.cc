@@ -127,7 +127,7 @@ void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformB
     l("#pragma pack(pop)\n");
 }
 
-void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc) {
+void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, int pad_to_size) {
     assert(struc.type == Type::Struct);
 
     int cur_offset = 0;
@@ -140,7 +140,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         if (item.type == Type::Struct) {
             // recurse into nested struct
             l_open("struct {{\n");
-            gen_struct_interior_decl_std430(gen, item);
+            gen_struct_interior_decl_std430(gen, item, item.size);
             if (item.array_count == 0) {
                 // FIXME: do we need any padding here if array_stride != struct-size?
                 // NOTE: unbounded arrays are written as regular items
@@ -227,13 +227,16 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         }
         cur_offset += item.size;
     }
+    if (cur_offset != pad_to_size) {
+        l("uint8_t _pad_{}[{}];\n", cur_offset, pad_to_size - cur_offset);
+    }
 }
 
 void SokolCGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
     l("#pragma pack(push,1)\n");
     const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(item.struct_typename));
-    gen_struct_interior_decl_std430(gen, item);
+    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", sbuf.struct_info.size, struct_name(item.struct_typename));
+    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
     l_close("}} {};\n", struct_name(item.struct_typename));
     l("#pragma pack(pop)\n");
 }
