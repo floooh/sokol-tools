@@ -186,6 +186,8 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
+        // uniform blocks always have 16 byte alignment
+        refl_ub.struct_info.align = 16;
         refl.bindings.uniform_blocks.push_back(refl_ub);
     }
     // storage buffers
@@ -408,6 +410,11 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
         out.size = (int) compiler.get_declared_struct_size_runtime_array(item_base_type, 1);
     } else {
         out.size = (int) compiler.get_declared_struct_member_size(base_type, item_index);
+        if (item_base_type.vecsize == 3) {
+            out.align = 4 * 4;
+        } else {
+            out.align = 4 * item_base_type.vecsize;
+        }
     }
     out.is_matrix = item_base_type.columns > 1;
     if (out.is_matrix) {
@@ -430,6 +437,9 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
             if (out_error.valid()) {
                 return out;
             }
+            if (nested_type.align > out.align) {
+                out.align = nested_type.align;
+            }
             out.struct_items.push_back(nested_type);
         }
     }
@@ -451,6 +461,9 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const Resource&
         const Type item_type = parse_struct_item(compiler, res.type_id, res.base_type_id, item_index, out_error);
         if (out_error.valid()) {
             return out;
+        }
+        if (item_type.align > out.align) {
+            out.align = item_type.align;
         }
         out.struct_items.push_back(item_type);
     }

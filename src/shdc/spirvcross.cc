@@ -225,6 +225,9 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     // - storage buffers:
     //   - must only have a single flexible array struct item
     // - must use separate image and sampler objects
+    //
+    // FIXME: disallow vec3 arrays
+    //
     for (const Resource& ub_res: res.uniform_buffers) {
         const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
         for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {

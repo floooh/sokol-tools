@@ -67,7 +67,7 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
         }
         if (0 == cur_offset) {
             // align the first item
-            l_append(" align(16),\n");
+            l_append(" align({}),\n", ub.struct_info.align);
         } else {
             l_append(",\n");
         }

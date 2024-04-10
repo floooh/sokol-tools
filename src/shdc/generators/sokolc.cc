@@ -78,7 +78,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
 void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
-    l_open("SOKOL_SHDC_ALIGN(16) typedef struct {} {{\n", struct_name(ub.struct_info.name));
+    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", ub.struct_info.align, struct_name(ub.struct_info.name));
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
@@ -235,7 +235,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
 void SokolCGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
     l("#pragma pack(push,1)\n");
     const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", sbuf.struct_info.size, struct_name(item.struct_typename));
+    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", sbuf.struct_info.align, struct_name(item.struct_typename));
     gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
     l_close("}} {};\n", struct_name(item.struct_typename));
     l("#pragma pack(pop)\n");

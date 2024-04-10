@@ -27,7 +27,7 @@ void SokolRustGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
-    l("#[repr(C, align(16))]\n");
+    l("#[repr(C, align({}))]\n", ub.struct_info.align);
     l_open("pub struct {} {{\n", struct_name(ub.struct_info.name));
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {

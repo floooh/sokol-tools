@@ -101,7 +101,7 @@ void SokolNimGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
             l("_pad_{}: array[{}, uint8]\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
-        const char* align = (0 == cur_offset) ? " {.align(16).}" : "";
+        const std::string align = (0 == cur_offset) ? fmt::format(" {.align({}).}", ub.struct_info.align) : "";
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
             // user-provided type names
             if (uniform.array_count == 0) {

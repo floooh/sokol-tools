@@ -45,6 +45,7 @@ struct Type {
     bool is_array = false;
     int offset = 0;
     int size = 0;
+    int align = 4;          // minimal alignment for std430 layout
     int matrix_stride = 0;  // only set when columns > 1
     int array_count = 0;    // this can be zero for unbounded arrays
     int array_stride = 0;
@@ -64,7 +65,16 @@ inline bool Type::equals(const Type& other) const {
     if (name != other.name) {
         return false;
     }
+    if (struct_typename != other.struct_typename) {
+        return false;
+    }
     if (type != other.type) {
+        return false;
+    }
+    if (is_matrix != other.is_matrix) {
+        return false;
+    }
+    if (is_array != other.is_array) {
         return false;
     }
     if (offset != other.offset) {
@@ -73,10 +83,10 @@ inline bool Type::equals(const Type& other) const {
     if (size != other.size) {
         return false;
     }
-    if (matrix_stride != other.matrix_stride) {
+    if (align != other.align) {
         return false;
     }
-    if (is_array != other.is_array) {
+    if (matrix_stride != other.matrix_stride) {
         return false;
     }
     if (array_count != other.array_count) {

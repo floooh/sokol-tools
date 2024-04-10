@@ -25,7 +25,7 @@ void SokolOdinGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolOdinGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
-    l_open("{} :: struct #align 16 #packed {{\n", struct_name(ub.struct_info.name));
+    l_open("{} :: struct #align {} #packed {{\n", struct_name(ub.struct_info.name), ub.struct_info.align);
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
