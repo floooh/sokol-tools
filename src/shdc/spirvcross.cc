@@ -30,24 +30,6 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
     return nullptr;
 }
 
-static void fix_ub_matrix_force_colmajor(Compiler& compiler) {
-    /* go though all uniform block matrixes and decorate them with
-        column-major, this is needed in the HLSL backend to fix the
-        multiplication order
-    */
-    // FIXME: what about matrices in storage buffers?
-    ShaderResources res = compiler.get_shader_resources();
-    for (const Resource& ub_res: res.uniform_buffers) {
-        const SPIRType& ub_type = compiler.get_type(ub_res.base_type_id);
-        for (int m_index = 0; m_index < (int)ub_type.member_types.size(); m_index++) {
-            const SPIRType& m_type = compiler.get_type(ub_type.member_types[m_index]);
-            if ((m_type.basetype == SPIRType::Float) && (m_type.vecsize > 1) && (m_type.columns > 1)) {
-                compiler.set_member_decoration(ub_res.base_type_id, m_index, spv::DecorationColMajor);
-            }
-        }
-    }
-}
-
 static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
@@ -320,7 +302,6 @@ static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, c
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
     fix_bind_slots(compiler, snippet.type, Slang::GLSL430); // GLSL430 uses zero-based bind slots for everything
-    fix_ub_matrix_force_colmajor(compiler);
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
@@ -359,7 +340,6 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
     fix_bind_slots(compiler, snippet.type, slang);
-    fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
@@ -392,7 +372,6 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     hlslOptions.support_nonzero_base_vertex_base_instance = false;
     compiler.set_hlsl_options(hlslOptions);
     fix_bind_slots(compiler, snippet.type, slang);
-    fix_ub_matrix_force_colmajor(compiler);
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
