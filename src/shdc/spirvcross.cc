@@ -73,7 +73,6 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
     {
         uint32_t binding;
         if (Slang::is_msl(slang)) {
-            // FIXME: vertex buffer bindings should be moved after storage buffer bindings?
             // in Metal, on the vertex stage, storage buffers are bound after uniform- and vertex-buffers,
             // and on the fragment stage, after the uniform buffers
             binding = Snippet::is_vs(type) ? 12 : 4;
