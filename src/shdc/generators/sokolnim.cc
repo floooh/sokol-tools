@@ -43,9 +43,9 @@ void SokolNimGenerator::gen_shader_arrays(const GenInput& gen) {
                             l("    ");
                         }
                         if (0 == i) {
-                            l("{}'u8,", blob->data[i]);
+                            l("{:#04x}'u8,", blob->data[i]);
                         } else {
-                            l("{},", blob->data[i]);
+                            l("{:#04x},", blob->data[i]);
                         }
                         if ((i & 15) == 15) {
                             l("\n");
@@ -62,9 +62,9 @@ void SokolNimGenerator::gen_shader_arrays(const GenInput& gen) {
                             l("    ");
                         }
                         if (0 == i) {
-                            l("{}'u8,", (int)src->source_code[i]);
+                            l("{:#04x}'u8,", (int)src->source_code[i]);
                         } else {
-                            l("{},", (int)src->source_code[i]);
+                            l("{:#04x},", (int)src->source_code[i]);
                         }
                         if ((i & 15) == 15) {
                             l("\n");

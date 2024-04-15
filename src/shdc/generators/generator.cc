@@ -210,7 +210,7 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                         if ((i & 15) == 0) {
                             l("    ");
                         }
-                        l("{},", blob->data[i]);
+                        l("{:#04x},", blob->data[i]);
                         if ((i & 15) == 15) {
                             l("\n");
                         }
@@ -225,7 +225,7 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                         if ((i & 15) == 0) {
                             l("    ");
                         }
-                        l("{},", (int)src->source_code[i]);
+                        l("{:#04x},", (int)src->source_code[i]);
                         if ((i & 15) == 15) {
                             l("\n");
                         }
