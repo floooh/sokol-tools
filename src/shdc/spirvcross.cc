@@ -205,6 +205,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     //   - arrays must be 1-dimensional
     // - storage buffers:
     //   - must only have a single flexible array struct item
+    //   - must be readonly
     // - must use separate image and sampler objects
     //
     // FIXME: disallow vec3 arrays
@@ -228,17 +229,21 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     }
     for (const Resource& sbuf_res: res.storage_buffers) {
         const SPIRType& sbuf_type = compiler.get_type(sbuf_res.base_type_id);
-        bool valid = false;
+        bool content_valid = false;
         if (sbuf_type.member_types.size() == 1) {
             const SPIRType& item_type = compiler.get_type(sbuf_type.member_types[0]);
             if ((item_type.basetype == SPIRType::Struct) && (item_type.array.size() == 1)) {
                 if (item_type.array[0] == 0) {
-                    valid = true;
+                    content_valid = true;
                 }
             }
         }
-        if (!valid) {
+        if (!content_valid) {
             return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one flexible array of a struct", sbuf_res.name));
+        }
+        bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
+        if (!readonly) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed currently", sbuf_res.name));
         }
     }
     if (res.sampled_images.size() > 0) {
