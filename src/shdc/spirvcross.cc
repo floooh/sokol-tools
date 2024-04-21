@@ -412,8 +412,6 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     if (!src.empty()) {
         res.source_code = std::move(src);
         res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
-        // Metal's entry point function are called main0() because main() is reserved
-        res.stage_refl.entry_point += "0";
     }
     res.valid = !res.error.valid();
     return res;

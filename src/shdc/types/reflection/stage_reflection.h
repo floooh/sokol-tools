@@ -18,8 +18,17 @@ struct StageReflection {
     std::array<StageAttr, StageAttr::Num> outputs;      // index == attribute slot
     Bindings bindings;
 
+    std::string entry_point_by_slang(Slang::Enum slang) const;
     void dump_debug(const std::string& indent) const;
 };
+
+inline std::string StageReflection::entry_point_by_slang(Slang::Enum slang) const {
+    if (Slang::is_msl(slang)) {
+        return entry_point + "0";
+    } else {
+        return entry_point;
+    }
+}
 
 inline void StageReflection::dump_debug(const std::string& indent) const {
     const std::string indent2 = indent + "  ";
