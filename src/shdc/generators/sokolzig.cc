@@ -31,7 +31,7 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
-            l("_pad_{}: [{}]u8 = undefined;\n", cur_offset, next_offset - cur_offset);
+            l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
@@ -81,6 +81,122 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
     l_close("}};\n");
 }
 
+void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, int alignment, int pad_to_size) {
+    assert(struc.type == Type::Struct);
+
+    int cur_offset = 0;
+    for (const Type& item: struc.struct_items) {
+        int next_offset = item.offset;
+        if (next_offset > cur_offset) {
+            l("_pad_{}: [{}]u8 = undefined;\n", cur_offset, next_offset - cur_offset);
+            cur_offset = next_offset;
+        }
+        if (item.type == Type::Struct) {
+            // recurse into nested struct
+            if (item.array_count == 0) {
+                l_open("{}: [{}]extern struct {{\n",  item.name, item.array_count);
+            } else {
+                l_open("{}: extern struct {{\n",  item.name);
+            }
+            gen_struct_interior_decl_std430(gen, item, item.size, 0);
+            l_close("}},\n");
+        } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
+            // user-provided type names
+            if (item.array_count == 0) {
+                l("{}: {}", item.name, gen.inp.ctype_map.at(item.type_as_glsl()));
+            } else {
+                l("{}: [{}]{}", item.name, item.array_count, gen.inp.ctype_map.at(item.type_as_glsl()));
+            }
+        } else {
+            // default typenames
+            if (item.array_count == 0) {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("{}: i32", item.name); break;
+                    case Type::Bool2:   l("{}: [2]i32", item.name); break;
+                    case Type::Bool3:   l("{}: [3]i32", item.name); break;
+                    case Type::Bool4:   l("{}: [4]i32", item.name); break;
+                    case Type::Int:     l("{}: i32", item.name); break;
+                    case Type::Int2:    l("{}: [2]i32", item.name); break;
+                    case Type::Int3:    l("{}: [3]i32", item.name); break;
+                    case Type::Int4:    l("{}: [4]i32", item.name); break;
+                    case Type::UInt:    l("{}: u32", item.name); break;
+                    case Type::UInt2:   l("{}: [2]u32", item.name); break;
+                    case Type::UInt3:   l("{}: [3]u32", item.name); break;
+                    case Type::UInt4:   l("{}: [4]u32", item.name); break;
+                    case Type::Float:   l("{}: {}", item.name); break;
+                    case Type::Float2:  l("{}: [2]f32", item.name); break;
+                    case Type::Float3:  l("{}: [3]f32", item.name); break;
+                    case Type::Float4:  l("{}: [4]f32", item.name); break;
+                    case Type::Mat2x1:  l("{}: [2]f32", item.name); break;
+                    case Type::Mat2x2:  l("{}: [4]f32", item.name); break;
+                    case Type::Mat2x3:  l("{}: [6]f32", item.name); break;
+                    case Type::Mat2x4:  l("{}: [8]f32", item.name); break;
+                    case Type::Mat3x1:  l("{}: [3]f32", item.name); break;
+                    case Type::Mat3x2:  l("{}: [6]f32", item.name); break;
+                    case Type::Mat3x3:  l("{}: [9]f32", item.name); break;
+                    case Type::Mat3x4:  l("{}: [12]f32", item.name); break;
+                    case Type::Mat4x1:  l("{}: [4]f32", item.name); break;
+                    case Type::Mat4x2:  l("{}: [8]f32", item.name); break;
+                    case Type::Mat4x3:  l("{}: [12]f32", item.name); break;
+                    case Type::Mat4x4:  l("{}: [16]f32", item.name); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            } else {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("{}: [{}]i32", item.name, item.array_count); break;
+                    case Type::Bool2:   l("{}: [{}][2]i32", item.name, item.array_count); break;
+                    case Type::Bool3:   l("{}: [{}][3]i32", item.name, item.array_count); break;
+                    case Type::Bool4:   l("{}: [{}][4]i32", item.name, item.array_count); break;
+                    case Type::Int:     l("{}: [{}]i32", item.name, item.array_count); break;
+                    case Type::Int2:    l("{}: [{}][2]i32", item.name, item.array_count); break;
+                    case Type::Int3:    l("{}: [{}][3]i32", item.name, item.array_count); break;
+                    case Type::Int4:    l("{}: [{}][4]i32", item.name, item.array_count); break;
+                    case Type::UInt:    l("{}: [{}]u32", item.name, item.array_count); break;
+                    case Type::UInt2:   l("{}: [{}][2]u32", item.name, item.array_count); break;
+                    case Type::UInt3:   l("{}: [{}][3]u32", item.name, item.array_count); break;
+                    case Type::UInt4:   l("{}: [{}][4]u32", item.name, item.array_count); break;
+                    case Type::Float:   l("{}: [{}]f32", item.name, item.array_count); break;
+                    case Type::Float2:  l("{}: [{}][2]f32", item.name, item.array_count); break;
+                    case Type::Float3:  l("{}: [{}][3]f32", item.name, item.array_count); break;
+                    case Type::Float4:  l("{}: [{}][4]f32", item.name, item.array_count); break;
+                    case Type::Mat2x1:  l("{}: [{}][2]f32", item.name, item.array_count); break;
+                    case Type::Mat2x2:  l("{}: [{}][4]f32", item.name, item.array_count); break;
+                    case Type::Mat2x3:  l("{}: [{}][6]f32", item.name, item.array_count); break;
+                    case Type::Mat2x4:  l("{}: [{}][8]f32", item.name, item.array_count); break;
+                    case Type::Mat3x1:  l("{}: [{}][3]f32", item.name, item.array_count); break;
+                    case Type::Mat3x2:  l("{}: [{}][6]f32", item.name, item.array_count); break;
+                    case Type::Mat3x3:  l("{}: [{}][9]f32", item.name, item.array_count); break;
+                    case Type::Mat3x4:  l("{}: [{}][12]f32", item.name, item.array_count); break;
+                    case Type::Mat4x1:  l("{}: [{}][4]f32", item.name, item.array_count); break;
+                    case Type::Mat4x2:  l("{}: [{}][8]f32", item.name, item.array_count); break;
+                    case Type::Mat4x3:  l("{}: [{}][12]f32", item.name, item.array_count); break;
+                    case Type::Mat4x4:  l("{}: [{}][16]f32", item.name, item.array_count); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            }
+        }
+        if ((0 == cur_offset) && (alignment != 0)) {
+            // align the first item
+            l_append(" align({}),\n", alignment);
+        } else {
+            l_append(",\n");
+        }
+        cur_offset += item.size;
+    }
+    if (cur_offset != pad_to_size) {
+        l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, pad_to_size - cur_offset);
+    }
+}
+
+void SokolZigGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
+    const auto& item = sbuf.struct_info.struct_items[0];
+    l_open("pub const {} = extern struct {{\n", struct_name(item.struct_typename));
+    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.align, sbuf.struct_info.size);
+    l_close("}};\n");
+}
+
 void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", to_camel_case(prog.name));
     l("var desc: sg.ShaderDesc = .{{}};\n");
@@ -120,7 +236,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.d3d11_target = \"{}\";\n", dsn, d3d11_tgt);
                     }
                 }
-                l("{}.entry = \"{}\";\n", dsn, refl.entry_point);
+                l("{}.entry = \"{}\";\n", dsn, refl.entry_point_by_slang(slang));
                 for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
                     const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {
@@ -143,6 +259,14 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                                 }
                             }
                         }
+                    }
+                }
+                for (int sbuf_index = 0; sbuf_index < StorageBuffer::Num; sbuf_index++) {
+                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
+                    if (sbuf) {
+                        const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
+                        l("{}.used = true;\n", sbn);
+                        l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     }
                 }
                 for (int img_index = 0; img_index < Image::Num; img_index++) {
