@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "pystring.h"
 #include "types/gen_input.h"
 
 namespace shdc::gen {
@@ -121,7 +122,8 @@ protected:
         l_open("{}\n", comment_block_start());
     }
     template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
-        const std::string str = fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt, args...));
+        std::string str = pystring::strip(fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt, args...)));
+        str += "\n";
         content.append(str);
     }
     template<typename... T> void cbl_open(fmt::format_string<T...> fmt, T&&... args) {

@@ -113,7 +113,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         l("{}.d3d11_target = \"{}\"\n", dsn, d3d11_tgt);
                     }
                 }
-                l("{}.entry = \"{}\"\n", dsn, refl.entry_point);
+                l("{}.entry = \"{}\"\n", dsn, refl.entry_point_by_slang(slang));
                 for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
                     const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {

@@ -41,7 +41,7 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     l_open("{}:\n", pystring::lower(refl.stage_name));
                     l("path: {}\n", file_path);
                     l("is_binary: {}\n", blob != nullptr);
-                    l("entry_point: {}\n", refl.entry_point);
+                    l("entry_point: {}\n", refl.entry_point_by_slang(slang));
                     l_open("inputs:\n");
                     for (const auto& input: src->stage_refl.inputs) {
                         if (input.slot == -1) {
