@@ -88,7 +88,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
     for (const Type& item: struc.struct_items) {
         int next_offset = item.offset;
         if (next_offset > cur_offset) {
-            l("_pad_{}: [{}]u8 = undefined;\n", cur_offset, next_offset - cur_offset);
+            l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (item.type == Type::Struct) {
@@ -471,6 +471,10 @@ std::string SokolZigGenerator::uniform_block_bind_slot_name(const UniformBlock& 
     return fmt::format("SLOT_{}", ub.struct_info.name);
 }
 
+std::string SokolZigGenerator::storage_buffer_bind_slot_name(const refl::StorageBuffer& sb) {
+    return fmt::format("SLOT_{}", sb.struct_info.name);
+}
+
 std::string SokolZigGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("pub const {} = {};", vertex_attr_name(snippet_name, attr), attr.slot);
 }
@@ -485,6 +489,10 @@ std::string SokolZigGenerator::sampler_bind_slot_definition(const Sampler& smp) 
 
 std::string SokolZigGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
     return fmt::format("pub const {} = {};", uniform_block_bind_slot_name(ub), ub.slot);
+}
+
+std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sb) {
+    return fmt::format("pub const {} = {};", storage_buffer_bind_slot_name(sb), sb.slot);
 }
 
 } // namespace

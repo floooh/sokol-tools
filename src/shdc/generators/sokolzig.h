@@ -38,10 +38,12 @@ protected:
     virtual std::string image_bind_slot_name(const refl::Image& img);
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub);
+    virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf);
     virtual std::string vertex_attr_definition(const std::string& snippet_name, const refl::StageAttr& attr);
     virtual std::string image_bind_slot_definition(const refl::Image& img);
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub);
+    virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf);
 private:
     virtual void gen_struct_interior_decl_std430(const GenInput& gen, const refl::Type& struc, int alignment, int pad_to_size);
 };
