@@ -31,7 +31,7 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
-            l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
+            l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
@@ -69,14 +69,14 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
             // align the first item
             l_append(" align({}),\n", ub.struct_info.align);
         } else {
-            l_append(",\n");
+            l_append(" align(1),\n");
         }
         cur_offset += uniform.size;
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
     if (cur_offset != round16) {
-        l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, round16 - cur_offset);
+        l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, round16 - cur_offset);
     }
     l_close("}};\n");
 }
@@ -88,7 +88,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
     for (const Type& item: struc.struct_items) {
         int next_offset = item.offset;
         if (next_offset > cur_offset) {
-            l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, next_offset - cur_offset);
+            l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (item.type == Type::Struct) {
@@ -181,12 +181,12 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
             // align the first item
             l_append(" align({}),\n", alignment);
         } else {
-            l_append(",\n");
+            l_append(" align(1),\n");
         }
         cur_offset += item.size;
     }
     if (cur_offset != pad_to_size) {
-        l("_pad_{}: [{}]u8 = undefined,\n", cur_offset, pad_to_size - cur_offset);
+        l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, pad_to_size - cur_offset);
     }
 }
 
@@ -201,7 +201,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
     l_open("pub fn {}ShaderDesc(backend: sg.Backend) sg.ShaderDesc {{\n", to_camel_case(prog.name));
     l("var desc: sg.ShaderDesc = .{{}};\n");
     l("desc.label = \"{}_shader\";\n", prog.name);
-    l_open("switch(backend) {{\n");
+    l_open("switch (backend) {{\n");
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
