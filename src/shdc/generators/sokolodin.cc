@@ -193,11 +193,11 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
     l_open("{}_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {{\n", prog.name);
     l("desc: sg.Shader_Desc\n");
     l("desc.label = \"{}_shader\"\n", prog.name);
-    l_open("#partial switch backend {{\n");
+    l("#partial switch backend {{\n");
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
-            l_open("case {}: {{\n", backend(slang));
+            l_open("case {}:\n", backend(slang));
             for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                 const StageAttr& attr = prog.vs().inputs[attr_index];
                 if (attr.slot >= 0) {
@@ -292,10 +292,10 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            l_close("}}\n"); // current switch branch
+            l_close(); // current switch branch
         }
     }
-    l_close("}}\n"); // close switch statement
+    l("}}\n"); // close switch statement
     l("return desc\n");
     l_close("}}\n"); // close function
 }
