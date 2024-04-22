@@ -120,7 +120,7 @@ void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformB
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
-    if (cur_offset != round16) {
+    if (cur_offset < round16) {
         l("uint8_t _pad_{}[{}];\n", cur_offset, round16 - cur_offset);
     }
     l_close("}} {};\n", struct_name(ub.struct_info.name));
@@ -129,6 +129,7 @@ void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformB
 
 void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, int pad_to_size) {
     assert(struc.type == Type::Struct);
+    assert(pad_to_size > 0);
 
     int cur_offset = 0;
     for (const Type& item: struc.struct_items) {
@@ -227,7 +228,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         }
         cur_offset += item.size;
     }
-    if (cur_offset != pad_to_size) {
+    if (cur_offset < pad_to_size) {
         l("uint8_t _pad_{}[{}];\n", cur_offset, pad_to_size - cur_offset);
     }
 }

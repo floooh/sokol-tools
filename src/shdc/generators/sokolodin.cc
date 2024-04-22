@@ -25,7 +25,8 @@ void SokolOdinGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolOdinGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
-    l_open("{} :: struct #align {} #packed {{\n", struct_name(ub.struct_info.name), ub.struct_info.align);
+    l_open("{} :: struct #align({}) {{\n", struct_name(ub.struct_info.name), ub.struct_info.align);
+    l_open("using _: struct #packed {{\n");
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
@@ -68,17 +69,131 @@ void SokolOdinGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifo
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
-    if (cur_offset != round16) {
-        l("_: [{}]u8,\n", cur_offset, round16 - cur_offset);
+    if (cur_offset < round16) {
+        l("_: [{}]u8,\n", round16 - cur_offset);
     }
+    l_close("}},\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, int pad_to_size) {
+    assert(struc.type == Type::Struct);
+    assert(pad_to_size > 0);
+
+    int cur_offset = 0;
+    for (const Type& item: struc.struct_items) {
+        int next_offset = item.offset;
+        if (next_offset > cur_offset) {
+            l("_: [{}]u8,\n", next_offset - cur_offset);
+            cur_offset = next_offset;
+        }
+        if (item.type == Type::Struct) {
+            // recurse into nested struct
+            if (item.array_count == 0) {
+                l_open("{}: [{}]struct {{\n",  item.name, item.array_count);
+            } else {
+                l_open("{}: struct {{\n",  item.name);
+            }
+            gen_struct_interior_decl_std430(gen, item, item.size);
+            l_close("}},\n");
+        } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
+            // user-provided type names
+            if (item.array_count == 0) {
+                l("{}: {},\n", item.name, gen.inp.ctype_map.at(item.type_as_glsl()));
+            } else {
+                l("{}: [{}]{},\n", item.name, item.array_count, gen.inp.ctype_map.at(item.type_as_glsl()));
+            }
+        } else {
+            // default typenames
+            if (item.array_count == 0) {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("{}: i32,\n", item.name); break;
+                    case Type::Bool2:   l("{}: [2]i32,\n", item.name); break;
+                    case Type::Bool3:   l("{}: [3]i32,\n", item.name); break;
+                    case Type::Bool4:   l("{}: [4]i32,\n", item.name); break;
+                    case Type::Int:     l("{}: i32,\n", item.name); break;
+                    case Type::Int2:    l("{}: [2]i32,\n", item.name); break;
+                    case Type::Int3:    l("{}: [3]i32,\n", item.name); break;
+                    case Type::Int4:    l("{}: [4]i32,\n", item.name); break;
+                    case Type::UInt:    l("{}: u32,\n", item.name); break;
+                    case Type::UInt2:   l("{}: [2]u32,\n", item.name); break;
+                    case Type::UInt3:   l("{}: [3]u32,\n", item.name); break;
+                    case Type::UInt4:   l("{}: [4]u32,\n", item.name); break;
+                    case Type::Float:   l("{}: {},\n", item.name); break;
+                    case Type::Float2:  l("{}: [2]f32,\n", item.name); break;
+                    case Type::Float3:  l("{}: [3]f32,\n", item.name); break;
+                    case Type::Float4:  l("{}: [4]f32,\n", item.name); break;
+                    case Type::Mat2x1:  l("{}: [2]f32,\n", item.name); break;
+                    case Type::Mat2x2:  l("{}: [4]f32,\n", item.name); break;
+                    case Type::Mat2x3:  l("{}: [6]f32,\n", item.name); break;
+                    case Type::Mat2x4:  l("{}: [8]f32,\n", item.name); break;
+                    case Type::Mat3x1:  l("{}: [3]f32,\n", item.name); break;
+                    case Type::Mat3x2:  l("{}: [6]f32,\n", item.name); break;
+                    case Type::Mat3x3:  l("{}: [9]f32,\n", item.name); break;
+                    case Type::Mat3x4:  l("{}: [12]f32,\n", item.name); break;
+                    case Type::Mat4x1:  l("{}: [4]f32,\n", item.name); break;
+                    case Type::Mat4x2:  l("{}: [8]f32,\n", item.name); break;
+                    case Type::Mat4x3:  l("{}: [12]f32,\n", item.name); break;
+                    case Type::Mat4x4:  l("{}: [16]f32,\n", item.name); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            } else {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("{}: [{}]i32,\n", item.name, item.array_count); break;
+                    case Type::Bool2:   l("{}: [{}][2]i32,\n", item.name, item.array_count); break;
+                    case Type::Bool3:   l("{}: [{}][3]i32,\n", item.name, item.array_count); break;
+                    case Type::Bool4:   l("{}: [{}][4]i32,\n", item.name, item.array_count); break;
+                    case Type::Int:     l("{}: [{}]i32,\n", item.name, item.array_count); break;
+                    case Type::Int2:    l("{}: [{}][2]i32,\n", item.name, item.array_count); break;
+                    case Type::Int3:    l("{}: [{}][3]i32,\n", item.name, item.array_count); break;
+                    case Type::Int4:    l("{}: [{}][4]i32,\n", item.name, item.array_count); break;
+                    case Type::UInt:    l("{}: [{}]u32,\n", item.name, item.array_count); break;
+                    case Type::UInt2:   l("{}: [{}][2]u32,\n", item.name, item.array_count); break;
+                    case Type::UInt3:   l("{}: [{}][3]u32,\n", item.name, item.array_count); break;
+                    case Type::UInt4:   l("{}: [{}][4]u32,\n", item.name, item.array_count); break;
+                    case Type::Float:   l("{}: [{}]f32,\n", item.name, item.array_count); break;
+                    case Type::Float2:  l("{}: [{}][2]f32,\n", item.name, item.array_count); break;
+                    case Type::Float3:  l("{}: [{}][3]f32,\n", item.name, item.array_count); break;
+                    case Type::Float4:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat2x1:  l("{}: [{}][2]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat2x2:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat2x3:  l("{}: [{}][6]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat2x4:  l("{}: [{}][8]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat3x1:  l("{}: [{}][3]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat3x2:  l("{}: [{}][6]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat3x3:  l("{}: [{}][9]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat3x4:  l("{}: [{}][12]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat4x1:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat4x2:  l("{}: [{}][8]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat4x3:  l("{}: [{}][12]f32,\n", item.name, item.array_count); break;
+                    case Type::Mat4x4:  l("{}: [{}][16]f32,\n", item.name, item.array_count); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            }
+        }
+        cur_offset += item.size;
+    }
+    if (cur_offset < pad_to_size) {
+        l("_: [{}]u8,\n", pad_to_size - cur_offset);
+    }
+}
+
+void SokolOdinGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
+    const auto& item = sbuf.struct_info.struct_items[0];
+    l_open("{} :: struct #align({}) {{\n", struct_name(item.struct_typename), sbuf.struct_info.align);
+    l_open("using _: struct #packed {{\n");
+    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
+    l_close("}}\n");
     l_close("}}\n");
 }
 
 void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_desc {{\n", prog.name);
-    l("desc: sg.ShaderDesc\n");
+    l_open("{}_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {{\n", prog.name);
+    l("desc: sg.Shader_Desc\n");
     l("desc.label = \"{}_shader\"\n", prog.name);
-    l_open("#partial switch(backend) {{\n");
+    l_open("#partial switch backend {{\n");
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
@@ -138,6 +253,14 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         }
                     }
                 }
+                for (int sbuf_index = 0; sbuf_index < StorageBuffer::Num; sbuf_index++) {
+                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
+                    if (sbuf) {
+                        const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
+                        l("{}.used = true\n", sbn);
+                        l("{}.readonly = {}\n", sbn, sbuf->readonly);
+                    }
+                }
                 for (int img_index = 0; img_index < Image::Num; img_index++) {
                     const Image* img = refl.bindings.find_image_by_slot(img_index);
                     if (img) {
@@ -169,7 +292,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            l_close("}},\n"); // current switch branch
+            l_close("}}\n"); // current switch branch
         }
     }
     l_close("}}\n"); // close switch statement
@@ -206,7 +329,7 @@ void SokolOdinGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const P
 }
 
 void SokolOdinGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
-    l("@(private) {} := [{}]u8 {{\n", array_name, num_bytes);
+    l("@(private)\n{} := [{}]u8 {{\n", array_name, num_bytes);
 }
 
 void SokolOdinGenerator::gen_shader_array_end(const GenInput& gen) {
@@ -339,20 +462,28 @@ std::string SokolOdinGenerator::uniform_block_bind_slot_name(const UniformBlock&
     return fmt::format("SLOT_{}", ub.struct_info.name);
 }
 
+std::string SokolOdinGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return fmt::format("SLOT_{}", sbuf.struct_info.name);
+}
+
 std::string SokolOdinGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
-    return fmt::format("ATTR_{} :: {}", vertex_attr_name(snippet_name, attr), attr.slot);
+    return fmt::format("{} :: {}", vertex_attr_name(snippet_name, attr), attr.slot);
 }
 
 std::string SokolOdinGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("SLOT_{} :: {}", image_bind_slot_name(img), img.slot);
+    return fmt::format("{} :: {}", image_bind_slot_name(img), img.slot);
 }
 
 std::string SokolOdinGenerator::sampler_bind_slot_definition(const Sampler& smp) {
-    return fmt::format("SLOT_{} :: {}", sampler_bind_slot_name(smp), smp.slot);
+    return fmt::format("{} :: {}", sampler_bind_slot_name(smp), smp.slot);
 }
 
 std::string SokolOdinGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
-    return fmt::format("SLOT_{} :: {}", uniform_block_bind_slot_name(ub), ub.slot);
+    return fmt::format("{} :: {}", uniform_block_bind_slot_name(ub), ub.slot);
+}
+
+std::string SokolOdinGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
+    return fmt::format("{} :: {}", storage_buffer_bind_slot_name(sbuf), sbuf.slot);
 }
 
 } // namespace

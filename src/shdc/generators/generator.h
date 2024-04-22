@@ -122,7 +122,7 @@ protected:
         l_open("{}\n", comment_block_start());
     }
     template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
-        std::string str = pystring::strip(fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt, args...)));
+        std::string str = pystring::rstrip(fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt, args...)));
         str += "\n";
         content.append(str);
     }

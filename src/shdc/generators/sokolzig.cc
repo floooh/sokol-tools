@@ -75,7 +75,7 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
     }
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
-    if (cur_offset != round16) {
+    if (cur_offset < round16) {
         l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, round16 - cur_offset);
     }
     l_close("}};\n");
@@ -83,6 +83,8 @@ void SokolZigGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
 
 void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, int alignment, int pad_to_size) {
     assert(struc.type == Type::Struct);
+    assert(alignment > 0);
+    assert(pad_to_size > 0);
 
     int cur_offset = 0;
     for (const Type& item: struc.struct_items) {
@@ -98,8 +100,8 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
             } else {
                 l_open("{}: extern struct {{\n",  item.name);
             }
-            gen_struct_interior_decl_std430(gen, item, item.size, 0);
-            l_close("}},\n");
+            gen_struct_interior_decl_std430(gen, item, 0, item.size);
+            l_close("}}");
         } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
             // user-provided type names
             if (item.array_count == 0) {
@@ -177,7 +179,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
                 }
             }
         }
-        if ((0 == cur_offset) && (alignment != 0)) {
+        if (0 == cur_offset) {
             // align the first item
             l_append(" align({}),\n", alignment);
         } else {
@@ -185,7 +187,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
         }
         cur_offset += item.size;
     }
-    if (cur_offset != pad_to_size) {
+    if (cur_offset < pad_to_size) {
         l("_pad_{}: [{}]u8 align(1) = undefined,\n", cur_offset, pad_to_size - cur_offset);
     }
 }
