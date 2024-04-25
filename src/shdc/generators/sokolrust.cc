@@ -33,7 +33,7 @@ void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifo
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
-            l("_pad_{}: [u8; {}],\n", cur_offset, next_offset - cur_offset);
+            l("pub _pad_{}: [u8; {}],\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
@@ -72,9 +72,134 @@ void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifo
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
     if (cur_offset != round16) {
-        l("_pad_{}: [u8; {}],\n", cur_offset, round16 - cur_offset);
+        l("pub _pad_{}: [u8; {}],\n", cur_offset, round16 - cur_offset);
     }
     l_close("}}\n");
+}
+
+void SokolRustGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, const std::string& name, int pad_to_size) {
+    assert(struc.type == Type::Struct);
+    assert(pad_to_size > 0);
+
+    int cur_offset = 0;
+    for (const Type& item: struc.struct_items) {
+        int next_offset = item.offset;
+        if (next_offset > cur_offset) {
+            l("pub _pad_{}: [u8; {}],\n", cur_offset, next_offset - cur_offset);
+            cur_offset = next_offset;
+        }
+        if (item.type == Type::Struct) {
+            // Rust doesn't allow nested struct declarations, so we need to reference
+            // an externally created struct declaration
+            if (item.array_count == 0) {
+                l("pub {}: {}_{},", item.name, name, item.name);
+            } else {
+                l("pub {}: [{}_{}, {}],\n", item.name, name, item.name, item.array_count);
+            }
+        } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
+            // user-mapped typename
+            if (item.array_count == 0) {
+                l("pub {}: {},\n", item.name, gen.inp.ctype_map.at(item.type_as_glsl()));
+            } else {
+                l("pub {}: [{}; {}],\n", item.name, gen.inp.ctype_map.at(item.type_as_glsl()), item.array_count);
+            }
+        } else {
+            // default typenames
+            if (item.array_count == 0) {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("pub {}: i32,\n", item.name); break;
+                    case Type::Bool2:   l("pub {}: [i32; 2],\n", item.name); break;
+                    case Type::Bool3:   l("pub {}: [i32; 3],\n", item.name); break;
+                    case Type::Bool4:   l("pub {}: [i32; 4],\n", item.name); break;
+                    case Type::Int:     l("pub {}: i32,\n", item.name); break;
+                    case Type::Int2:    l("pub {}: [i32; 2],\n", item.name); break;
+                    case Type::Int3:    l("pub {}: [i32; 3],\n", item.name); break;
+                    case Type::Int4:    l("pub {}: [i32; 4],\n", item.name); break;
+                    case Type::UInt:    l("pub {}: u32,\n", item.name); break;
+                    case Type::UInt2:   l("pub {}: [u32; 2],\n", item.name); break;
+                    case Type::UInt3:   l("pub {}: [u32; 3],\n", item.name); break;
+                    case Type::UInt4:   l("pub {}: [u32; 4],\n", item.name); break;
+                    case Type::Float:   l("pub {}: f32,\n", item.name); break;
+                    case Type::Float2:  l("pub {}: [f32; 2],\n", item.name); break;
+                    case Type::Float3:  l("pub {}: [f32; 3],\n", item.name); break;
+                    case Type::Float4:  l("pub {}: [f32; 4],\n", item.name); break;
+                    case Type::Mat2x1:  l("pub {}: [f32; 2],\n", item.name); break;
+                    case Type::Mat2x2:  l("pub {}: [f32; 4],\n", item.name); break;
+                    case Type::Mat2x3:  l("pub {}: [f32; 6],\n", item.name); break;
+                    case Type::Mat2x4:  l("pub {}: [f32; 8],\n", item.name); break;
+                    case Type::Mat3x1:  l("pub {}: [f32; 3],\n", item.name); break;
+                    case Type::Mat3x2:  l("pub {}: [f32; 6],\n", item.name); break;
+                    case Type::Mat3x3:  l("pub {}: [f32; 9],\n", item.name); break;
+                    case Type::Mat3x4:  l("pub {}: [f32; 12],\n", item.name); break;
+                    case Type::Mat4x1:  l("pub {}: [f32; 4],\n", item.name); break;
+                    case Type::Mat4x2:  l("pub {}: [f32; 8],\n", item.name); break;
+                    case Type::Mat4x3:  l("pub {}: [f32; 12],\n", item.name); break;
+                    case Type::Mat4x4:  l("pub {}: [f32; 16],\n", item.name); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            } else {
+                switch (item.type) {
+                    // NOTE: bool => int is not a bug!
+                    case Type::Bool:    l("pub {}: [i32; {}],\n", item.name, item.array_count); break;
+                    case Type::Bool2:   l("pub {}: [[i32; 2]; {}],\n", item.name, item.array_count); break;
+                    case Type::Bool3:   l("pub {}: [[i32; 3]; {}],\n", item.name, item.array_count); break;
+                    case Type::Bool4:   l("pub {}: [[i32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::Int:     l("pub {}: [[i32; {}],\n", item.name, item.array_count); break;
+                    case Type::Int2:    l("pub {}: [[i32; 2]; {}],\n", item.name, item.array_count); break;
+                    case Type::Int3:    l("pub {}: [[i32; 3]; {}],\n", item.name, item.array_count); break;
+                    case Type::Int4:    l("pub {}: [[i32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::UInt:    l("pub {}: [u32; {}],\n", item.name, item.array_count); break;
+                    case Type::UInt2:   l("pub {}: [[u32; 2]; {}],\n", item.name, item.array_count); break;
+                    case Type::UInt3:   l("pub {}: [[u32; 3]; {}],\n", item.name, item.array_count); break;
+                    case Type::UInt4:   l("pub {}: [[u32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::Float:   l("pub {}: [f32; {}],\n", item.name, item.array_count); break;
+                    case Type::Float2:  l("pub {}: [[f32; 2]; {}],\n", item.name, item.array_count); break;
+                    case Type::Float3:  l("pub {}: [[f32; 3]; {}],\n", item.name, item.array_count); break;
+                    case Type::Float4:  l("pub {}: [[f32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat2x1:  l("pub {}: [[f32; 2]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat2x2:  l("pub {}: [[f32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat2x3:  l("pub {}: [[f32; 6]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat2x4:  l("pub {}: [[f32; 8]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat3x1:  l("pub {}: [[f32; 3]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat3x2:  l("pub {}: [[f32; 6]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat3x3:  l("pub {}: [[f32; 9]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat3x4:  l("pub {}: [[f32; 12]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat4x1:  l("pub {}: [[f32; 4]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat4x2:  l("pub {}: [[f32; 8]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat4x3:  l("pub {}: [[f32; 12]; {}],\n", item.name, item.array_count); break;
+                    case Type::Mat4x4:  l("pub {}: [[f32; 16]; {}],\n", item.name, item.array_count); break;
+                    default: l("INVALID_TYPE\n"); break;
+                }
+            }
+        }
+        cur_offset += item.size;
+    }
+    if (cur_offset < pad_to_size) {
+        l("pub _pad_{}: [u8; {}],\n", cur_offset, pad_to_size - cur_offset);
+    }
+}
+
+void SokolRustGenerator::recurse_unfold_structs(const GenInput& gen, const Type& struc, const std::string& name, int alignment, int pad_to_size) {
+    // first recurse over nested structs because we need to extract those into
+    // top-level Rust structs, extracted structs don't get an alignment since they
+    // are nested
+    for (const Type& item: struc.struct_items) {
+        if (item.type == Type::Struct) {
+            recurse_unfold_structs(gen, item, fmt::format("{}_{}", name, item.name), 0, item.size);
+        }
+    }
+    l("#[repr(C, align({}))]\n", alignment);
+    l_open("pub struct {} {{\n", struct_name(name));
+    gen_struct_interior_decl_std430(gen, struc, name, pad_to_size);
+    l_close("}}\n");
+}
+
+void SokolRustGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
+    // Rust doesn't allow nested struct declarations, so we need to use the same
+    // awkward workaround as in Nim :/
+    const auto& item = sbuf.struct_info.struct_items[0];
+    recurse_unfold_structs(gen, item, item.struct_typename, sbuf.struct_info.align, sbuf.struct_info.size);
 }
 
 void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
@@ -141,6 +266,14 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         }
                     }
                 }
+                for (int sbuf_index = 0; sbuf_index < StorageBuffer::Num; sbuf_index++) {
+                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
+                    if (sbuf) {
+                        const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
+                        l("{}.used = true;\n", sbn);
+                        l("{}.readonly = {};\n", sbn, sbuf->readonly);
+                    }
+                }
                 for (int img_index = 0; img_index < Image::Num; img_index++) {
                     const Image* img = refl.bindings.find_image_by_slot(img_index);
                     if (img) {
@@ -179,34 +312,6 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
     l_close("}}\n"); // close switch statement
     l("desc\n");
     l_close("}}\n"); // close function
-}
-
-void SokolRustGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolRustGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
 }
 
 void SokolRustGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
@@ -343,6 +448,10 @@ std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock&
     return pystring::upper(fmt::format("SLOT_{}", ub.struct_info.name));
 }
 
+std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return pystring::upper(fmt::format("SLOT_{}", sbuf.struct_info.name));
+}
+
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
     return fmt::format("pub const {}: usize = {};", vertex_attr_name(snippet_name, attr), attr.slot);
 }
@@ -357,6 +466,10 @@ std::string SokolRustGenerator::sampler_bind_slot_definition(const Sampler& smp)
 
 std::string SokolRustGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
     return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(ub), ub.slot);
+}
+
+std::string SokolRustGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
+    return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(sbuf), sbuf.slot);
 }
 
 } // namespace

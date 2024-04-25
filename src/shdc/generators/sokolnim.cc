@@ -161,9 +161,9 @@ void SokolNimGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
         if (item.type == Type::Struct) {
             // nested structs are regular members in Nim
             if (item.array_count == 0) {
-                l_open("{}*{}: {}_{}\n", item.name, align, name, item.name);
+                l("{}*{}: {}_{}\n", item.name, align, name, item.name);
             } else {
-                l_open("{}*{}: array[{}, {}_{}]\n", item.name, align, item.array_count, name, item.name);
+                l("{}*{}: array[{}, {}_{}]\n", item.name, align, item.array_count, name, item.name);
             }
         } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
             // user-provided type names
@@ -258,7 +258,6 @@ void SokolNimGenerator::recurse_unfold_structs(const GenInput& gen, const Type& 
             recurse_unfold_structs(gen, item, fmt::format("{}_{}", name, item.name), 0, item.size);
         }
     }
-    // the top-level struct gets an alignment
     l_open("type {}* {{.packed.}} = object\n", struct_name(name));
     gen_struct_interior_decl_std430(gen, struc, name, alignment, pad_to_size);
     l_close("\n");
@@ -379,34 +378,6 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
     l("else: discard\n");
     l_close();
     l_close();
-}
-
-void SokolNimGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolNimGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
 }
 
 void SokolNimGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {

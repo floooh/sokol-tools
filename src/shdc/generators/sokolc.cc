@@ -135,7 +135,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
     for (const Type& item: struc.struct_items) {
         int next_offset = item.offset;
         if (next_offset > cur_offset) {
-            l("uint8_t _pad_{}[{}];\n", next_offset, next_offset - cur_offset);
+            l("uint8_t _pad_{}[{}];\n", cur_offset, next_offset - cur_offset);
             cur_offset = next_offset;
         }
         if (item.type == Type::Struct) {

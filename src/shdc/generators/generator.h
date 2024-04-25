@@ -47,15 +47,15 @@ protected:
     // called by gen_shader_desc_funcs()
     virtual void gen_shader_desc_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
 
-    // called by gen_reflection_funcs()
-    virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm) { assert(false && "implement me"); };
-    virtual void gen_uniform_block_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
-    virtual void gen_storage_buffer_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { assert(false && "implement me"); };
+    // optional, called by gen_reflection_funcs()
+    virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm) { };
+    virtual void gen_uniform_block_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_uniform_offset_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_uniform_desc_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_storage_buffer_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
 
     // general helper methods
     virtual std::string lang_name() { assert(false && "implement me"); return ""; };

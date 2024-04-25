@@ -300,34 +300,6 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
     l_close("}}\n"); // close function
 }
 
-void SokolOdinGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
-void SokolOdinGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    // FIXME
-}
-
 void SokolOdinGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
     l("@(private)\n{} := [{}]u8 {{\n", array_name, num_bytes);
 }
