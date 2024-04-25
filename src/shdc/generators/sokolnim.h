@@ -47,8 +47,8 @@ protected:
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf);
 private:
-    virtual void gen_struct_interior_decl_std430(const GenInput& gen, const refl::Type& struc, const std::string& name, int pad_to_size);
-    virtual void recurse_unfold_structs(const GenInput& gen, const refl::Type& struc, const std::string& name, int pad_to_size);
+    virtual void gen_struct_interior_decl_std430(const GenInput& gen, const refl::Type& struc, const std::string& name, int alignment, int pad_to_size);
+    virtual void recurse_unfold_structs(const GenInput& gen, const refl::Type& struc, const std::string& name, int alignment, int pad_to_size);
 };
 
 } // namespace
