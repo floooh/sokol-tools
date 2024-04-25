@@ -90,9 +90,9 @@ void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
         if (item.type == Type::Struct) {
             // recurse into nested struct
             if (item.array_count == 0) {
-                l_open("{}: [{}]struct {{\n",  item.name, item.array_count);
+                l_open("{}: struct {{\n", item.name);
             } else {
-                l_open("{}: struct {{\n",  item.name);
+                l_open("{}: [{}]struct {{\n", item.name, item.array_count);
             }
             gen_struct_interior_decl_std430(gen, item, item.size);
             l_close("}},\n");
@@ -120,7 +120,7 @@ void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
                     case Type::UInt2:   l("{}: [2]u32,\n", item.name); break;
                     case Type::UInt3:   l("{}: [3]u32,\n", item.name); break;
                     case Type::UInt4:   l("{}: [4]u32,\n", item.name); break;
-                    case Type::Float:   l("{}: {},\n", item.name); break;
+                    case Type::Float:   l("{}: f32,\n", item.name); break;
                     case Type::Float2:  l("{}: [2]f32,\n", item.name); break;
                     case Type::Float3:  l("{}: [3]f32,\n", item.name); break;
                     case Type::Float4:  l("{}: [4]f32,\n", item.name); break;

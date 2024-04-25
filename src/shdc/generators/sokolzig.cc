@@ -96,9 +96,9 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
         if (item.type == Type::Struct) {
             // recurse into nested struct
             if (item.array_count == 0) {
-                l_open("{}: [{}]extern struct {{\n",  item.name, item.array_count);
-            } else {
                 l_open("{}: extern struct {{\n",  item.name);
+            } else {
+                l_open("{}: [{}]extern struct {{\n",  item.name, item.array_count);
             }
             gen_struct_interior_decl_std430(gen, item, 0, item.size);
             l_close("}}");
@@ -126,7 +126,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
                     case Type::UInt2:   l("{}: [2]u32", item.name); break;
                     case Type::UInt3:   l("{}: [3]u32", item.name); break;
                     case Type::UInt4:   l("{}: [4]u32", item.name); break;
-                    case Type::Float:   l("{}: {}", item.name); break;
+                    case Type::Float:   l("{}: f32", item.name); break;
                     case Type::Float2:  l("{}: [2]f32", item.name); break;
                     case Type::Float3:  l("{}: [3]f32", item.name); break;
                     case Type::Float4:  l("{}: [4]f32", item.name); break;
