@@ -15,6 +15,7 @@ protected:
 private:
     void gen_attr(const refl::StageAttr& attr);
     void gen_uniform_block(const refl::UniformBlock& ub);
+    void gen_storage_buffer(const refl::StorageBuffer& sbuf);
     void gen_image(const refl::Image& img);
     void gen_sampler(const refl::Sampler& smp);
     void gen_image_sampler(const refl::ImageSampler& img_smp);

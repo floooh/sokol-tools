@@ -65,6 +65,13 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                         }
                         l_close();
                     }
+                    if (refl.bindings.storage_buffers.size() > 0) {
+                        l_open("storage_buffers:\n");
+                        for (const auto& sbuf: refl.bindings.storage_buffers) {
+                            gen_storage_buffer(sbuf);
+                        }
+                        l_close();
+                    }
                     if (refl.bindings.images.size() > 0) {
                         l_open("images:\n");
                         for (const auto& image: refl.bindings.images) {
@@ -142,6 +149,18 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     }
     l_close();
     l_close();
+}
+
+void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf) {
+    const auto& item = sbuf.struct_info.struct_items[0];
+    l_open("-\n");
+    l("slot: {}\n", sbuf.slot);
+    l("size: {}\n", sbuf.struct_info.size);
+    l("align: {}\n", sbuf.struct_info.align);
+    l("struct_name: {}\n", sbuf.struct_info.name);
+    l("inst_name: {}\n", sbuf.inst_name);
+    l("readonly: {}\n", sbuf.readonly);
+    l("inner_struct_name: {}\n", item.struct_typename);
 }
 
 void YamlGenerator::gen_image(const Image& image) {
