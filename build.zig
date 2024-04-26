@@ -5,14 +5,9 @@ const common_flags = [_][]const u8{
     "-fstrict-aliasing",
 };
 const common_c_flags = common_flags;
-const common_cpp_flags = common_flags ++ [_][]const u8{
-    "-fno-rtti",
-    "-fno-exceptions",
-};
+const common_cpp_flags = common_flags;
 
-const spvcross_public_cpp_flags = [_][]const u8{
-    "-DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS",
-};
+const spvcross_public_cpp_flags = [_][]const u8{};
 
 const tint_public_cpp_flags = [_][]const u8{
     "-DTINT_BUILD_SPV_READER",
@@ -38,14 +33,15 @@ pub fn build_exe(
         "reflection.cc",
         "spirv.cc",
         "spirvcross.cc",
-        "formats/bare.cc",
-        "formats/sokol.cc",
-        "formats/sokolnim.cc",
-        "formats/sokolodin.cc",
-        "formats/sokolrust.cc",
-        "formats/sokolzig.cc",
-        "formats/yaml.cc",
-        "formats/util.cc",
+        "generators/bare.cc",
+        "generators/generate.cc",
+        "generators/generator.cc",
+        "generators/sokolc.cc",
+        "generators/sokolnim.cc",
+        "generators/sokolodin.cc",
+        "generators/sokolrust.cc",
+        "generators/sokolzig.cc",
+        "generators/yaml.cc",
     };
     const incl_dirs = [_][]const u8{
         "src/shdc",
