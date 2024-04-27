@@ -66,9 +66,9 @@ inline ErrMsg ErrMsg::warning(const std::string& msg) {
 
 inline std::string ErrMsg::as_string(Format fmt) const {
     if (fmt == MSVC) {
-        return fmt::format("{}({}): {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
+        return fmt::format("{}({}): {}: {}", file, line_index + 1, (type==ERROR)?"error":"warning", msg);
     } else {
-        return fmt::format("{}:{}:0: {}: {}", file, line_index, (type==ERROR)?"error":"warning", msg);
+        return fmt::format("{}:{}:0: {}: {}", file, line_index + 1, (type==ERROR)?"error":"warning", msg);
     }
 }
 
