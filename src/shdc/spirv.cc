@@ -24,32 +24,44 @@ void Spirv::finalize_spirv_tools() {
 // defined at end of file
 extern const TBuiltInResource DefaultTBuiltInResource;
 
+struct MergedSource {
+    std::string src;
+    int linenr_offset = 0;
+};
+
 /* merge shader snippet source into a single string */
-static std::string merge_source(const Input& inp, const Snippet& snippet, Slang::Enum slang, const std::vector<std::string>& defines) {
-    std::string src = "#version 450\n";
+static MergedSource merge_source(const Input& inp, const Snippet& snippet, Slang::Enum slang, const std::vector<std::string>& defines) {
+    MergedSource res;
+    res.linenr_offset += 1;
+    res.src = "#version 450\n";
     if (Slang::is_glsl(slang)) {
-        src += "#define SOKOL_GLSL (1)\n";
+        res.linenr_offset += 1;
+        res.src += "#define SOKOL_GLSL (1)\n";
     }
     if (Slang::is_hlsl(slang)) {
-        src += "#define SOKOL_HLSL (1)\n";
+        res.linenr_offset += 1;
+        res.src += "#define SOKOL_HLSL (1)\n";
     }
     if (Slang::is_msl(slang)) {
-        src += "#define SOKOL_MSL (1)\n";
+        res.linenr_offset += 1;
+        res.src += "#define SOKOL_MSL (1)\n";
     }
     if (Slang::is_wgsl(slang)) {
-        src += "#define SOKOL_WGSL (1)\n";
+        res.linenr_offset += 1;
+        res.src += "#define SOKOL_WGSL (1)\n";
     }
     for (const std::string& define : defines) {
-        src += fmt::format("#define {} (1)\n", define);
+        res.linenr_offset += 1;
+        res.src += fmt::format("#define {} (1)\n", define);
     }
     for (int line_index : snippet.lines) {
-        src += fmt::format("{}\n", inp.lines[line_index].line);
+        res.src += fmt::format("{}\n", inp.lines[line_index].line);
     }
-    return src;
+    return res;
 }
 
 /* convert a glslang info-log string to ErrMsg's and append to out_errors */
-static void infolog_to_errors(const std::string& log, const Input& inp, int snippet_index, std::vector<ErrMsg>& out_errors) {
+static void infolog_to_errors(const std::string& log, const Input& inp, int snippet_index, int linenr_offset, std::vector<ErrMsg>& out_errors) {
     /*
         format for errors is "[ERROR|WARNING]: [pos=0?]:[line]: message"
         And a last line we need to ignore: "ERROR: N compilation errors. ..."
@@ -74,9 +86,10 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
             if (tokens.size() >= 4) {
                 // extract line index and message
                 int snippet_line_index = atoi(tokens[2].c_str());
-                // correct for one-based and prolog #defines
-                if (snippet_line_index >= 1) {
-                    snippet_line_index -= 5;
+                // correct for 1-based and additional #defines that had been injected in front of actual snippet source
+                snippet_line_index -= (linenr_offset + 1);
+                if (snippet_line_index < 0) {
+                    snippet_line_index = 0;
                 }
                 // everything after the 3rd colon is 'msg'
                 for (int i = 3; i < (int)tokens.size(); i++) {
@@ -161,10 +174,11 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src, const Input& inp, int snippet_index, Spirv& out_spirv) {
-    const char* sources[1] = { src.c_str() };
-    const int sourcesLen[1] = { (int) src.length() };
+static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& source, const Input& inp, int snippet_index, Spirv& out_spirv) {
+    const char* sources[1] = { source.src.c_str() };
+    const int sourcesLen[1] = { (int) source.src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
+    const int linenr_offset = source.linenr_offset;
 
     // compile GLSL vertex- or fragment-shader
     glslang::TShader shader(stage);
@@ -179,8 +193,8 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src
     shader.setAutoMapLocations(true);
     shader.setAutoMapBindings(true);
     bool parse_success = shader.parse(GetDefaultResources(), 100, false, EShMsgDefault);
-    infolog_to_errors(shader.getInfoLog(), inp, snippet_index, out_spirv.errors);
-    infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(shader.getInfoLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
+    infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     if (!parse_success) {
         return false;
     }
@@ -189,14 +203,14 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src
     glslang::TProgram program;
     program.addShader(&shader);
     bool link_success = program.link(EShMsgDefault);
-    infolog_to_errors(program.getInfoLog(), inp, snippet_index, out_spirv.errors);
-    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     if (!link_success) {
         return false;
     }
     bool map_success = program.mapIO();
-    infolog_to_errors(program.getInfoLog(), inp, snippet_index, out_spirv.errors);
-    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, out_spirv.errors);
+    infolog_to_errors(program.getInfoLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
+    infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     if (!map_success) {
         return false;
     }
@@ -216,7 +230,7 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const std::string& src
     spv_options.emitNonSemanticShaderDebugInfo = false;
     spv_options.emitNonSemanticShaderDebugSource = false;
     out_spirv.blobs.push_back(SpirvBlob(snippet_index));
-    out_spirv.blobs.back().source = src;
+    out_spirv.blobs.back().source = source.src;
     glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
@@ -238,14 +252,14 @@ Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector
     for (const Snippet& snippet: inp.snippets) {
         if (snippet.type == Snippet::VS) {
             // vertex shader
-            std::string src = merge_source(inp, snippet, slang, defines);
+            const MergedSource src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
         } else if (snippet.type == Snippet::FS) {
             // fragment shader
-            std::string src = merge_source(inp, snippet, slang, defines);
+            const MergedSource src = merge_source(inp, snippet, slang, defines);
             if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
