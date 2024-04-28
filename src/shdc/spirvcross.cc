@@ -317,6 +317,10 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     switch (slang) {
+        case Slang::GLSL330:
+            options.version = 330;
+            options.es = false;
+            break;
         case Slang::GLSL410:
             options.version = 410;
             options.es = false;
@@ -462,25 +466,14 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
             if (spv_cross.error.valid()) {
                 return spv_cross;
             }
-            switch (slang) {
-                case Slang::GLSL410:
-                case Slang::GLSL430:
-                case Slang::GLSL300ES:
-                    src = to_glsl(inp, blob, slang, opt_mask, snippet);
-                    break;
-                case Slang::HLSL4:
-                case Slang::HLSL5:
-                    src = to_hlsl(inp, blob, slang, opt_mask, snippet);
-                    break;
-                case Slang::METAL_MACOS:
-                case Slang::METAL_IOS:
-                case Slang::METAL_SIM:
-                    src = to_msl(inp, blob, slang, opt_mask, snippet);
-                    break;
-                case Slang::WGSL:
-                    src = to_wgsl(inp, blob, slang, opt_mask, snippet);
-                    break;
-                default: break;
+            if (Slang::is_glsl(slang)) {
+                src = to_glsl(inp, blob, slang, opt_mask, snippet);
+            } else if (Slang::is_hlsl(slang)) {
+                src = to_hlsl(inp, blob, slang, opt_mask, snippet);
+            } else if (Slang::is_msl(slang)) {
+                src = to_msl(inp, blob, slang, opt_mask, snippet);
+            } else if (Slang::is_wgsl(slang)) {
+                src = to_wgsl(inp, blob, slang, opt_mask, snippet);
             }
             if (src.valid) {
                 assert(src.snippet_index == blob.snippet_index);

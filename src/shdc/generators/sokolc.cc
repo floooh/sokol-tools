@@ -12,16 +12,23 @@ using namespace refl;
 
 static const char* sokol_define(Slang::Enum slang) {
     switch (slang) {
-        case Slang::GLSL410:      return "SOKOL_GLCORE";
-        case Slang::GLSL430:      return "SOKOL_GLCORE";
-        case Slang::GLSL300ES:    return "SOKOL_GLES3";
-        case Slang::HLSL4:        return "SOKOL_D3D11";
-        case Slang::HLSL5:        return "SOKOL_D3D11";
-        case Slang::METAL_MACOS:  return "SOKOL_METAL";
-        case Slang::METAL_IOS:    return "SOKOL_METAL";
-        case Slang::METAL_SIM:    return "SOKOL_METAL";
-        case Slang::WGSL:         return "SOKOL_WGPU";
-        default: return "<INVALID>";
+        case Slang::GLSL330:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+            return "SOKOL_GLCORE";
+        case Slang::GLSL300ES:
+            return "SOKOL_GLES3";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return "SOKOL_D3D11";
+        case Slang::METAL_MACOS:
+        case Slang::METAL_IOS:
+        case Slang::METAL_SIM:
+            return "SOKOL_METAL";
+        case Slang::WGSL:
+            return "SOKOL_WGPU";
+        default:
+            return "<INVALID>";
     }
 }
 
@@ -65,9 +72,9 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
                 l("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix, prog.name);
                 l("int {}{}_image_slot(sg_shader_stage stage, const char* img_name);\n", mod_prefix, prog.name);
                 l("int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name);\n", mod_prefix, prog.name);
-                l("int {}{}_uniform_block_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
-                l("size_t {}{}_uniform_block_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
-                l("int {}{}_storage_buffer_slot(sg_shader_stage stage, const char* sbuf_name);\n", mod_prefix, prog.name);
+                l("int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
+                l("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
+                l("int {}{}_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
                 l("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
             }
@@ -417,7 +424,7 @@ void SokolCGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Prog
 }
 
 void SokolCGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_uniform_block_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l_open("{}int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
@@ -437,7 +444,7 @@ void SokolCGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, cons
 }
 
 void SokolCGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}size_t {}{}_uniform_block_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l_open("{}size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)ub_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
@@ -457,7 +464,7 @@ void SokolCGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, cons
 }
 
 void SokolCGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}int {}{}_storage_buffer_slot(sg_shader_stage stage, const char* sbuf_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l_open("{}int {}{}_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name) {{\n", func_prefix, mod_prefix, prog.name);
     l("(void)stage; (void)sbuf_name;\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.storage_buffers.empty()) {
@@ -651,16 +658,25 @@ std::string SokolCGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolCGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL410:      return "SG_BACKEND_GLCORE";
-        case Slang::GLSL430:      return "SG_BACKEND_GLCORE";
-        case Slang::GLSL300ES:    return "SG_BACKEND_GLES3";
-        case Slang::HLSL4:        return "SG_BACKEND_D3D11";
-        case Slang::HLSL5:        return "SG_BACKEND_D3D11";
-        case Slang::METAL_MACOS:  return "SG_BACKEND_METAL_MACOS";
-        case Slang::METAL_IOS:    return "SG_BACKEND_METAL_IOS";
-        case Slang::METAL_SIM:    return "SG_BACKEND_METAL_SIMULATOR";
-        case Slang::WGSL:         return "SG_BACKEND_WGPU";
-        default: return "<INVALID>";
+        case Slang::GLSL330:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+            return "SG_BACKEND_GLCORE";
+        case Slang::GLSL300ES:
+            return "SG_BACKEND_GLES3";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return "SG_BACKEND_D3D11";
+        case Slang::METAL_MACOS:
+            return "SG_BACKEND_METAL_MACOS";
+        case Slang::METAL_IOS:
+            return "SG_BACKEND_METAL_IOS";
+        case Slang::METAL_SIM:
+            return "SG_BACKEND_METAL_SIMULATOR";
+        case Slang::WGSL:
+            return "SG_BACKEND_WGPU";
+        default:
+            return "<INVALID>";
     }
 }
 

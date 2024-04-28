@@ -64,23 +64,19 @@ ErrMsg BareGenerator::generate(const GenInput& gen) {
 }
 
 static const char* slang_file_extension(Slang::Enum c, bool binary) {
-    switch (c) {
-        case Slang::GLSL410:
-        case Slang::GLSL430:
-        case Slang::GLSL300ES:
-            return ".glsl";
-        case Slang::HLSL4:
-        case Slang::HLSL5:
-            return binary ? ".fxc" : ".hlsl";
-        case Slang::METAL_MACOS:
-        case Slang::METAL_IOS:
-        case Slang::METAL_SIM:
-            return binary ? ".metallib" : ".metal";
-        case Slang::WGSL:
-            return ".wgsl";
-        default:
-            return "";
+    if (Slang::is_glsl(c)) {
+        return ".glsl";
     }
+    if (Slang::is_hlsl(c)) {
+        return binary ? ".fxc" : ".hlsl";
+    }
+    if (Slang::is_msl(c)) {
+        return binary ? ".metallib" : ".metal";
+    }
+    if (Slang::is_msl(c)) {
+        return ".wgsl";
+    }
+    return "";
 }
 
 std::string BareGenerator::shader_file_path(const GenInput& gen, const std::string& prog_name, const std::string& stage_name, Slang::Enum slang, bool is_binary) {

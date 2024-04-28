@@ -401,16 +401,25 @@ std::string SokolOdinGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolOdinGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL410:      return ".GLCORE";
-        case Slang::GLSL430:      return ".GLCORE";
-        case Slang::GLSL300ES:    return ".GLES3";
-        case Slang::HLSL4:        return ".D3D11";
-        case Slang::HLSL5:        return ".D3D11";
-        case Slang::METAL_MACOS:  return ".METAL_MACOS";
-        case Slang::METAL_IOS:    return ".METAL_IOS";
-        case Slang::METAL_SIM:    return ".METAL_SIMULATOR";
-        case Slang::WGSL:         return ".WGPU";
-        default: return "INVALID";
+        case Slang::GLSL330:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+            return ".GLCORE";
+        case Slang::GLSL300ES:
+            return ".GLES3";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return ".D3D11";
+        case Slang::METAL_MACOS:
+            return ".METAL_MACOS";
+        case Slang::METAL_IOS:
+            return ".METAL_IOS";
+        case Slang::METAL_SIM:
+            return ".METAL_SIMULATOR";
+        case Slang::WGSL:
+            return ".WGPU";
+        default:
+            return "INVALID";
     }
 }
 

@@ -415,16 +415,25 @@ std::string SokolRustGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolRustGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL410:      return "sg::Backend::Glcore";
-        case Slang::GLSL430:      return "sg::Backend::Glcore";
-        case Slang::GLSL300ES:    return "sg::Backend::Gles3";
-        case Slang::HLSL4:        return "sg::Backend::D3d11";
-        case Slang::HLSL5:        return "sg::Backend::D3d11";
-        case Slang::METAL_MACOS:  return "sg::Backend::MetalMacos";
-        case Slang::METAL_IOS:    return "sg::Backend::MetalIos";
-        case Slang::METAL_SIM:    return "sg::Backend::MetalSimulator";
-        case Slang::WGSL:         return "sg::Backend::Wgpu";
-        default: return "INVALID";
+        case Slang::GLSL330:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+            return "sg::Backend::Glcore";
+        case Slang::GLSL300ES:
+            return "sg::Backend::Gles3";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return "sg::Backend::D3d11";
+        case Slang::METAL_MACOS:
+            return "sg::Backend::MetalMacos";
+        case Slang::METAL_IOS:
+            return "sg::Backend::MetalIos";
+        case Slang::METAL_SIM:
+            return "sg::Backend::MetalSimulator";
+        case Slang::WGSL:
+            return "sg::Backend::Wgpu";
+        default:
+            return "INVALID";
     }
 }
 

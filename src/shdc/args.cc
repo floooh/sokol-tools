@@ -61,6 +61,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "Please refer to the documentation to learn about the 'annotated GLSL syntax':\n\n"
         "  https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md\n\n\n"
         "Target shader languages (used with -l --slang):\n"
+        "  - glsl330        deprecated\n"
         "  - glsl410        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl430        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
@@ -86,6 +87,11 @@ static void print_help_string(getopt_context_t& ctx) {
 
 /* parse string of format 'hlsl4|...' args.slang bitmask */
 static bool parse_slang(Args& args, const char* str) {
+
+    const auto zero_or_single_bit = [](uint32_t v) {
+        return !(v & (v - 1));
+    };
+
     args.slang = 0;
     std::vector<std::string> splits;
     pystring::split(str, splits, ":");
@@ -105,14 +111,14 @@ static bool parse_slang(Args& args, const char* str) {
             return false;
         }
     }
-    if ((args.slang & Slang::bit(Slang::HLSL4)) && (args.slang & Slang::bit(Slang::HLSL5))) {
-        fmt::print(stderr, "sokol-shdc: hlsl4 and hlsl5 output cannot be active at the same time!\n");
+    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::HLSL4) | Slang::bit(Slang::HLSL5)))) {
+        fmt::print(stderr, "sokol-shdc: only one of hlsl4 or hlsl5 output can be selected!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;
     }
-    if ((args.slang & Slang::bit(Slang::GLSL410)) && (args.slang & Slang::bit(Slang::GLSL430))) {
-        fmt::print(stderr, "sokol-shdc: glsl410 and glsl430 output cannot be active at the same time!\n");
+    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::GLSL330) | Slang::bit(Slang::GLSL410) | Slang::bit(Slang::GLSL430)))) {
+        fmt::print(stderr, "sokol-shdc: only one of glsl330, glsl410 or glsl430 output can be selected!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;

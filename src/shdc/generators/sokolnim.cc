@@ -481,16 +481,25 @@ std::string SokolNimGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolNimGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL410:      return "backendGlcore";
-        case Slang::GLSL430:      return "backendGlcore";
-        case Slang::GLSL300ES:    return "backendGles3";
-        case Slang::HLSL4:        return "backendD3d11";
-        case Slang::HLSL5:        return "backendD3d11";
-        case Slang::METAL_MACOS:  return "backendMetalMacos";
-        case Slang::METAL_IOS:    return "backendMetalIos";
-        case Slang::METAL_SIM:    return "backendMetalSimulator";
-        case Slang::WGSL:         return "backendWgsl";
-        default: return "<INVALID>";
+        case Slang::GLSL330:
+        case Slang::GLSL410:
+        case Slang::GLSL430:
+            return "backendGlcore";
+        case Slang::GLSL300ES:
+            return "backendGles3";
+        case Slang::HLSL4:
+        case Slang::HLSL5:
+            return "backendD3d11";
+        case Slang::METAL_MACOS:
+            return "backendMetalMacos";
+        case Slang::METAL_IOS:
+            return "backendMetalIos";
+        case Slang::METAL_SIM:
+            return "backendMetalSimulator";
+        case Slang::WGSL:
+            return "backendWgsl";
+        default:
+            return "<INVALID>";
     }
 }
 
