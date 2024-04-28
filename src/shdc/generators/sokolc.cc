@@ -12,7 +12,6 @@ using namespace refl;
 
 static const char* sokol_define(Slang::Enum slang) {
     switch (slang) {
-        case Slang::GLSL330:
         case Slang::GLSL410:
         case Slang::GLSL430:
             return "SOKOL_GLCORE";
@@ -658,7 +657,6 @@ std::string SokolCGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolCGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL330:
         case Slang::GLSL410:
         case Slang::GLSL430:
             return "SG_BACKEND_GLCORE";

@@ -390,7 +390,6 @@ static bool parse(Input& inp) {
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
                     uint32_t option_bit = Option::from_string(tokens[i]);
-                    cur_snippet.options[Slang::GLSL330] |= option_bit;
                     cur_snippet.options[Slang::GLSL410] |= option_bit;
                     cur_snippet.options[Slang::GLSL430] |= option_bit;
                     cur_snippet.options[Slang::GLSL300ES] |= option_bit;

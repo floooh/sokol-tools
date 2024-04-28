@@ -412,7 +412,6 @@ std::string SokolZigGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolZigGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL330:
         case Slang::GLSL410:
         case Slang::GLSL430:
             return ".GLCORE";

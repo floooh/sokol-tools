@@ -61,7 +61,6 @@ static void print_help_string(getopt_context_t& ctx) {
         "Please refer to the documentation to learn about the 'annotated GLSL syntax':\n\n"
         "  https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md\n\n\n"
         "Target shader languages (used with -l --slang):\n"
-        "  - glsl330        deprecated\n"
         "  - glsl410        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl430        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
@@ -117,8 +116,8 @@ static bool parse_slang(Args& args, const char* str) {
         args.exit_code = 10;
         return false;
     }
-    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::GLSL330) | Slang::bit(Slang::GLSL410) | Slang::bit(Slang::GLSL430)))) {
-        fmt::print(stderr, "sokol-shdc: only one of glsl330, glsl410 or glsl430 output can be selected!\n");
+    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::GLSL410) | Slang::bit(Slang::GLSL430)))) {
+        fmt::print(stderr, "sokol-shdc: only one of glsl410 or glsl430 output can be selected!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;

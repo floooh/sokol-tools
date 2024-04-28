@@ -317,10 +317,6 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     switch (slang) {
-        case Slang::GLSL330:
-            options.version = 330;
-            options.es = false;
-            break;
         case Slang::GLSL410:
             options.version = 410;
             options.es = false;

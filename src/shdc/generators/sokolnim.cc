@@ -481,7 +481,6 @@ std::string SokolNimGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolNimGenerator::backend(Slang::Enum e) {
     switch (e) {
-        case Slang::GLSL330:
         case Slang::GLSL410:
         case Slang::GLSL430:
             return "backendGlcore";

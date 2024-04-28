@@ -8,8 +8,7 @@ namespace shdc {
 // the output shader languages to create
 struct Slang {
     enum Enum {
-        GLSL330 = 0,
-        GLSL410,
+        GLSL410 = 0,
         GLSL430,
         GLSL300ES,
         HLSL4,
@@ -43,7 +42,6 @@ inline Slang::Enum Slang::from_index(int idx) {
 
 inline const char* Slang::to_str(Enum c) {
     switch (c) {
-        case GLSL330:       return "glsl330";
         case GLSL410:       return "glsl410";
         case GLSL430:       return "glsl430";
         case GLSL300ES:     return "glsl300es";
@@ -74,7 +72,6 @@ inline std::string Slang::bits_to_str(uint32_t mask, const std::string& delim) {
 
 inline bool Slang::is_glsl(Enum c) {
     switch (c) {
-        case GLSL330:
         case GLSL410:
         case GLSL430:
         case GLSL300ES:
