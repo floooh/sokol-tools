@@ -21,7 +21,8 @@ Shaders are written in 'Vulkan-style GLSL' (version 450 with separate texture an
 uniforms) and translated into the following shader dialects:
 
 - GLSL v300es (for GLES3 and WebGL2)
-- GLSL v330 (for desktop GL)
+- GLSL v410 (for desktop GL without storage buffer support)
+- GLSL v430 (for desktop GL with storage buffer support)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 - WGSL (for WebGPU)
@@ -50,9 +51,9 @@ IDEs like Visual Studio, Xcode or VSCode:
 
 ![errors in IDE](images/sokol-shdc-errors.png)
 
-Shader files are 'annotated' with custom **@-tags** which add meta-information to
+Input shader files are 'annotated' with custom **@-tags** which add meta-information to
 the GLSL source files. This is used for packing vertex- and fragment-shaders
-into the same source file, mark and include reusable code blocks, and provide
+into the same source file, wrap and include reusable code blocks, and provide
 additional information for the C code-generation (note the `@vs`,
 `@fs`, `@end` and `@program` tags):
 
@@ -96,7 +97,7 @@ Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may b
 
 A generated C header contains (similar information is generated for the other output languages):
 
-- human-readable reflection info in a comment block, as well as copy-pastable example code
+- human-readable reflection info in a comment block
 - a C struct for each shader uniform block
 - for each shader program, a C function which returns a pointer to a
 ```sg_shader_desc``` for a specific sokol-gfx backend which can be passed
@@ -172,9 +173,12 @@ The ```${slang}``` variable (short for shader-language, but you can call it
 any way you want) must resolve to a string with the shader dialects you want
 to generate.
 
-There are 3 other versions of the sokol_shader() macro:
+There are also other versions of the sokol_shader() macro:
 
-- **sokol_shader_with_reflection([filename] [slang])**: this is the same as ```sokol_shader()``` but
+- **sokoL_shader_debuggable([filename] [slang])**: same as ```sokol_shader()``` but
+  doesn't create binary blobs for HLSL and MSL. This allows source-level debugging
+  in graphics debuggers.
+- **sokol_shader_with_reflection([filename] [slang])**: same as ```sokol_shader()``` but
   calls sokol-shdc with the ```--reflection``` command line option, which generates
   additional runtime inspection functions
 - **sokol_shader_variant([filename] [slang] [module] [defines])**: this macro additionally passed
@@ -212,8 +216,12 @@ else()
         add_definitions(-DSOKOL_GLES3)
         set(slang "glsl300es")
     else()
-        add_definitions(-DSOKOL_GLCORE33)
-        set(slang "glsl430")
+        add_definitions(-DSOKOL_GLCORE)
+        if (FIPS_MACOS)
+            set(slang "glsl410")
+        else()
+            set(slang "glsl410")
+        endif()
     endif()
 endif()
 ```
@@ -348,7 +356,7 @@ the tooling has been updated (sokol-shdc will not check this though, this must b
 done in the build-system-integration)
 - **--ifdef**: this tells the code generator to wrap 3D-backend-specific
 code into **#ifdef/#endif** pairs using the sokol-gfx backend-selection defines:
-    - SOKOL_GLCORE33
+    - SOKOL_GLCORE
     - SOKOL_GLES3
     - SOKOL_D3D11
     - SOKOL_METAL
@@ -902,6 +910,52 @@ up by name via the optional runtime inspection functions.
 More on the optional runtime inspection function below in the
 section `Runtime Inspection`.
 
+### Binding storage buffers
+
+Note the following restrictions:
+
+- storage buffers are not supported for the output formats `glsl300es` and `glsl410`
+- currently, only readonly storage buffers are supported
+
+In the input GLSL, define a storage buffer like this:
+
+```glsl
+struct sb_vertex {
+    vec4 pos;
+    vec4 color;
+};
+
+readonly buffer ssbo {
+    sb_vertex vtx[];
+};
+```
+
+The buffer content can be accessed in the a shader like this (for
+instance using gl_VertexIndex):
+
+```glsl
+    vec4 pos = vtx[gl_VertexIndex].pos;
+    vec4 color = vtx[gl_VertexIndex].color;
+```
+
+Only one flexible array member is allowed inside a `buffer`. Note
+that the name `vertex` cannot be used for a struct because it is
+a reserved keyword in MSL.
+
+On the C side, `sokol-shdc` will create a C struct `sb_vertex_t` with the required
+alignment and padding (according to `std430` layout) and a `SLOT_ssbo` define
+which can be used in the `sg_bindings` struct to index into the `vs.storage_buffers` or
+`fs.storage_buffers` arrays.
+
+
+```c
+sg_apply_bindings(&(sg_bindings){
+    .vs = {
+        .storage_buffers[SLOT_ssbo] = img,
+    },
+});
+```
+
 ### GLSL uniform blocks and C structs
 
 There are a few caveats with uniform blocks:
@@ -964,6 +1018,14 @@ There are a few caveats with uniform blocks:
   In the non-GL sokol-gfx backends (D3D11, Metal, WebGPU), uniform block
   updates are always a a single operation.
 
+### Storage buffer content restrictions
+
+- currently, storage buffers must be declared as readonly: `readonly buffer [name] { ... }`
+- the storage buffer content must be a single flexible struct array member
+- structs used in storage buffers have fewer type restrictions than
+  uniform blocks, but please note that a lot of type combinations are
+  little tested, when in doubt stick to the same restrictions as in
+  uniform blocks
 
 ## Runtime Inspection
 
@@ -1052,14 +1114,14 @@ sg_apply_bindings(&binds);
 
 The function
 
-**int [mod]_[prog]_uniformblock_slot(sg_shader_stage stage, const char\* ub_name)**
+`int [mod]_[prog]_uniformblock_slot(sg_shader_stage stage, const char* ub_name)`
 
 returns the bind slot of a shader's uniform block on the given shader stage, or -1
 if the shader doesn't expect a uniform block of that name on that shader stage.
 
 The function
 
-**size_t [mod]_[prog]_uniformblock_size(sg_shader_stage stage, const char\* ub_name)**
+`size_t [mod]_[prog]_uniformblock_size(sg_shader_stage stage, const char* ub_name)`
 
 return the size in bytes of a shader's uniform block on the given shader stage, or 0
 if the shader doesn't expect a uniform block of that name on that shader stage.
@@ -1083,7 +1145,7 @@ if (ub_slot >= 0) {
 
 The function
 
-**int [mod]_[prog]_uniform_offset(sg_shader_stage stage, const char\* ub_name, const char\* u_name)**
+`int [mod]_[prog]_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name)`
 
 ...allows to lookup the byte offset of a specific uniform within its uniform block.
 This makes it possible to compose uniform data expected by a shader without the
@@ -1094,7 +1156,12 @@ but doesn't contain a uniform of that name.
 It's also possible to query the ```sg_shader_uniform_desc``` struct of a given uniform, which
 provides additional type information with the following function:
 
-**sg_shader_uniform_desc [mod]_[prog]_uniform_desc(sg_shader_stage stage, const char\* ub_name, const char\* u_name)**
+`sg_shader_uniform_desc [mod]_[prog]_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name)`
 
-The ```sg_shader_uniform_desc``` struct allows to inspect the uniform type (```SG_UNIFORMTYPE_xxx```), and the array count of the uniform (which is 1 for regular
-uniforms, or >1 for arrays).
+The ```sg_shader_uniform_desc``` struct allows to inspect the uniform type (```SG_UNIFORMTYPE_xxx```), and the array count of the uniform (which is 1 for regular uniforms, or >1 for arrays).
+
+### Storage buffer inspection
+
+Currently, only the bind slot can be inspected for storage buffers:
+
+`int [mod]_[prog]_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name)`
