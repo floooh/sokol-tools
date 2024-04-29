@@ -77,7 +77,8 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
             // and on the fragment stage, after the uniform buffers
             binding = Snippet::is_vs(type) ? 12 : 4;
         } else if (Slang::is_hlsl(slang)) {
-            // in D3D11, storage buffers share bind slots with textures
+            // in D3D11, storage buffers share bind slots with textures, put textures into
+            // the first 16 slots, and storage buffers starting at slot 16
             binding = 16;
         } else if (Slang::is_glsl(slang)) {
             // in GL, the shader stages share a common bind space, need to offset
