@@ -310,7 +310,7 @@ static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, c
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
-    fix_bind_slots(compiler, snippet.type, Slang::GLSL430); // GLSL430 uses zero-based bind slots for everything
+    fix_bind_slots(compiler, snippet.type, Slang::REFLECTION);
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
