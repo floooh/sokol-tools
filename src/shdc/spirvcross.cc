@@ -299,8 +299,10 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
 }
 
 static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
-    CompilerReflection compiler(bytecode);
-    CompilerReflection::Options options;
+    // NOTE: do *NOT* use CompilerReflection here, this doesn't generate
+    // the right reflection info for depth textures and comparison samplers
+    CompilerGLSL compiler(bytecode);
+    CompilerGLSL::Options options;
     options.emit_line_directives = false;
     options.version = 430;
     options.es = false;
