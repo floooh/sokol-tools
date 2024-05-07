@@ -17,7 +17,7 @@ https://github.com/floooh/sokol-tools-bin
 #### Tool prerequisites:
 ```
 > python --version
-2.x or 3.x
+3.x
 > cmake --version
 3.x
 # optional:
@@ -117,4 +117,4 @@ Many thanks to:
 - https://github.com/KhronosGroup/SPIRV-Cross
 - https://github.com/KhronosGroup/SPIRV-Tools.git
 - https://github.com/KhronosGroup/SPIRV-Headers
-
+- https://dawn.googlesource.com/tint
