@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-#### **07-May-2024**
+#### **09-May-2024**
 
 This sokol-shdc update goes along with the sokol_gfx.h 'storage buffer update'. It's
 now possible to access readonly [Shader Storage Buffer Objects](https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object)
