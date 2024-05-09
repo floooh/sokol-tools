@@ -14,7 +14,7 @@ please see [this blog post](https://floooh.github.io/2024/05/06/sokol-storage-bu
 
 - the target shading languages `glsl100` and `glsl330` have been removed
   (glsl100 was overdue because GLES2 support was dropped quite a while ago
-  in sokoL_gfx.h, and it turned out that feeding glsl100 shaders into WebGL2 may cause some weird bugs: https://github.com/floooh/sokol-tools/issues/119
+  in sokol_gfx.h, and it turned out that feeding glsl100 shaders into WebGL2 may cause some weird bugs: https://github.com/floooh/sokol-tools/issues/119
 - the C code generation mode `sokol_decl` has been removed
 
 
