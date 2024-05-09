@@ -79,7 +79,6 @@ fips_begin_lib(SPIRV-Cross)
         spirv_reflect.hpp spirv_reflect.cpp
         spirv_cross_util.hpp spirv_cross_util.cpp)
 fips_end_lib()
-target_compile_definitions(SPIRV-Cross PUBLIC SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS)
 if (FIPS_MSVC)
     target_compile_options(SPIRV-Cross PUBLIC -D_SCL_SECURE_NO_WARNINGS)
     target_compile_options(SPIRV-Cross PUBLIC /wd4715)

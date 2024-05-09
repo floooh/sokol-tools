@@ -1,6 +1,57 @@
 CHANGELOG
 =========
 
+#### **07-May-2024**
+
+This sokol-shdc update goes along with the sokol_gfx.h 'storage buffer update'. It's
+now possible to access readonly [Shader Storage Buffer Objects](https://www.khronos.org/opengl/wiki/Shader_Storage_Buffer_Object)
+in shaders.
+
+For a general overview about the new storage buffer feature and shader authoring tips,
+please see [this blog post](https://floooh.github.io/2024/05/06/sokol-storage-buffers.html).
+
+**BREAKING CHANGES**
+
+- the target shading languages `glsl100` and `glsl330` have been removed
+  (glsl100 was overdue because GLES2 support was dropped quite a while ago
+  in sokoL_gfx.h, and it turned out that feeding glsl100 shaders into WebGL2 may cause some weird bugs: https://github.com/floooh/sokol-tools/issues/119
+- the C code generation mode `sokol_decl` has been removed
+
+
+**NEW FEATURES**
+
+- the target shading languages `glsl410` and `glsl430` have been added. `glsl430` is needed for
+  storage buffer support, and `glsl410` is needed as fallback on the macOS GL backend
+- it's now possible to declare and access (readonly) shader storage buffer objects in shaders
+- ...along with code generation which exposes the interface block struct to the C side
+
+**BUG FIXES**
+
+- SPIRVCross errors are now properly surfaced by enabling C++ exceptions, catching them and converting
+  them into proper errors and warnings. Previously when SPIRVCross emitted an error, sokol-shdc
+  appeared to have crashed (see for instance: https://github.com/floooh/sokol-tools/issues/124)
+- line numbers for errors and warnings are now correct again (https://github.com/floooh/sokol-tools/issues/103)
+- a couple of smaller code generation bugs in the CPU language generators have been fixed
+
+**OTHER CHANGES**
+
+A massive refactoring which touches almost all code, for the following reasons:
+
+- extracting reflection information now gets the proper 'code focus' it deserves,
+  and hopefully adding new reflection features will become easier in the future
+- CPU language code generators have been entirely restructured. Those are now subclasses
+  of a `Generator` toplevel class which calls smaller-scale virtual methods in subclasses,
+  while I'm usually not a big fan of such an OOP style approach, it gives a better idea
+  what code needs to be written for adding a new output language, and it also saves
+  a couple hundred lines per code generator.
+- the code which decorates matrices as column-major has been removed, this seems to be a
+  no-op (tbh I don't remember why this code existed in the first place, it might have been
+  required in a very old SPIRVCross versions, or simply a brainfart on my part)
+
+Unfortunately such a big refactoring might also have introduced new bugs and regressions.
+
+In that case, please don't hesitate to write tickets: https://github.com/floooh/sokol-tools/issues
+
 #### **12-Feb-2024**
 
 Fixed a confusing behaviour when writing conditional shader code via

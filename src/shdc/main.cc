@@ -1,15 +1,23 @@
 /*
     sokol-shdc main source file.
 */
-#include "shdc.h"
+#include "spirv.h"
+#include "args.h"
+#include "input.h"
+#include "spirvcross.h"
+#include "bytecode.h"
+#include "reflection.h"
+#include "generators/generate.h"
 
 using namespace shdc;
+using namespace shdc::refl;
+using namespace shdc::gen;
 
 int main(int argc, const char** argv) {
-    spirv_t::initialize_spirv_tools();
+    Spirv::initialize_spirv_tools();
 
     // parse command line args
-    args_t args = args_t::parse(argc, argv);
+    const Args args = Args::parse(argc, argv);
     if (args.debug_dump) {
         args.dump_debug();
     }
@@ -18,28 +26,29 @@ int main(int argc, const char** argv) {
     }
 
     // load the source and parse tagged blocks
-    input_t inp = input_t::load_and_parse(args.input, args.module);
+    const Input inp = Input::load_and_parse(args.input, args.module);
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
-    if (inp.out_error.valid) {
+    if (inp.out_error.valid()) {
         inp.out_error.print(args.error_format);
         return 10;
     }
 
-    // compile source snippets to SPIRV blobs
-    std::array<spirv_t,slang_t::NUM> spirv;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t)i;
-        if (args.slang & slang_t::bit(slang)) {
-            spirv[i] = spirv_t::compile_glsl(inp, slang, args.defines);
+    // compile source snippets to SPIRV blobs (multiple compilations is necessary
+    // because of conditional compilation by target language)
+    std::array<Spirv,Slang::Num> spirv;
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
+        if (args.slang & Slang::bit(slang)) {
+            spirv[i] = Spirv::compile_glsl(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }
             if (!spirv[i].errors.empty()) {
                 bool has_errors = false;
-                for (const errmsg_t& err: spirv[i].errors) {
-                    if (err.type == errmsg_t::ERROR) {
+                for (const ErrMsg& err: spirv[i].errors) {
+                    if (err.type == ErrMsg::ERROR) {
                         has_errors = true;
                     }
                     err.print(args.error_format);
@@ -57,15 +66,15 @@ int main(int argc, const char** argv) {
     }
 
     // cross-translate SPIRV to shader dialects
-    std::array<spirvcross_t,slang_t::NUM> spirvcross;
-    for (int i = 0; i < slang_t::NUM; i++) {
-        slang_t::type_t slang = (slang_t::type_t)i;
-        if (args.slang & slang_t::bit(slang)) {
-            spirvcross[i] = spirvcross_t::translate(inp, spirv[i], slang);
+    std::array<Spirvcross,Slang::Num> spirvcross;
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
+        if (args.slang & Slang::bit(slang)) {
+            spirvcross[i] = Spirvcross::translate(inp, spirv[i], slang);
             if (args.debug_dump) {
                 spirvcross[i].dump_debug(args.error_format, slang);
             }
-            if (spirvcross[i].error.valid) {
+            if (spirvcross[i].error.valid()) {
                 spirvcross[i].error.print(args.error_format);
                 return 10;
             }
@@ -73,19 +82,19 @@ int main(int argc, const char** argv) {
     }
 
     // compile shader-byte code if requested (HLSL / Metal)
-    std::array<bytecode_t, slang_t::NUM> bytecode;
+    std::array<Bytecode, Slang::Num> bytecode;
     if (args.byte_code) {
-        for (int i = 0; i < slang_t::NUM; i++) {
-            slang_t::type_t slang = (slang_t::type_t)i;
-            if (args.slang & slang_t::bit(slang)) {
-                bytecode[i] = bytecode_t::compile(args, inp, spirvcross[i], slang);
+        for (int i = 0; i < Slang::Num; i++) {
+            Slang::Enum slang = Slang::from_index(i);
+            if (args.slang & Slang::bit(slang)) {
+                bytecode[i] = Bytecode::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {
                     bytecode[i].dump_debug();
                 }
                 if (!bytecode[i].errors.empty()) {
                     bool has_errors = false;
-                    for (const errmsg_t& err: bytecode[i].errors) {
-                        if (err.type == errmsg_t::ERROR) {
+                    for (const ErrMsg& err: bytecode[i].errors) {
+                        if (err.type == ErrMsg::ERROR) {
                             has_errors = true;
                         }
                         err.print(args.error_format);
@@ -98,41 +107,25 @@ int main(int argc, const char** argv) {
         }
     }
 
-    // generate output files
-    errmsg_t output_err;
-    switch (args.output_format) {
-        case format_t::BARE:
-            output_err = bare_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        case format_t::BARE_YAML:
-            output_err = bare_t::gen(args, inp, spirvcross, bytecode);
-            if (output_err.valid) {
-                break;
-            }
-            output_err = yaml_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        case format_t::SOKOL_ZIG:
-            output_err = sokolzig_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        case format_t::SOKOL_NIM:
-            output_err = sokolnim_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        case format_t::SOKOL_ODIN:
-            output_err = sokolodin_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        case format_t::SOKOL_RUST:
-            output_err = sokolrust_t::gen(args, inp, spirvcross, bytecode);
-            break;
-        default:
-            output_err = sokol_t::gen(args, inp, spirvcross, bytecode);
-            break;
+    // build merged Reflection info
+    const Reflection refl = Reflection::build(args, inp, spirvcross);
+    if (refl.error.valid()) {
+        refl.error.print(args.error_format);
+        return 10;
     }
-    if (output_err.valid) {
-        output_err.print(args.error_format);
+    if (args.debug_dump) {
+        refl.dump_debug(args.error_format);
+    }
+
+    // generate output files
+    const GenInput gen_input(args, inp, spirvcross, bytecode, refl);
+    ErrMsg gen_error = generate(args.output_format, gen_input);
+    if (gen_error.valid()) {
+        gen_error.print(args.error_format);
         return 10;
     }
 
     // success
-    spirv_t::finalize_spirv_tools();
+    Spirv::finalize_spirv_tools();
     return 0;
 }

@@ -1,16 +1,17 @@
 /*
     parse command line arguments
 */
+#include "args.h"
+#include "types/slang.h"
 #include <vector>
 #include <stdio.h>
 #include "fmt/format.h"
-#include "shdc.h"
 #include "getopt/getopt.h"
 #include "pystring.h"
 
 namespace shdc {
 
-typedef enum {
+enum {
     OPTION_HELP = 1,
     OPTION_INPUT,
     OPTION_OUTPUT,
@@ -27,18 +28,18 @@ typedef enum {
     OPTION_NOIFDEF,
     OPTION_REFLECTION,
     OPTION_SAVE_INTERMEDIATE_SPIRV,
-} arg_option_t;
+};
 
 static const getopt_option_t option_list[] = {
     { "help",               'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HELP,         "print this help text", 0},
     { "input",              'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
     { "output",             'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "C header" },
-    { "slang",              'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl330:glsl100..." },
+    { "slang",              'l', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_SLANG,        "output shader language(s), see above for list", "glsl430:glsl300es..." },
     { "defines",            0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEFINES,      "optional preprocessor defines", "define1:define2..." },
     { "module",             'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection",         'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
     { "bytecode",           'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
+    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|bare_yaml]" },
     { "errfmt",             'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",               'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
     { "genver",             'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
@@ -60,8 +61,8 @@ static void print_help_string(getopt_context_t& ctx) {
         "Please refer to the documentation to learn about the 'annotated GLSL syntax':\n\n"
         "  https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md\n\n\n"
         "Target shader languages (used with -l --slang):\n"
-        "  - glsl330        desktop OpenGL backend (SOKOL_GLCORE33)\n"
-        "  - glsl100        (deprecated) OpenGLES2 and WebGL\n"
+        "  - glsl410        desktop OpenGL backend (SOKOL_GLCORE)\n"
+        "  - glsl430        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
         "  - hlsl4          Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
         "  - hlsl5          Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
@@ -71,7 +72,6 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - wgsl           WebGPU (SOKOL_WGPU)\n\n"
         "Output formats (used with -f --format):\n"
         "  - sokol          C header which includes both decl and inlined impl\n"
-        "  - sokol_decl     C header with SOKOL_SHDC_DECL wrapped decl and inlined impl\n"
         "  - sokol_impl     C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"
         "  - sokol_zig      Zig module file\n"
         "  - sokol_nim      Nim module file\n"
@@ -84,29 +84,40 @@ static void print_help_string(getopt_context_t& ctx) {
     fmt::print(stderr, "{}", getopt_create_help_string(&ctx, buf, sizeof(buf)));
 }
 
-/* parse string of format 'hlsl4|glsl100|...' args.slang bitmask */
-static bool parse_slang(args_t& args, const char* str) {
+/* parse string of format 'hlsl4|...' args.slang bitmask */
+static bool parse_slang(Args& args, const char* str) {
+
+    const auto zero_or_single_bit = [](uint32_t v) {
+        return !(v & (v - 1));
+    };
+
     args.slang = 0;
     std::vector<std::string> splits;
     pystring::split(str, splits, ":");
     for (const auto& item : splits) {
         bool item_valid = false;
-        for (int i = 0; i < slang_t::NUM; i++) {
-            if (item == slang_t::to_str((slang_t::type_t)i)) {
-                args.slang |= slang_t::bit((slang_t::type_t)i);
+        for (int i = 0; i < Slang::Num; i++) {
+            if (item == Slang::to_str((Slang::Enum)i)) {
+                args.slang |= Slang::bit((Slang::Enum)i);
                 item_valid = true;
                 break;
             }
         }
         if (!item_valid) {
-            fmt::print(stderr, "sokol-shdc: unknown shader language '{}'\n", item);
+            fmt::print(stderr, "sokol-shdc: unknown shader language '{}' (valid: {})\n", item, Slang::bits_to_str(0xFFFF, " "));
             args.valid = false;
             args.exit_code = 10;
             return false;
         }
     }
-    if ((args.slang & slang_t::bit(slang_t::HLSL4)) && (args.slang & slang_t::bit(slang_t::HLSL5))) {
-        fmt::print(stderr, "sokol-shdc: hlsl4 and hlsl5 output cannot be active at the same time!\n");
+    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::HLSL4) | Slang::bit(Slang::HLSL5)))) {
+        fmt::print(stderr, "sokol-shdc: only one of hlsl4 or hlsl5 output can be selected!\n");
+        args.valid = false;
+        args.exit_code = 10;
+        return false;
+    }
+    if (!zero_or_single_bit(args.slang & (Slang::bit(Slang::GLSL410) | Slang::bit(Slang::GLSL430)))) {
+        fmt::print(stderr, "sokol-shdc: only one of glsl410 or glsl430 output can be selected!\n");
         args.valid = false;
         args.exit_code = 10;
         return false;
@@ -114,7 +125,7 @@ static bool parse_slang(args_t& args, const char* str) {
     return true;
 }
 
-static void validate(args_t& args) {
+static void validate(Args& args) {
     bool err = false;
     if (args.input.empty()) {
         fmt::print(stderr, "sokol-shdc: no input file (--input [path])\n");
@@ -134,8 +145,7 @@ static void validate(args_t& args) {
         if (!args.tmpdir.empty()) {
             args.tmpdir += "/";
         }
-    }
-    else {
+    } else {
         if (!pystring::endswith(args.tmpdir, "/")) {
             args.tmpdir += "/";
         }
@@ -143,15 +153,14 @@ static void validate(args_t& args) {
     if (err) {
         args.valid = false;
         args.exit_code = 10;
-    }
-    else {
+    } else {
         args.valid = true;
         args.exit_code = 0;
     }
 }
 
-args_t args_t::parse(int argc, const char** argv) {
-    args_t args;
+Args Args::parse(int argc, const char** argv) {
+    Args args;
 
     // store the original command line args
     args.cmdline = "sokol-shdc";
@@ -163,8 +172,7 @@ args_t args_t::parse(int argc, const char** argv) {
     getopt_context_t ctx;
     if (getopt_create_context(&ctx, argc, argv, option_list) < 0) {
         fmt::print(stderr, "error in getopt_create_context()\n");
-    }
-    else {
+    } else {
         int opt = 0;
         while ((opt = getopt_next(&ctx)) != -1) {
             switch (opt) {
@@ -202,9 +210,9 @@ args_t args_t::parse(int argc, const char** argv) {
                     args.reflection = true;
                     break;
                 case OPTION_FORMAT:
-                    args.output_format = format_t::from_str(ctx.current_opt_arg);
-                    if (args.output_format == format_t::INVALID) {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_decl|sokol_impl|sokol_zig|sokol_nim|sokol_odin|bare]\n", ctx.current_opt_arg);
+                    args.output_format = Format::from_str(ctx.current_opt_arg);
+                    if (args.output_format == Format::INVALID) {
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|base_yaml]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;
@@ -224,12 +232,10 @@ args_t args_t::parse(int argc, const char** argv) {
                     break;
                 case OPTION_ERRFMT:
                     if (0 == strcmp("gcc", ctx.current_opt_arg)) {
-                        args.error_format = errmsg_t::GCC;
-                    }
-                    else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
-                        args.error_format = errmsg_t::MSVC;
-                    }
-                    else {
+                        args.error_format = ErrMsg::GCC;
+                    } else if (0 == strcmp("msvc", ctx.current_opt_arg)) {
+                        args.error_format = ErrMsg::MSVC;
+                    } else {
                         fmt::print(stderr, "sokol-shdc: unknown error format {}, must be 'gcc' or 'msvc'\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
@@ -260,22 +266,22 @@ args_t args_t::parse(int argc, const char** argv) {
     return args;
 }
 
-void args_t::dump_debug() const {
-    fmt::print(stderr, "args_t:\n");
+void Args::dump_debug() const {
+    fmt::print(stderr, "Args:\n");
     fmt::print(stderr, "  valid: {}\n", valid);
     fmt::print(stderr, "  exit_code: {}\n", exit_code);
     fmt::print(stderr, "  input: '{}'\n", input);
     fmt::print(stderr, "  output: '{}'\n", output);
     fmt::print(stderr, "  tmpdir: '{}'\n", tmpdir);
-    fmt::print(stderr, "  slang: '{}'\n", slang_t::bits_to_str(slang));
+    fmt::print(stderr, "  slang: '{}'\n", Slang::bits_to_str(slang, ":"));
     fmt::print(stderr, "  byte_code: {}\n", byte_code);
     fmt::print(stderr, "  module: '{}'\n", module);
     fmt::print(stderr, "  defines: '{}'\n", pystring::join(":", defines));
-    fmt::print(stderr, "  output_format: '{}'\n", format_t::to_str(output_format));
+    fmt::print(stderr, "  output_format: '{}'\n", Format::to_str(output_format));
     fmt::print(stderr, "  debug_dump: {}\n", debug_dump);
     fmt::print(stderr, "  ifdef: {}\n", ifdef);
     fmt::print(stderr, "  gen_version: {}\n", gen_version);
-    fmt::print(stderr, "  error_format: {}\n", errmsg_t::msg_format_to_str(error_format));
+    fmt::print(stderr, "  error_format: {}\n", ErrMsg::format_to_str(error_format));
     fmt::print(stderr, "\n");
 }
 

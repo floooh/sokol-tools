@@ -1,13 +1,18 @@
 /*
     code for loading and parsing the input .glsl file with custom-tags
 */
-#include "shdc.h"
+#include "input.h"
+#include "types/reflection/type.h"
+#include "types/option.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "fmt/format.h"
 #include "pystring.h"
 
 namespace shdc {
+
+using namespace refl;
 
 static std::string load_file_into_str(const std::string& path) {
     FILE* f = fopen(path.c_str(), "rb");
@@ -46,33 +51,28 @@ static bool remove_comments(std::string& str) {
                     in_winged_comment = true;
                     str[pos - 1] = ' ';
                     str[pos] = ' ';
-                }
-                else if (c == '*') {
+                } else if (c == '*') {
                     // start of a block comment
                     in_block_comment = true;
                     str[pos - 1] = ' ';
                     str[pos] = ' ';
                 }
                 maybe_start = false;
-            }
-            else {
+            } else {
                 if (c == '/') {
                     // maybe start of a winged or block comment
                     maybe_start = true;
                 }
             }
-        }
-        else if (in_winged_comment || in_block_comment) {
+        } else if (in_winged_comment || in_block_comment) {
             if (in_winged_comment) {
                 if ((c == '\r') || (c == '\n')) {
                     // end of line reached
                     in_winged_comment = false;
-                }
-                else {
+                } else {
                     str[pos] = ' ';
                 }
-            }
-            else {
+            } else {
                 // in block comment (preserve newlines)
                 if ((c != '\r') && (c != '\n')) {
                     str[pos] = ' ';
@@ -83,8 +83,7 @@ static bool remove_comments(std::string& str) {
                         in_block_comment = false;
                     }
                     maybe_end = false;
-                }
-                else {
+                } else {
                     if (c == '*') {
                         // potential end of block comment
                         maybe_end = true;
@@ -112,7 +111,7 @@ static const std::string include_tag = "@include";
 static const std::string image_sample_type_tag = "@image_sample_type";
 static const std::string sampler_type_tag = "@sampler_type";
 
-static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, input_t& inp) {
+static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, Input& inp) {
     // Returns true if it saw no errors, even if it did nothing.
     // If it sees #pragma sokol, it modifies both `toks` and `line`
     // in-place so that they no longer contain them.
@@ -146,7 +145,7 @@ static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &
 }
 
 // validate source tags for errors, on error returns false and sets error object in inp
-static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@module tag must have exactly one arg (@lib name)");
         return false;
@@ -162,7 +161,7 @@ static bool validate_module_tag(const std::vector<std::string>& tokens, bool in_
     return true;
 }
 
-static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 3) {
         inp.out_error = inp.error(line_index, "@ctype tag must have exactly two args (@ctype glsltype ctype)");
         return false;
@@ -171,14 +170,14 @@ static bool validate_ctype_tag(const std::vector<std::string>& tokens, bool in_s
         inp.out_error = inp.error(line_index, "@ctype tag cannot be inside a tag block (missing @end?).");
         return false;
     }
-    if (!uniform_t::is_valid_glsl_uniform_type(tokens[1])) {
-        inp.out_error = inp.error(line_index, fmt::format("first arg of type tag must be one of {}", uniform_t::valid_glsl_uniform_types_as_str()));
+    if (!Type::is_valid_glsl_type(tokens[1])) {
+        inp.out_error = inp.error(line_index, fmt::format("first arg of @ctype tag must be one of {}", Type::valid_glsl_types_as_str()));
         return false;
     }
     return true;
 }
 
-static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() < 2) {
         inp.out_error = inp.error(line_index, "@header tag must have at least one arg (@header ...)");
         return false;
@@ -190,7 +189,7 @@ static bool validate_header_tag(const std::vector<std::string>& tokens, bool in_
     return true;
 }
 
-static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@block tag must have exactly one arg (@block name).");
         return false;
@@ -206,7 +205,7 @@ static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_s
     return true;
 }
 
-static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@vs tag must have exactly one arg (@vs name).");
         return false;
@@ -222,7 +221,7 @@ static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snip
     return true;
 }
 
-static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@fs tag must have exactly one arg (@fs name).");
         return false;
@@ -238,7 +237,7 @@ static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snip
     return true;
 }
 
-static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 2) {
         inp.out_error = inp.error(line_index, "@include_block tag must have exactly one arg (@include_block block_name).");
         return false;
@@ -254,7 +253,7 @@ static bool validate_inclblock_tag(const std::vector<std::string>& tokens, bool 
     return true;
 }
 
-static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 1) {
         inp.out_error = inp.error(line_index, "@end tag must be the only word in a line.");
         return false;
@@ -266,7 +265,7 @@ static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_sni
     return true;
 }
 
-static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, input_t& inp) {
+static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
     if (tokens.size() != 4) {
         inp.out_error = inp.error(line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
         return false;
@@ -290,17 +289,17 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
     return true;
 }
 
-static bool validate_options_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_options_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 2) {
         inp.out_error = inp.error(line_index, fmt::format("{} must have at least 1 arg ('fixup_clipspace', 'flip_vert_y')", tokens[0]));
         return false;
     }
-    if (cur_snippet.type != snippet_t::VS) {
+    if (cur_snippet.type != Snippet::VS) {
         inp.out_error = inp.error(line_index, fmt::format("{} must be inside a @vs block", tokens[0]));
         return false;
     }
     for (int i = 1; i < (int)tokens.size(); i++) {
-        if (option_t::from_string(tokens[i]) == option_t::INVALID) {
+        if (Option::from_string(tokens[i]) == Option::INVALID) {
             inp.out_error = inp.error(line_index, fmt::format("unknown option '{}' (must be 'fixup_clipspace', 'flip_vert_y')", tokens[i]));
             return false;
         }
@@ -308,12 +307,12 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const s
     return true;
 }
 
-static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have at least 2 arg (@image_sample_type [texture] {})", image_sample_type_t::valid_image_sample_types_as_str()));
+        inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have at least 2 arg (@image_sample_type [texture] {})", ImageSampleType::valid_image_sample_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != snippet_t::VS) && (cur_snippet.type != snippet_t::FS)) {
+    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
         inp.out_error = inp.error(line_index, "@image_sample_type tag must be inside a @vs or @fs block");
         return false;
     }
@@ -321,19 +320,19 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
         inp.out_error = inp.error(line_index, "duplicate @image_sample_type (texture name must be unique)");
         return false;
     }
-    if (!image_sample_type_t::is_valid_str(tokens[2])) {
-        inp.out_error = inp.error(line_index, fmt::format("second arg of @image_sample_type tag must be one of {}", image_sample_type_t::valid_image_sample_types_as_str()));
+    if (!ImageSampleType::is_valid_str(tokens[2])) {
+        inp.out_error = inp.error(line_index, fmt::format("second arg of @image_sample_type tag must be one of {}", ImageSampleType::valid_image_sample_types_as_str()));
         return false;
     }
     return true;
 }
 
-static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const snippet_t& cur_snippet, int line_index, input_t& inp) {
+static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
     if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", sampler_type_t::valid_sampler_types_as_str()));
+        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != snippet_t::VS) && (cur_snippet.type != snippet_t::FS)) {
+    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
         inp.out_error = inp.error(line_index, "@sampler_type tag must be inside a @vs or @fs block");
         return false;
     }
@@ -341,8 +340,8 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
         inp.out_error = inp.error(line_index, "duplicate @sampler_type (sampler name must be unique)");
         return false;
     }
-    if (!sampler_type_t::is_valid_str(tokens[2])) {
-        inp.out_error = inp.error(line_index, fmt::format("second arg of @sampler_type tag must be one of {}", sampler_type_t::valid_sampler_types_as_str()));
+    if (!SamplerType::is_valid_str(tokens[2])) {
+        inp.out_error = inp.error(line_index, fmt::format("second arg of @sampler_type tag must be one of {}", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
     return true;
@@ -353,13 +352,13 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
     @end and @program), and fills the respective members. If a parsing error
     happens, the inp.error object is setup accordingly.
 */
-static bool parse(input_t& inp) {
+static bool parse(Input& inp) {
     bool in_snippet = false;
     bool add_line = false;
-    snippet_t cur_snippet;
+    Snippet cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
-    for (const line_t& line_info : inp.lines) {
+    for (const Line& line_info : inp.lines) {
         const std::string& line = line_info.line;
         add_line = in_snippet;
         pystring::split(line, tokens);
@@ -369,8 +368,7 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 inp.module = tokens[1];
-            }
-            else if (tokens[0] == ctype_tag) {
+            } else if (tokens[0] == ctype_tag) {
                 if (!validate_ctype_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
@@ -379,128 +377,116 @@ static bool parse(input_t& inp) {
                     return false;
                 }
                 inp.ctype_map[tokens[1]] = tokens[2];
-            }
-            else if (tokens[0] == header_tag) {
+            } else if (tokens[0] == header_tag) {
                 if (!validate_header_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
                 std::vector<std::string> skip_first_token = tokens;
                 skip_first_token.erase(skip_first_token.begin());
                 inp.headers.push_back(pystring::join(" ", skip_first_token));
-            }
-            else if (tokens[0] == glsl_options_tag) {
+            } else if (tokens[0] == glsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::GLSL330] |= option_bit;
-                    cur_snippet.options[slang_t::GLSL100] |= option_bit;
-                    cur_snippet.options[slang_t::GLSL300ES] |= option_bit;
+                    uint32_t option_bit = Option::from_string(tokens[i]);
+                    cur_snippet.options[Slang::GLSL410] |= option_bit;
+                    cur_snippet.options[Slang::GLSL430] |= option_bit;
+                    cur_snippet.options[Slang::GLSL300ES] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == hlsl_options_tag) {
+            } else if (tokens[0] == hlsl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::HLSL4] |= option_bit;
-                    cur_snippet.options[slang_t::HLSL5] |= option_bit;
+                    uint32_t option_bit = Option::from_string(tokens[i]);
+                    cur_snippet.options[Slang::HLSL4] |= option_bit;
+                    cur_snippet.options[Slang::HLSL5] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == msl_options_tag) {
+            } else if (tokens[0] == msl_options_tag) {
                 if (!validate_options_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
                 for (int i = 1; i < (int)tokens.size(); i++) {
-                    uint32_t option_bit = option_t::from_string(tokens[i]);
-                    cur_snippet.options[slang_t::METAL_MACOS] |= option_bit;
-                    cur_snippet.options[slang_t::METAL_IOS] |= option_bit;
-                    cur_snippet.options[slang_t::METAL_SIM] |= option_bit;
+                    uint32_t option_bit = Option::from_string(tokens[i]);
+                    cur_snippet.options[Slang::METAL_MACOS] |= option_bit;
+                    cur_snippet.options[Slang::METAL_IOS] |= option_bit;
+                    cur_snippet.options[Slang::METAL_SIM] |= option_bit;
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == block_tag) {
+            } else if (tokens[0] == block_tag) {
                 if (!validate_block_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::BLOCK, tokens[1]);
+                cur_snippet = Snippet(Snippet::BLOCK, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == vs_tag) {
+            } else if (tokens[0] == vs_tag) {
                 if (!validate_vs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::VS, tokens[1]);
+                cur_snippet = Snippet(Snippet::VS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == fs_tag) {
+            } else if (tokens[0] == fs_tag) {
                 if (!validate_fs_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet = snippet_t(snippet_t::FS, tokens[1]);
+                cur_snippet = Snippet(Snippet::FS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
-            }
-            else if (tokens[0] == inclblock_tag) {
+            } else if (tokens[0] == inclblock_tag) {
                 if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                const snippet_t& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
+                const Snippet& src_snippet = inp.snippets[inp.snippet_map[tokens[1]]];
                 for (int line_index : src_snippet.lines) {
                     cur_snippet.lines.push_back(line_index);
                 }
                 add_line = false;
-            }
-            else if (tokens[0] == end_tag) {
+            } else if (tokens[0] == end_tag) {
                 if (!validate_end_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.snippet_map[cur_snippet.name] = (int)inp.snippets.size();
+                cur_snippet.index = (int)inp.snippets.size();
+                inp.snippet_map[cur_snippet.name] = cur_snippet.index;
                 switch (cur_snippet.type) {
-                    case snippet_t::BLOCK:
-                        inp.block_map[cur_snippet.name] = (int)inp.snippets.size();
+                    case Snippet::BLOCK:
+                        inp.block_map[cur_snippet.name] = cur_snippet.index;
                         break;
-                    case snippet_t::VS:
-                        inp.vs_map[cur_snippet.name] = (int)inp.snippets.size();
+                    case Snippet::VS:
+                        inp.vs_map[cur_snippet.name] = cur_snippet.index;
                         break;
-                    case snippet_t::FS:
-                        inp.fs_map[cur_snippet.name] = (int)inp.snippets.size();
+                    case Snippet::FS:
+                        inp.fs_map[cur_snippet.name] = cur_snippet.index;
                         break;
                     default: break;
                 }
                 inp.snippets.push_back(std::move(cur_snippet));
-                cur_snippet = snippet_t();
+                cur_snippet = Snippet();
                 add_line = false;
                 in_snippet = false;
-            }
-            else if (tokens[0] == prog_tag) {
+            } else if (tokens[0] == prog_tag) {
                 if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.programs[tokens[1]] = program_t(tokens[1], tokens[2], tokens[3], line_index);
+                inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
                 add_line = false;
-            }
-            else if (tokens[0] == image_sample_type_tag) {
+            } else if (tokens[0] == image_sample_type_tag) {
                 if (!validate_image_sample_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.image_sample_type_tags[tokens[1]] = image_sample_type_tag_t(tokens[1], image_sample_type_t::from_str(tokens[2]), line_index);
+                cur_snippet.image_sample_type_tags[tokens[1]] = ImageSampleTypeTag(tokens[1], ImageSampleType::from_str(tokens[2]), line_index);
                 add_line = false;
-            }
-            else if (tokens[0] == sampler_type_tag) {
+            } else if (tokens[0] == sampler_type_tag) {
                 if (!validate_sampler_type_tag(tokens, cur_snippet, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.sampler_type_tags[tokens[1]] = sampler_type_tag_t(tokens[1], sampler_type_t::from_str(tokens[2]), line_index);
+                cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
                 add_line = false;
-            }
-            else if (tokens[0][0] == '@') {
+            } else if (tokens[0][0] == '@') {
                 inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
             }
@@ -517,16 +503,16 @@ static bool parse(input_t& inp) {
     return true;
 }
 
-static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, input_t& inp) {
+static bool validate_include_tag(const std::vector<std::string>& tokens, int line_nr, const std::string& path, Input& inp) {
     if (tokens.size() != 2) {
-        inp.out_error = errmsg_t::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
+        inp.out_error = ErrMsg::error(path, line_nr, "@include tag must have exactly one arg (@include filename).");
         return false;
     }
     return true;
 }
 
 static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs,
-                                input_t& inp, int parent_line_index) {
+                                Input& inp, int parent_line_index) {
     std::string path_used = path;
     std::string str = load_file_into_str(path_used);
     if (str.empty()) {
@@ -541,10 +527,9 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         // failure?
         if (str.empty()) {
             if (inp.base_path == path) {
-                inp.out_error = errmsg_t::error(path, 0, fmt::format("Failed to open input file '{}'", path));
-            }
-            else {
-                inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
+                inp.out_error = ErrMsg::error(path, 0, fmt::format("Failed to open input file '{}'", path));
+            } else {
+                inp.out_error = ErrMsg::error(inp.filenames.back(), parent_line_index, fmt::format("Failed to open @include file '{}'", path));
             }
             return false;
         }
@@ -552,7 +537,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
     // check for include cycles
     for (const std::string& filename : inp.filenames) {
         if (filename == path_used) {
-            inp.out_error = errmsg_t::error(inp.filenames.back(), parent_line_index, fmt::format("Detected @include file cycle: '{}'", path_used));
+            inp.out_error = ErrMsg::error(inp.filenames.back(), parent_line_index, fmt::format("Detected @include file cycle: '{}'", path_used));
             return false;
         }
     }
@@ -562,7 +547,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
 
     // remove comments before splitting into lines
     if (!remove_comments(str)) {
-        inp.out_error = errmsg_t::error(path_used, 0, fmt::format("(FIXME) Error during removing comments in '{}'", path_used));
+        inp.out_error = ErrMsg::error(path_used, 0, fmt::format("(FIXME) Error during removing comments in '{}'", path_used));
     }
 
     // split source file into lines
@@ -588,13 +573,11 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
                 if (!load_and_preprocess(include_filename, include_dirs, inp, line_index)) {
                     return false;
                 }
-            }
-            else {
+            } else {
                 // otherwise process file as normal
                 inp.lines.push_back({line, filename_index, line_index});
             }
-        }
-        else {
+        } else {
             // this is an empty line, but add it anyway so the error line
             // indices are always correct
             inp.lines.push_back({ line, filename_index, line_index});
@@ -605,16 +588,16 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
     return true;
 }
 
-/* load file and parse into an input_t object,
+/* load file and parse into an Input object,
    check valid and error fields in returned object
 */
-input_t input_t::load_and_parse(const std::string& path, const std::string& module_override) {
+Input Input::load_and_parse(const std::string& path, const std::string& module_override) {
     std::string dir;
     std::string filename;
     pystring::os::path::split(dir, filename, path);
     std::vector<std::string> include_dirs = { dir };
 
-    input_t inp;
+    Input inp;
     inp.base_path = path;
     if (load_and_preprocess(path, include_dirs, inp, 0)) {
         parse(inp);
@@ -625,13 +608,29 @@ input_t input_t::load_and_parse(const std::string& path, const std::string& modu
     return inp;
 }
 
-/* print a debug-dump of content to stderr */
-void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
-    fmt::print(stderr, "input_t:\n");
-    if (out_error.valid) {
-        fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
+ErrMsg Input::error(int line_index, const std::string& msg) const {
+    if (line_index < (int)lines.size()) {
+        const Line& line = lines[line_index];
+        return ErrMsg::error(filenames[line.filename], line.index, msg);
+    } else {
+        return ErrMsg::error(base_path, 0, msg);
     }
-    else {
+};
+ErrMsg Input::warning(int line_index, const std::string& msg) const {
+    if (line_index < (int)lines.size()) {
+        const Line& line = lines[line_index];
+        return ErrMsg::warning(filenames[line.filename], line.index, msg);
+    } else {
+        return ErrMsg::warning(base_path, 0, msg);
+    }
+};
+
+/* print a debug-dump of content to stderr */
+void Input::dump_debug(ErrMsg::Format err_fmt) const {
+    fmt::print(stderr, "Input:\n");
+    if (out_error.valid()) {
+        fmt::print(stderr, "  error: {}\n", out_error.as_string(err_fmt));
+    } else {
         fmt::print(stderr, "  error: not set\n");
     }
     fmt::print(stderr, "  base_path: {}\n", base_path);
@@ -639,7 +638,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     {
         fmt::print(stderr, "  lines:\n");
         int filename = -1;
-        for (const line_t& line : lines) {
+        for (const Line& line : lines) {
             if (filename != line.filename) {
                 fmt::print(stderr, "    {}:\n", filenames[line.filename]);
                 filename = line.filename;
@@ -654,17 +653,17 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     {
         int snippet_nr = 0;
         fmt::print(stderr, "  snippets:\n");
-        for (const snippet_t& snippet : snippets) {
+        for (const Snippet& snippet : snippets) {
             fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
             fmt::print(stderr, "      name: {}\n", snippet.name);
-            fmt::print(stderr, "      type: {}\n", snippet_t::type_to_str(snippet.type));
+            fmt::print(stderr, "      type: {}\n", Snippet::type_to_str(snippet.type));
             fmt::print(stderr, "      image sample type tags:\n");
             for (const auto& [key, val]: snippet.image_sample_type_tags) {
-                fmt::print(stderr, "        {}: {} (line: {})\n", key, image_sample_type_t::to_str(val.type), val.line_index);
+                fmt::print(stderr, "        {}: {} (line: {})\n", key, ImageSampleType::to_str(val.type), val.line_index);
             }
             fmt::print(stderr, "      sampler type tags:\n");
             for (const auto& [key, val]: snippet.sampler_type_tags) {
-                fmt::print(stderr, "        {}: {} (line: {})\n", key, sampler_type_t::to_str(val.type), val.line_index);
+                fmt::print(stderr, "        {}: {} (line: {})\n", key, SamplerType::to_str(val.type), val.line_index);
             }
             fmt::print(stderr, "      lines:\n");
             int line_nr = 1;
@@ -692,7 +691,7 @@ void input_t::dump_debug(errmsg_t::msg_format_t err_fmt) const {
     fmt::print(stderr, "  programs:\n");
     for (const auto& item : programs) {
         const std::string& key = item.first;
-        const program_t& prog = item.second;
+        const Program& prog = item.second;
         fmt::print(stderr, "    program {}:\n", key);
         fmt::print(stderr, "      name: {}\n", prog.name);
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);
