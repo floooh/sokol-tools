@@ -161,6 +161,7 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf) {
     l("inst_name: {}\n", sbuf.inst_name);
     l("readonly: {}\n", sbuf.readonly);
     l("inner_struct_name: {}\n", item.struct_typename);
+    l_close();
 }
 
 void YamlGenerator::gen_image(const Image& image) {
