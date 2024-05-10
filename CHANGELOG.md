@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+#### **10-May-2024**
+
+A minor regression in the YAML output has been fixed (wrong indentation after storage blocks), see
+https://github.com/floooh/sokol-tools/issues/127 for details.
+
 #### **09-May-2024**
 
 This sokol-shdc update goes along with the sokol_gfx.h 'storage buffer update'. It's
