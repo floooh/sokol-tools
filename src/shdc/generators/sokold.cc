@@ -340,7 +340,7 @@ std::string SokolDGenerator::shader_source_array_name(const std::string& snippet
 }
 
 std::string SokolDGenerator::get_shader_desc_help(const std::string& prog_name) {
-    return fmt::format("{}_shader_desc(sg.query_backend());\n", prog_name);
+    return fmt::format("{}_shader_desc(sg.queryBackend());\n", prog_name);
 }
 
 std::string SokolDGenerator::uniform_type(Type::Enum e) {
