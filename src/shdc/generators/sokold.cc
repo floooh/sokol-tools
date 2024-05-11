@@ -15,6 +15,9 @@ void SokolDGenerator::gen_prolog(const GenInput& gen) {
     pystring::os::path::splitext(root, ext, gen.args.input);
     l("module shaders.{};\n", pystring::os::path::basename(root));
     l("import sg = sokol.gfx;\n");
+    for (const auto& header: gen.inp.headers) {
+        l("{};\n", header);
+    }
     l("extern(C):\n\n");
 }
 
