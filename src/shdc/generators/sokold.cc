@@ -203,7 +203,7 @@ void SokolDGenerator::gen_shader_array_end(const GenInput& gen) {
 }
 
 void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("sg.ShaderDesc {}_shader_desc(sg.Backend backend) @trusted @nogc nothrow {{\n", prog.name);
+    l_open("sg.ShaderDesc {}ShaderDesc(sg.Backend backend) @trusted @nogc nothrow {{\n", prog.name);
     l("sg.ShaderDesc desc;\n");
     l("desc.label = \"{}_shader\";\n", prog.name);
     l_open("switch (backend) {{\n");
@@ -340,7 +340,7 @@ std::string SokolDGenerator::shader_source_array_name(const std::string& snippet
 }
 
 std::string SokolDGenerator::get_shader_desc_help(const std::string& prog_name) {
-    return fmt::format("{}_shader_desc(sg.queryBackend());\n", prog_name);
+    return fmt::format("{}ShaderDesc(sg.queryBackend());\n", prog_name);
 }
 
 std::string SokolDGenerator::uniform_type(Type::Enum e) {
