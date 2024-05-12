@@ -36,7 +36,7 @@ void SokolDGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformB
         const int align = (cur_offset == 0) ? ub.struct_info.align : 1;
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
-            l("align({}) ubyte[{}] _pad_{};\n", align, next_offset - cur_offset, cur_offset);
+            l("align({}) ubyte[{}] _pad_{} = 0;\n", align, next_offset - cur_offset, cur_offset);
             cur_offset = next_offset;
         }
         if (gen.inp.ctype_map.count(uniform.type_as_glsl()) > 0) {
@@ -50,22 +50,22 @@ void SokolDGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformB
             // default type names (float)
             if (uniform.array_count == 0) {
                 switch (uniform.type) {
-                    case Type::Float:   l("align({}) float {};\n", align, uniform.name); break;
-                    case Type::Float2:  l("align({}) float[2] {};\n", align, uniform.name); break;
-                    case Type::Float3:  l("align({}) float[3] {};\n", align, uniform.name); break;
-                    case Type::Float4:  l("align({}) float[4] {};\n", align, uniform.name); break;
-                    case Type::Int:     l("align({}) int {};\n", align, uniform.name); break;
-                    case Type::Int2:    l("align({}) int[2] {};\n", align, uniform.name); break;
-                    case Type::Int3:    l("align({}) int[3] {};\n", align, uniform.name); break;
-                    case Type::Int4:    l("align({}) int[4] {};\n", align, uniform.name); break;
-                    case Type::Mat4x4:  l("align({}) float[16] {};\n", align, uniform.name); break;
+                    case Type::Float:   l("align({}) float {} = 0;\n", align, uniform.name); break;
+                    case Type::Float2:  l("align({}) float[2] {} = 0;\n", align, uniform.name); break;
+                    case Type::Float3:  l("align({}) float[3] {} = 0;\n", align, uniform.name); break;
+                    case Type::Float4:  l("align({}) float[4] {} = 0;\n", align, uniform.name); break;
+                    case Type::Int:     l("align({}) int {} = 0;\n", align, uniform.name); break;
+                    case Type::Int2:    l("align({}) int[2] {} = 0;\n", align, uniform.name); break;
+                    case Type::Int3:    l("align({}) int[3] {} = 0;\n", align, uniform.name); break;
+                    case Type::Int4:    l("align({}) int[4] {} = 0;\n", align, uniform.name); break;
+                    case Type::Mat4x4:  l("align({}) float[16] {} = 0;\n", align, uniform.name); break;
                     default:            l("INVALID_UNIFORM_TYPE;\n"); break;
                 }
             } else {
                 switch (uniform.type) {
-                    case Type::Float4:  l("align({}) float[4][{}] {};\n", align, uniform.array_count, uniform.name); break;
-                    case Type::Int4:    l("align({}) int[4][{}] {};\n", align, uniform.array_count, uniform.name); break;
-                    case Type::Mat4x4:  l("align({}) float[16][{}] {};\n", align, uniform.array_count, uniform.name); break;
+                    case Type::Float4:  l("align({}) float[4][{}] {} = 0;\n", align, uniform.array_count, uniform.name); break;
+                    case Type::Int4:    l("align({}) int[4][{}] {} = 0;\n", align, uniform.array_count, uniform.name); break;
+                    case Type::Mat4x4:  l("align({}) float[16][{}] {} = 0;\n", align, uniform.array_count, uniform.name); break;
                     default:            l("INVALID_UNIFORM_TYPE;\n"); break;
                 }
             }
@@ -75,7 +75,7 @@ void SokolDGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformB
     // pad to multiple of 16-bytes struct size
     const int round16 = roundup(cur_offset, 16);
     if (cur_offset < round16) {
-        l("align(1) ubyte[{}] _pad_{};\n", round16 - cur_offset, cur_offset);
+        l("align(1) ubyte[{}] _pad_{} = 0;\n", round16 - cur_offset, cur_offset);
     }
     l_close("}}\n");
 }
@@ -90,7 +90,7 @@ void SokolDGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         const int align = (cur_offset == 0) ? alignment : 1;
         int next_offset = item.offset;
         if (next_offset > cur_offset) {
-            l("align({}) ubyte[{}] _pad_{};\n", align, next_offset - cur_offset, cur_offset);
+            l("align({}) ubyte[{}] _pad_{} = 0;\n", align, next_offset - cur_offset, cur_offset);
             cur_offset = next_offset;
         }
         if (item.type == Type::Struct) {
@@ -115,67 +115,67 @@ void SokolDGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
             if (item.array_count == 0) {
                 switch (item.type) {
                     // NOTE: bool => int is not a bug!
-                    case Type::Bool:    l("align({}) int {};\n",       align, item.name); break;
-                    case Type::Bool2:   l("align({}) int[2] {};\n",    align, item.name); break;
-                    case Type::Bool3:   l("align({}) int[3] {};\n",    align, item.name); break;
-                    case Type::Bool4:   l("align({}) int[4] {};\n",    align, item.name); break;
-                    case Type::Int:     l("align({}) int {};\n",       align, item.name); break;
-                    case Type::Int2:    l("align({}) int[2] {};\n",    align, item.name); break;
-                    case Type::Int3:    l("align({}) int[3] {};\n",    align, item.name); break;
-                    case Type::Int4:    l("align({}) int[4] {};\n",    align, item.name); break;
-                    case Type::UInt:    l("align({}) uint {};\n",      align, item.name); break;
-                    case Type::UInt2:   l("align({}) uint[2] {};\n",   align, item.name); break;
-                    case Type::UInt3:   l("align({}) uint[3] {};\n",   align, item.name); break;
-                    case Type::UInt4:   l("align({}) uint[4] {};\n",   align, item.name); break;
-                    case Type::Float:   l("align({}) float {};\n",     align, item.name); break;
-                    case Type::Float2:  l("align({}) float[2] {};\n",  align, item.name); break;
-                    case Type::Float3:  l("align({}) float[3] {};\n",  align, item.name); break;
-                    case Type::Float4:  l("align({}) float[4] {};\n",  align, item.name); break;
-                    case Type::Mat2x1:  l("align({}) float[2] {};\n",  align, item.name); break;
-                    case Type::Mat2x2:  l("align({}) float[4] {};\n",  align, item.name); break;
-                    case Type::Mat2x3:  l("align({}) float[6] {};\n",  align, item.name); break;
-                    case Type::Mat2x4:  l("align({}) float[8] {};\n",  align, item.name); break;
-                    case Type::Mat3x1:  l("align({}) float[3] {};\n",  align, item.name); break;
-                    case Type::Mat3x2:  l("align({}) float[6] {};\n",  align, item.name); break;
-                    case Type::Mat3x3:  l("align({}) float[9] {};\n",  align, item.name); break;
-                    case Type::Mat3x4:  l("align({}) float[12] {};\n", align, item.name); break;
-                    case Type::Mat4x1:  l("align({}) float[4] {};\n",  align, item.name); break;
-                    case Type::Mat4x2:  l("align({}) float[8] {};\n",  align, item.name); break;
-                    case Type::Mat4x3:  l("align({}) float[12] {};\n", align, item.name); break;
-                    case Type::Mat4x4:  l("align({}) float[16] {};\n", align, item.name); break;
+                    case Type::Bool:    l("align({}) int {} = 0;\n",       align, item.name); break;
+                    case Type::Bool2:   l("align({}) int[2] {} = 0;\n",    align, item.name); break;
+                    case Type::Bool3:   l("align({}) int[3] {} = 0;\n",    align, item.name); break;
+                    case Type::Bool4:   l("align({}) int[4] {} = 0;\n",    align, item.name); break;
+                    case Type::Int:     l("align({}) int {} = 0;\n",       align, item.name); break;
+                    case Type::Int2:    l("align({}) int[2] {} = 0;\n",    align, item.name); break;
+                    case Type::Int3:    l("align({}) int[3] {} = 0;\n",    align, item.name); break;
+                    case Type::Int4:    l("align({}) int[4] {} = 0;\n",    align, item.name); break;
+                    case Type::UInt:    l("align({}) uint {} = 0;\n",      align, item.name); break;
+                    case Type::UInt2:   l("align({}) uint[2] {} = 0;\n",   align, item.name); break;
+                    case Type::UInt3:   l("align({}) uint[3] {} = 0;\n",   align, item.name); break;
+                    case Type::UInt4:   l("align({}) uint[4] {} = 0;\n",   align, item.name); break;
+                    case Type::Float:   l("align({}) float {} = 0;\n",     align, item.name); break;
+                    case Type::Float2:  l("align({}) float[2] {} = 0;\n",  align, item.name); break;
+                    case Type::Float3:  l("align({}) float[3] {} = 0;\n",  align, item.name); break;
+                    case Type::Float4:  l("align({}) float[4] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat2x1:  l("align({}) float[2] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat2x2:  l("align({}) float[4] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat2x3:  l("align({}) float[6] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat2x4:  l("align({}) float[8] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat3x1:  l("align({}) float[3] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat3x2:  l("align({}) float[6] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat3x3:  l("align({}) float[9] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat3x4:  l("align({}) float[12] {} = 0;\n", align, item.name); break;
+                    case Type::Mat4x1:  l("align({}) float[4] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat4x2:  l("align({}) float[8] {} = 0;\n",  align, item.name); break;
+                    case Type::Mat4x3:  l("align({}) float[12] {} = 0;\n", align, item.name); break;
+                    case Type::Mat4x4:  l("align({}) float[16] {} = 0;\n", align, item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
                 switch (item.type) {
                     // NOTE: bool => int is not a bug!
-                    case Type::Bool:    l("align({}) int[{}] {};\n",       align, item.array_count, item.name); break;
-                    case Type::Bool2:   l("align({}) int[2][{}] {};\n",    align, item.array_count, item.name); break;
-                    case Type::Bool3:   l("align({}) int[3][{}] {};\n",    align, item.array_count, item.name); break;
-                    case Type::Bool4:   l("align({}) int[4][{}] {};\n",    align, item.array_count, item.name); break;
-                    case Type::Int:     l("align({}) int[{}] {};",         align, item.array_count, item.name); break;
-                    case Type::Int2:    l("align({}) int[2] {};\n",        align, item.array_count, item.name); break;
-                    case Type::Int3:    l("align({}) int[3] {};\n",        align, item.array_count, item.name); break;
-                    case Type::Int4:    l("align({}) int[4] {};\n",        align, item.array_count, item.name); break;
-                    case Type::UInt:    l("align({}) uint[{}] {};\n",      align, item.array_count, item.name); break;
-                    case Type::UInt2:   l("align({}) uint[2][{}] {};\n",   align, item.array_count, item.name); break;
-                    case Type::UInt3:   l("align({}) uint[3][{}] {};\n",   align, item.array_count, item.name); break;
-                    case Type::UInt4:   l("align({}) uint[4][{}] {};\n",   align, item.array_count, item.name); break;
-                    case Type::Float:   l("align({}) float[{}] {};\n",     align, item.array_count, item.name); break;
-                    case Type::Float2:  l("align({}) float[2][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Float3:  l("align({}) float[3][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Float4:  l("align({}) float[4][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat2x1:  l("align({}) float[2][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat2x2:  l("align({}) float[4][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat2x3:  l("align({}) float[6][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat2x4:  l("align({}) float[8][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat3x1:  l("align({}) float[3][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat3x2:  l("align({}) float[6][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat3x3:  l("align({}) float[9][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat3x4:  l("align({}) float[12][{}] {};\n", align, item.array_count, item.name); break;
-                    case Type::Mat4x1:  l("align({}) float[4][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat4x2:  l("align({}) float[8][{}] {};\n",  align, item.array_count, item.name); break;
-                    case Type::Mat4x3:  l("align({}) float[12][{}] {};\n", align, item.array_count, item.name); break;
-                    case Type::Mat4x4:  l("align({}) float[16][{}] {};\n", align, item.array_count, item.name); break;
+                    case Type::Bool:    l("align({}) int[{}] {} = 0;\n",       align, item.array_count, item.name); break;
+                    case Type::Bool2:   l("align({}) int[2][{}] {} = 0;\n",    align, item.array_count, item.name); break;
+                    case Type::Bool3:   l("align({}) int[3][{}] {} = 0;\n",    align, item.array_count, item.name); break;
+                    case Type::Bool4:   l("align({}) int[4][{}] {} = 0;\n",    align, item.array_count, item.name); break;
+                    case Type::Int:     l("align({}) int[{}] {} = 0;",         align, item.array_count, item.name); break;
+                    case Type::Int2:    l("align({}) int[2] {} = 0;\n",        align, item.array_count, item.name); break;
+                    case Type::Int3:    l("align({}) int[3] {} = 0;\n",        align, item.array_count, item.name); break;
+                    case Type::Int4:    l("align({}) int[4] {} = 0;\n",        align, item.array_count, item.name); break;
+                    case Type::UInt:    l("align({}) uint[{}] {} = 0;\n",      align, item.array_count, item.name); break;
+                    case Type::UInt2:   l("align({}) uint[2][{}] {} = 0;\n",   align, item.array_count, item.name); break;
+                    case Type::UInt3:   l("align({}) uint[3][{}] {} = 0;\n",   align, item.array_count, item.name); break;
+                    case Type::UInt4:   l("align({}) uint[4][{}] {} = 0;\n",   align, item.array_count, item.name); break;
+                    case Type::Float:   l("align({}) float[{}] {} = 0;\n",     align, item.array_count, item.name); break;
+                    case Type::Float2:  l("align({}) float[2][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Float3:  l("align({}) float[3][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Float4:  l("align({}) float[4][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat2x1:  l("align({}) float[2][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat2x2:  l("align({}) float[4][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat2x3:  l("align({}) float[6][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat2x4:  l("align({}) float[8][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat3x1:  l("align({}) float[3][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat3x2:  l("align({}) float[6][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat3x3:  l("align({}) float[9][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat3x4:  l("align({}) float[12][{}] {} = 0;\n", align, item.array_count, item.name); break;
+                    case Type::Mat4x1:  l("align({}) float[4][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat4x2:  l("align({}) float[8][{}] {} = 0;\n",  align, item.array_count, item.name); break;
+                    case Type::Mat4x3:  l("align({}) float[12][{}] {} = 0;\n", align, item.array_count, item.name); break;
+                    case Type::Mat4x4:  l("align({}) float[16][{}] {} = 0;\n", align, item.array_count, item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }
@@ -183,7 +183,7 @@ void SokolDGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
         cur_offset += item.size;
     }
     if (cur_offset < pad_to_size) {
-        l("align(1) ubyte[{}] _pad_{};\n", pad_to_size - cur_offset, cur_offset);
+        l("align(1) ubyte[{}] _pad_{} = 0;\n", pad_to_size - cur_offset, cur_offset);
     }
 }
 
