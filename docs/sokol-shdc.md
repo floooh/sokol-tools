@@ -43,6 +43,7 @@ sokol-shdc supports the following output formats:
 - Rust for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
+- D for integration with [sokol-d](https://github.com/floooh/sokol-d)
 - 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
 
 Error messages from `glslang` are mapped back to the original annotated

@@ -9,6 +9,7 @@
 #include "sokolodin.h"
 #include "sokolrust.h"
 #include "sokolzig.h"
+#include "sokold.h"
 #include "yaml.h"
 #include <memory>
 
@@ -28,6 +29,8 @@ std::unique_ptr<Generator> make_generator(Format::Enum format) {
             return std::make_unique<SokolOdinGenerator>();
         case Format::SOKOL_RUST:
             return std::make_unique<SokolRustGenerator>();
+        case Format::SOKOL_D:
+            return std::make_unique<SokolDGenerator>();
         default:
             return std::make_unique<SokolCGenerator>();
     }
