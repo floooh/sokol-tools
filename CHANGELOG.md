@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+#### **12-May-2024**
+
+A new code generator for the D language bindings via `-f sokol_d`. Note that the actual D bindings are
+still WIP and haven't been released yet. Many thanks to @kassane for the initial D code generator!
+
 #### **10-May-2024**
 
 A minor regression in the YAML output has been fixed (wrong indentation after storage blocks), see
