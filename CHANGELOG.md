@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+#### **17-May-2024**
+
+Merged bugfix PR https://github.com/floooh/sokol-tools/pull/129, this fixes the discrepancy between
+a 'max storage buffers per shader stage' constant in sokol-shdc and sokol_gfx.h. Many thanks to @jdah
+for the fix!
+
 #### **12-May-2024**
 
 A new code generator for the D language bindings via `-f sokol_d`. Note that the actual D bindings are
