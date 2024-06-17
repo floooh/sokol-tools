@@ -73,7 +73,7 @@ inline std::string ErrMsg::as_string(Format fmt) const {
 }
 
 inline void ErrMsg::print(Format fmt) const {
-    fmt::print("{}\n", as_string(fmt));
+    fmt::print(stderr, "{}\n", as_string(fmt));
 }
 
 inline const char* ErrMsg::format_to_str(Format fmt) {
