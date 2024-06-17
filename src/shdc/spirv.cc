@@ -72,11 +72,15 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
     pystring::splitlines(log, lines);
     std::vector<std::string> tokens;
     static const std::string colon = ":";
-    for (const std::string& line: lines) {
+    for (const std::string& src_line: lines) {
         // ignore the "compilation terminated" message, nothing useful in there
-        if (pystring::find(line, ": compilation terminated") >= 0) {
+        if (pystring::find(src_line, ": compilation terminated") >= 0) {
             continue;
         }
+        // special hack for absolute Windows paths starting with a device letter
+        std::string line = pystring::replace(src_line, ":/", "\01\02", 1);
+        line = pystring::replace(line, ":\\", "\03\04", 1);
+
         // split by colons
         pystring::split(line, tokens, colon);
         if ((tokens.size() > 2) && ((tokens[0] == "ERROR") || (tokens[0] == "WARNING"))) {
@@ -100,6 +104,11 @@ static void infolog_to_errors(const std::string& log, const Input& inp, int snip
                     }
                 }
                 msg = pystring::strip(msg);
+                // NOTE: The absolute file path isn't part of the message, so this replacement
+                // seems redundant. It only kicks in if a :/ or :\\ was actually part of the
+                // error message (highly unlikely)
+                msg = pystring::replace(msg, "\01\02", ":/", 1);
+                msg = pystring::replace(msg, "\03\04", ":\\", 1);
                 // snippet-line-index to input source line index
                 if ((snippet_line_index >= 0) && (snippet_line_index < (int)snippet.lines.size())) {
                     line_index = snippet.lines[snippet_line_index];

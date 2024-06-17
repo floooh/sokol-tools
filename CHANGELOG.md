@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+#### **17-Jun-2024**
+
+- Merged PR https://github.com/floooh/sokol-tools/pull/130, this prints error messages to stderr
+  instead of stdout.
+- Fixed https://github.com/floooh/sokol-tools/issues/131, error message parsing was confused
+  by the extra colon of absolute Windows path names.
+
 #### **17-May-2024**
 
 Merged bugfix PR https://github.com/floooh/sokol-tools/pull/129, this fixes the discrepancy between
