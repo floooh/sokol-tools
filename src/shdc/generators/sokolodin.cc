@@ -185,7 +185,7 @@ void SokolOdinGenerator::gen_storage_buffer_decl(const GenInput& gen, const Stor
     l_open("{} :: struct #align({}) {{\n", struct_name(item.struct_typename), sbuf.struct_info.align);
     l_open("using _: struct #packed {{\n");
     gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
-    l_close("}}\n");
+    l_close("}},\n");
     l_close("}}\n");
 }
 
