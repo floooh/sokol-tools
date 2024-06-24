@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+#### **24-Jun-2024**
+
+- Minor fix in the Odin code generator (see: https://github.com/floooh/sokol-tools/issues/132)
+
 #### **17-Jun-2024**
 
 - Merged PR https://github.com/floooh/sokol-tools/pull/130, this prints error messages to stderr
