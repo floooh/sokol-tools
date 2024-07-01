@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+#### **01-Jul-2024**
+
+Fix a regression from the May-2024 refactoring:
+
+Linking the same vertex shader in different programs would generate duplicate
+vertex attribute slot defines/constants. While this isn't a problem in C/C++,
+other languages would error on the duplicate constants.
+
+With the fix, vertex attribute slot constants are now unique. There's also
+a more tight validation in this new vertex attribute merge step which leads
+to an error if a conflict is detected between two vertex attributes that should
+be identical. This validation should never fail though, if it does, it would
+point to an internal bug (the associated error message is `conflicting vertex shader attributes found for '[snippet_name]/[attr_name]`).
+
 #### **24-Jun-2024**
 
 - Minor fix in the Odin code generator (see: https://github.com/floooh/sokol-tools/issues/132)
