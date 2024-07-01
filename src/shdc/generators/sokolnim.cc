@@ -506,8 +506,8 @@ std::string SokolNimGenerator::struct_name(const std::string& name) {
     return to_pascal_case(name);
 }
 
-std::string SokolNimGenerator::vertex_attr_name(const std::string& snippet_name, const StageAttr& attr) {
-    return to_camel_case(fmt::format("ATTR_{}_{}", snippet_name, attr.name));
+std::string SokolNimGenerator::vertex_attr_name(const StageAttr& attr) {
+    return to_camel_case(fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name));
 }
 
 std::string SokolNimGenerator::image_bind_slot_name(const Image& img) {
@@ -526,8 +526,8 @@ std::string SokolNimGenerator::storage_buffer_bind_slot_name(const StorageBuffer
     return to_camel_case(fmt::format("SLOT_{}", sbuf.struct_info.name));
 }
 
-std::string SokolNimGenerator::vertex_attr_definition(const std::string& snippet_name, const StageAttr& attr) {
-    return fmt::format("const {}* = {}", vertex_attr_name(snippet_name, attr), attr.slot);
+std::string SokolNimGenerator::vertex_attr_definition(const StageAttr& attr) {
+    return fmt::format("const {}* = {}", vertex_attr_name(attr), attr.slot);
 }
 
 std::string SokolNimGenerator::image_bind_slot_definition(const Image& img) {
