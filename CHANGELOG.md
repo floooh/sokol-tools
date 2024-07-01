@@ -15,6 +15,8 @@ to an error if a conflict is detected between two vertex attributes that should
 be identical. This validation should never fail though, if it does, it would
 point to an internal bug (the associated error message is `conflicting vertex shader attributes found for '[snippet_name]/[attr_name]`).
 
+For more details see PR https://github.com/floooh/sokol-tools/pull/134/files and issue https://github.com/floooh/sokol-tools/issues/133.
+
 #### **24-Jun-2024**
 
 - Minor fix in the Odin code generator (see: https://github.com/floooh/sokol-tools/issues/132)
