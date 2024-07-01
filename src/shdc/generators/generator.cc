@@ -94,7 +94,7 @@ void Generator::gen_vertex_shader_info(const GenInput& gen, const ProgramReflect
     cbl_open("Attributes:\n");
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
-            cbl("{} => {}\n", vertex_attr_name(prog.vs_name(), attr), attr.slot);
+            cbl("{} => {}\n", vertex_attr_name(attr), attr.slot);
         }
     }
     cbl_close();
@@ -144,11 +144,9 @@ void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings)
 }
 
 void Generator::gen_vertex_attr_consts(const GenInput& gen) {
-    for (const ProgramReflection& prog_refl: gen.refl.progs) {
-        for (const StageAttr& attr: prog_refl.vs().inputs) {
-            if (attr.slot >= 0) {
-                l("{}\n", vertex_attr_definition(prog_refl.vs_name(), attr));
-            }
+    for (const StageAttr& attr: gen.refl.unique_vs_inputs) {
+        if (attr.slot >= 0) {
+            l("{}\n", vertex_attr_definition(attr));
         }
     }
 }
