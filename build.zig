@@ -37,6 +37,7 @@ pub fn build_exe(
         "generators/generate.cc",
         "generators/generator.cc",
         "generators/sokolc.cc",
+        "generators/sokold.cc",
         "generators/sokolnim.cc",
         "generators/sokolodin.cc",
         "generators/sokolrust.cc",
@@ -76,10 +77,10 @@ pub fn build_exe(
     exe.linkLibrary(lib_glslang(b, target, mode, prefix_path));
     exe.linkLibrary(lib_tint(b, target, mode, prefix_path));
     inline for (incl_dirs) |incl_dir| {
-        exe.addIncludePath(.{ .path = prefix_path ++ incl_dir });
+        exe.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        exe.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        exe.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     b.installArtifact(exe);
     return exe;
@@ -97,9 +98,9 @@ fn lib_getopt(
         .optimize = mode,
     });
     lib.linkLibC();
-    lib.addIncludePath(.{ .path = prefix_path ++ "ext/getopt/include" });
+    lib.addIncludePath(b.path(prefix_path ++ "ext/getopt/include"));
     const flags = common_c_flags;
-    lib.addCSourceFile(.{ .file = .{ .path = prefix_path ++ "ext/getopt/src/getopt.c" }, .flags = &flags });
+    lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/getopt/src/getopt.c"), .flags = &flags });
     return lib;
 }
 
@@ -119,7 +120,7 @@ fn lib_pystring(
     else
         lib.linkLibC();
     const flags = common_cpp_flags;
-    lib.addCSourceFile(.{ .file = .{ .path = prefix_path ++ "ext/pystring/pystring.cpp" }, .flags = &flags });
+    lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/pystring/pystring.cpp"), .flags = &flags });
     return lib;
 }
 
@@ -140,10 +141,10 @@ fn lib_fmt(
         lib.linkLibCpp()
     else
         lib.linkLibC();
-    lib.addIncludePath(.{ .path = prefix_path ++ "ext/fmt/include" });
+    lib.addIncludePath(b.path(prefix_path ++ "ext/fmt/include"));
     const flags = common_cpp_flags;
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     return lib;
 }
@@ -177,9 +178,9 @@ fn lib_spirvcross(
         lib.linkLibCpp()
     else
         lib.linkLibC();
-    lib.addIncludePath(.{ .path = "ext/SPIRV-Cross" });
+    lib.addIncludePath(b.path("ext/SPIRV-Cross"));
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     return lib;
 }
@@ -262,18 +263,18 @@ fn lib_glslang(
     else
         lib.linkLibC();
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(.{ .path = prefix_path ++ incl_dir });
+        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     if (lib.rootModuleTarget().os.tag == .windows) {
         inline for (win_sources) |src| {
-            lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+            lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
         }
     } else {
         inline for (unix_sources) |src| {
-            lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+            lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
         }
     }
     return lib;
@@ -492,10 +493,10 @@ fn lib_spirvtools(
     else
         lib.linkLibC();
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(.{ .path = prefix_path ++ incl_dir });
+        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     return lib;
 }
@@ -788,10 +789,10 @@ fn lib_tint(
     else
         lib.linkLibC();
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(.{ .path = prefix_path ++ incl_dir });
+        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = .{ .path = dir ++ src }, .flags = &flags });
+        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
     return lib;
 }
