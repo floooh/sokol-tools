@@ -257,7 +257,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                                     const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
                                     l("{}.name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                                     l("{}.type = {};\n", un, uniform_type(u.type));
-                                    l(".array_count = {};\n", un, u.array_count);
+                                    l("{}.array_count = {};\n", un, u.array_count);
                                 }
                             }
                         }
