@@ -8,5 +8,6 @@ CMakeUserPresets.json
 #<fips
 sokol-shdc
 zig-*/
+.zig-*/
 test/out/
 
