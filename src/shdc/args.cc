@@ -39,7 +39,7 @@ static const getopt_option_t option_list[] = {
     { "module",             'm', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_MODULE,       "optional @module name override" },
     { "reflection",         'r', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_REFLECTION,   "generate runtime reflection functions" },
     { "bytecode",           'b', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_BYTECODE,     "output bytecode (HLSL and Metal)"},
-    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|sokol_d|bare|bare_yaml]" },
+    { "format",             'f', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_FORMAT,       "output format (default: sokol)", "[sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|sokol_d|sokol_jai|bare|bare_yaml]" },
     { "errfmt",             'e', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_ERRFMT,       "error message format (default: gcc)", "[gcc|msvc]"},
     { "dump",               'd', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_DUMP,         "dump debugging information to stderr"},
     { "genver",             'g', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_GENVER,       "version-stamp for code-generation", "[int]"},
@@ -78,6 +78,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - sokol_odin     Odin module file\n"
         "  - sokol_rust     Rust module file\n"
         "  - sokol_d        D module file\n"
+        "  - sokol_jai      Jai module file\n"
         "  - bare           raw output of SPIRV-Cross compiler, in text or binary format\n"
         "  - bare_yaml      like bare, but with reflection file in YAML format\n\n"
         "Options:\n\n");
@@ -213,7 +214,7 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_FORMAT:
                     args.output_format = Format::from_str(ctx.current_opt_arg);
                     if (args.output_format == Format::INVALID) {
-                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|bare|base_yaml]\n", ctx.current_opt_arg);
+                        fmt::print(stderr, "sokol-shdc: unknown output format {}, must be [sokol|sokol_impl|sokol_zig|sokol_nim|sokol_odin|sokol_rust|sokol_jai|bare|base_yaml]\n", ctx.current_opt_arg);
                         args.valid = false;
                         args.exit_code = 10;
                         return args;
