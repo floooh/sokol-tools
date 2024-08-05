@@ -43,7 +43,6 @@ pub fn build_exe(
         "generators/sokolrust.cc",
         "generators/sokoljai.cc",
         "generators/sokolzig.cc",
-        "generators/sokoljai.cc",
         "generators/yaml.cc",
     };
     const incl_dirs = [_][]const u8{
