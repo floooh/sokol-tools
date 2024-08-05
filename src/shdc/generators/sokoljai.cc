@@ -18,7 +18,7 @@ void SokolJaiGenerator::gen_prolog(const GenInput& gen) {
 
 void SokolJaiGenerator::gen_epilog(const GenInput& gen) {
     l("\n\n#scope_module\n\n");
-    l("#import \"Sokol\"()(.Gfx);\n");
+    l("#import \"sokol_gfx\";\n");
 }
 
 void SokolJaiGenerator::gen_prerequisites(const GenInput& gen) {
