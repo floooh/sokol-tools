@@ -41,6 +41,7 @@ pub fn build_exe(
         "generators/sokolnim.cc",
         "generators/sokolodin.cc",
         "generators/sokolrust.cc",
+        "generators/sokoljai.cc",
         "generators/sokolzig.cc",
         "generators/yaml.cc",
     };
