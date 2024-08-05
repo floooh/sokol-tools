@@ -44,6 +44,7 @@ sokol-shdc supports the following output formats:
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
 - D for integration with [sokol-d](https://github.com/kassane/sokol-d)
+- Jai (without separate sokol header bindings)
 - 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
 
 Error messages from `glslang` are mapped back to the original annotated
@@ -345,7 +346,8 @@ follows:
     - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
     - **sokol_nim**: generates output for the [sokol-nim bindings](https://github.com/floooh/sokol-nim)
     - **sokol_rust**: generates output for the [sokol-rust bindings](https://github.com/floooh/sokol-rust)
-    - **sokol_jai**: generates output for the [sokol-jai bindings](https://github.com/floooh/sokol-jai)
+    - **sokol_jai**: generates output for the Jai language (note that there are currently no auto-generated Jai bindings
+      for the sokol headers)
 
   Note that some options and features of sokol-shdc can be contradictory to
   (and thus, ignored by) backends. For example, the **bare** backend only
