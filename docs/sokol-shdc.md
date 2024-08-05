@@ -345,6 +345,7 @@ follows:
     - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
     - **sokol_nim**: generates output for the [sokol-nim bindings](https://github.com/floooh/sokol-nim)
     - **sokol_rust**: generates output for the [sokol-rust bindings](https://github.com/floooh/sokol-rust)
+    - **sokol_jai**: generates output for the [sokol-jai bindings](https://github.com/floooh/sokol-jai)
 
   Note that some options and features of sokol-shdc can be contradictory to
   (and thus, ignored by) backends. For example, the **bare** backend only

@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+#### **05-Aug-2024**
+
+A Jai code generator has been added courtesy of @NEO97online (see PR https://github.com/floooh/sokol-tools/pull/137).
+
 #### **01-Jul-2024**
 
 Fix a regression from the May-2024 refactoring:
