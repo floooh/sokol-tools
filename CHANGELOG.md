@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+#### **13-Aug-2024**
+
+Fixed a regression for an 'undocumented feature' (matrix vertex attributes).
+
+For details see issue https://github.com/floooh/sokol-tools/issues/141 and
+PR https://github.com/floooh/sokol-tools/pull/142.
+
+Many thanks to @danielchasehooper for reporting the issue!
+
 #### **05-Aug-2024**
 
 A Jai code generator has been added courtesy of @NEO97online (see PR https://github.com/floooh/sokol-tools/pull/137).
