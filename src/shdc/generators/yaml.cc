@@ -44,18 +44,16 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     l("entry_point: {}\n", refl.entry_point_by_slang(slang));
                     l_open("inputs:\n");
                     for (const auto& input: src->stage_refl.inputs) {
-                        if (input.slot == -1) {
-                            break;
+                        if (input.slot != -1) {
+                            gen_attr(input);
                         }
-                        gen_attr(input);
                     }
                     l_close();
                     l_open("outputs:\n");
                     for (const auto& output: src->stage_refl.outputs) {
-                        if (output.slot == -1) {
-                            break;
+                        if (output.slot != -1) {
+                            gen_attr(output);
                         }
-                        gen_attr(output);
                     }
                     l_close();
                     if (refl.bindings.uniform_blocks.size() > 0) {
