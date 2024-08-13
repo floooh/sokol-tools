@@ -130,9 +130,9 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
     l_open("uniforms:\n");
     if (ub.flattened) {
         l_open("-\n");
-        l("name: {}\n", ub.struct_info.struct_items[0].name);
+        l("name: {}\n", ub.struct_info.name);
         l("type: {}\n", flattened_uniform_type(ub.struct_info.struct_items[0].type));
-        l("array_count: {}\n", roundup(ub.struct_info.struct_items[0].size, 16) / 16);
+        l("array_count: {}\n", roundup(ub.struct_info.size, 16) / 16);
         l("offset: 0\n");
         l_close();
     } else {
