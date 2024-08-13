@@ -10,6 +10,11 @@ PR https://github.com/floooh/sokol-tools/pull/142.
 
 Many thanks to @danielchasehooper for reporting the issue!
 
+...and fixed another regression in the YAML reflection output. See
+PR https://github.com/floooh/sokol-tools/pull/143 for details.
+
+Many thanks to @allcreater for the PR!
+
 #### **05-Aug-2024**
 
 A Jai code generator has been added courtesy of @NEO97online (see PR https://github.com/floooh/sokol-tools/pull/137).
