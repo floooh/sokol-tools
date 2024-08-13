@@ -289,18 +289,17 @@ std::vector<StageAttr> Reflection::merge_vs_inputs(const std::vector<ProgramRefl
     out_error = ErrMsg();
     for (const ProgramReflection& prog: progs) {
         for (const StageAttr& attr: prog.vs().inputs) {
-            if (attr.slot == -1) {
-                break;
-            }
-            const StageAttr* other_attr = find_attr_by_name(out_attrs, attr.snippet_name, attr.name);
-            if (other_attr) {
-                // take snippet-name into account for equality check
-                if (!attr.equals(*other_attr, true)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting vertex shader attributes found for '{}/{}'", attr.snippet_name, attr.name));
-                    return std::vector<StageAttr>{};
+            if (attr.slot != -1) {
+                const StageAttr* other_attr = find_attr_by_name(out_attrs, attr.snippet_name, attr.name);
+                if (other_attr) {
+                    // take snippet-name into account for equality check
+                    if (!attr.equals(*other_attr, true)) {
+                        out_error = ErrMsg::error(fmt::format("conflicting vertex shader attributes found for '{}/{}'", attr.snippet_name, attr.name));
+                        return std::vector<StageAttr>{};
+                    }
+                } else {
+                    out_attrs.push_back(attr);
                 }
-            } else {
-                out_attrs.push_back(attr);
             }
         }
     }
