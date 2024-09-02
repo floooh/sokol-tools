@@ -63,6 +63,15 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                         }
                         l_close();
                     }
+                    if (gen.args.reflection) {
+                        if (refl.bindings.uniform_blocks.size() > 0) {
+                            l_open("uniform_blocks_refl:\n");
+                            for (const auto& uniform_block: refl.bindings.uniform_blocks) {
+                                gen_uniform_block_refl(uniform_block);
+                            }
+                            l_close();
+                        }
+                    }
                     if (refl.bindings.storage_buffers.size() > 0) {
                         l_open("storage_buffers:\n");
                         for (const auto& sbuf: refl.bindings.storage_buffers) {
@@ -144,6 +153,25 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
             l("offset: {}\n", u.offset);
             l_close();
         }
+    }
+    l_close();
+    l_close();
+}
+
+void YamlGenerator::gen_uniform_block_refl(const UniformBlock& ub) {
+    l_open("-\n");
+    l("slot: {}\n", ub.slot);
+    l("size: {}\n", roundup(ub.struct_info.size, 16));
+    l("struct_name: {}\n", ub.struct_info.name);
+    l("inst_name: {}\n", ub.inst_name);
+    l_open("uniforms:\n");
+    for (const Type& u: ub.struct_info.struct_items) {
+        l_open("-\n");
+        l("name: {}\n", u.name);
+        l("type: {}\n", uniform_type(u.type));
+        l("array_count: {}\n", u.array_count);
+        l("offset: {}\n", u.offset);
+        l_close();
     }
     l_close();
     l_close();
