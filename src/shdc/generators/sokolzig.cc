@@ -477,4 +477,174 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const Storage
     return fmt::format("pub const {} = {};", storage_buffer_bind_slot_name(sb), sb.slot);
 }
 
+void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}AttrSlot(const char* attr_name) int {{\n", to_camel_case(prog.name));
+    l("(void)attr_name;\n");
+    for (const StageAttr& attr: prog.vs().inputs) {
+        if (attr.slot >= 0) {
+            l_open("if (0 == strcmp(attr_name, \"{}\")) {{\n", attr.name);
+            l("return {};\n", attr.slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}ImageSlot(sg_shader_stage stage, const char* img_name) int {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)img_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.images.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const Image& img: refl.bindings.images) {
+                if (img.slot >= 0) {
+                    l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
+                    l("return {};\n", img.slot);
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}SamplerSlot(sg_shader_stage stage, const char* smp_name) int {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)smp_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.samplers.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const Sampler& smp: refl.bindings.samplers) {
+                if (smp.slot >= 0) {
+                    l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
+                    l("return {};\n", smp.slot);
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}UniformblockSlot(sg_shader_stage stage, const char* ub_name) int {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)ub_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+                    l("return {};\n", ub.slot);
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}UniformblockSize(sg_shader_stage stage, const char* ub_name) size_t {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)ub_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+                    l("return sizeof({});\n", struct_name(ub.struct_info.name));
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return 0;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}StoragebufferSlot(sg_shader_stage stage, const char* sbuf_name) int {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)sbuf_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.storage_buffers.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const StorageBuffer& sbuf: refl.bindings.storage_buffers) {
+                if (sbuf.slot >= 0) {
+                    l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.struct_info.name);
+                    l("return {};\n", sbuf.slot);
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}UniformOffset(sg_shader_stage stage, const char* ub_name, const char* u_name) int {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)ub_name; (void)u_name;\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+                    for (const Type& u: ub.struct_info.struct_items) {
+                        l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                        l("return {};\n", u.offset);
+                        l_close("}}\n");
+                    }
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}UniformDesc(sg_shader_stage stage, const char* ub_name, const char* u_name) sg_shader_uniform_desc {{\n", to_camel_case(prog.name));
+    l("(void)stage; (void)ub_name; (void)u_name;\n");
+    l("#if defined(__cplusplus)\n");
+    l("sg_shader_uniform_desc desc = {{}};\n");
+    l("#else\n");
+    l("sg_shader_uniform_desc desc = {{0}};\n");
+    l("#endif\n");
+    for (const StageReflection& refl: prog.stages) {
+        if (!refl.bindings.uniform_blocks.empty()) {
+            l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
+            for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
+                if (ub.slot >= 0) {
+                    l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+                    for (const Type& u: ub.struct_info.struct_items) {
+                        l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
+                        l("desc.name = \"{}\";\n", u.name);
+                        l("desc.type = {};\n", uniform_type(u.type));
+                        l("desc.array_count = {};\n", u.array_count);
+                        l("return desc;\n");
+                        l_close("}}\n");
+                    }
+                    l_close("}}\n");
+                }
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return desc;\n");
+    l_close("}}\n");
+}
+
 } // namespace
