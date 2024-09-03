@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+#### **03-Sep-2024**
+
+Merged PR https://github.com/floooh/sokol-tools/pull/146 which adds more detailed
+uniform block reflection info the the `bare_yaml` output's YAML file.
+
+Many thanks to @Interrupt for the PR!
+
 #### **13-Aug-2024**
 
 Fixed a regression for an 'undocumented feature' (matrix vertex attributes).
