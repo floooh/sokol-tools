@@ -59,7 +59,7 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     if (refl.bindings.uniform_blocks.size() > 0) {
                         l_open("uniform_blocks:\n");
                         for (const auto& uniform_block: refl.bindings.uniform_blocks) {
-                            gen_uniform_block(uniform_block);
+                            gen_uniform_block(gen, uniform_block);
                         }
                         l_close();
                     }
@@ -121,7 +121,7 @@ void YamlGenerator::gen_attr(const StageAttr& att) {
     l_close();
 }
 
-void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
+void YamlGenerator::gen_uniform_block(const GenInput& gen, const UniformBlock& ub) {
     l_open("-\n");
     l("slot: {}\n", ub.slot);
     l("size: {}\n", roundup(ub.struct_info.size, 16));
@@ -146,6 +146,22 @@ void YamlGenerator::gen_uniform_block(const UniformBlock& ub) {
         }
     }
     l_close();
+    if (gen.args.reflection) {
+        gen_uniform_block_refl(ub);
+    }
+    l_close();
+}
+
+void YamlGenerator::gen_uniform_block_refl(const UniformBlock& ub) {
+    l_open("members:\n");
+    for (const Type& u: ub.struct_info.struct_items) {
+        l_open("-\n");
+        l("name: {}\n", u.name);
+        l("type: {}\n", uniform_type(u.type));
+        l("array_count: {}\n", u.array_count);
+        l("offset: {}\n", u.offset);
+        l_close();
+    }
     l_close();
 }
 
