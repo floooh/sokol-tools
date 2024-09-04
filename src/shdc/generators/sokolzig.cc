@@ -652,7 +652,7 @@ void SokolZigGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const 
 }
 
 void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformDesc(stage: sg.ShaderStage, ub_name: []const u8, u_name: []const u8) sg.ShaderUniformDesc {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformDesc(stage: sg.ShaderStage, ub_name: []const u8, u_name: []const u8) ?sg.ShaderUniformDesc {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_ub_name = false;
     bool wrote_u_name = false;
@@ -684,7 +684,7 @@ void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Pr
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_ub_name) l("_ = ub_name;\n");
     if(!wrote_u_name) l("_ = u_name;\n");
-    l("return desc;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
