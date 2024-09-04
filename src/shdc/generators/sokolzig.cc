@@ -480,16 +480,16 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const Storage
 
 void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("pub fn {}AttrSlot(attr_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
-    if(prog.vs().inputs.size() == 0) {
-        l("_ = attr_name;\n");
-    }
+    bool wrote_attr_name = false;
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
             l_open("if (std.mem.eql(u8, attr_name, \"{}\")) {{\n", attr.name);
             l("return {};\n", attr.slot);
             l_close("}}\n");
+            wrote_attr_name = true;
         }
     }
+    if(!wrote_attr_name) l("_ = attr_name;\n");
     l("return null;\n");
     l_close("}}\n");
 }
@@ -657,7 +657,6 @@ void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Pr
     bool wrote_ub_name = false;
     bool wrote_u_name = false;
 
-    l("var desc: sg.ShaderUniformDesc = .{{}};\n");
     for (const StageReflection& refl: prog.stages) {
         if (!refl.bindings.uniform_blocks.empty()) {
             l_open("if (sg.ShaderStage.{} == stage) {{\n", pystring::upper(refl.stage_name));
@@ -668,6 +667,7 @@ void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Pr
                     wrote_ub_name = true;
                     for (const Type& u: ub.struct_info.struct_items) {
                         l_open("if (std.mem.eql(u8, u_name, \"{}\")) {{\n", u.name);
+                        l("var desc: sg.ShaderUniformDesc = .{{}};\n");
                         l("desc.name = \"{}\";\n", u.name);
                         l("desc.type = {};\n", uniform_type(u.type));
                         l("desc.array_count = {};\n", u.array_count);
