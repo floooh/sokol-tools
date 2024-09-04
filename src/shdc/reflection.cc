@@ -251,7 +251,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
-        // refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
+        refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
             return refl;
