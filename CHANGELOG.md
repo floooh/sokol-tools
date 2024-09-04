@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+#### **04-Sep-2024**
+
+The Zig code generator (`-f sokol_zig`) now generates runtime reflection functions
+when the cmdline arg `--reflection` is present.
+
+See issue https://github.com/floooh/sokol-tools/issues/117 and PR https://github.com/floooh/sokol-tools/pull/147.
+
+Many thanks to @Interrupt for the implementation!
+
 #### **03-Sep-2024**
 
 Merged PR https://github.com/floooh/sokol-tools/pull/146 which adds more detailed
