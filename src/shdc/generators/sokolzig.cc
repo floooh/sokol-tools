@@ -479,7 +479,7 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const Storage
 }
 
 void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}AttrSlot(attr_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}AttrSlot(attr_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     if(prog.vs().inputs.size() == 0) {
         l("_ = attr_name;\n");
     }
@@ -490,12 +490,12 @@ void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Progr
             l_close("}}\n");
         }
     }
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}ImageSlot(stage: sg.ShaderStage, img_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}ImageSlot(stage: sg.ShaderStage, img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_image = false;
     for (const StageReflection& refl: prog.stages) {
@@ -515,12 +515,12 @@ void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const Prog
     }
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_image) l("_ = img_name;\n");
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}SamplerSlot(stage: sg.ShaderStage, smp_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}SamplerSlot(stage: sg.ShaderStage, smp_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_smp = false;
     for (const StageReflection& refl: prog.stages) {
@@ -540,12 +540,12 @@ void SokolZigGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Pr
     }
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_smp) l("_ = smp_name;\n");
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformblockSlot(stage: sg.ShaderStage, ub_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformblockSlot(stage: sg.ShaderStage, ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_ub_name = false;
     for (const StageReflection& refl: prog.stages) {
@@ -565,12 +565,12 @@ void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, co
     }
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_ub_name) l("_ = ub_name;\n");
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformblockSize(stage: sg.ShaderStage, ub_name: []const u8) usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformblockSize(stage: sg.ShaderStage, ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_ub_name = false;
     for (const StageReflection& refl: prog.stages) {
@@ -590,12 +590,12 @@ void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, co
     }
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_ub_name) l("_ = ub_name;\n");
-    l("return 0;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}StoragebufferSlot(stage: sg.ShaderStage, sbuf_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}StoragebufferSlot(stage: sg.ShaderStage, sbuf_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_sbuf_name = false;
     for (const StageReflection& refl: prog.stages) {
@@ -615,12 +615,12 @@ void SokolZigGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, c
     }
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_sbuf_name) l("_ = sbuf_name;\n");
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
 void SokolZigGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformOffset(stage: sg.ShaderStage, ub_name: []const u8, u_name: []const u8) i32 {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformOffset(stage: sg.ShaderStage, ub_name: []const u8, u_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_stage = false;
     bool wrote_ub_name = false;
     bool wrote_u_name = false;
@@ -647,7 +647,7 @@ void SokolZigGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const 
     if(!wrote_stage) l("_ = stage;\n");
     if(!wrote_ub_name) l("_ = ub_name;\n");
     if(!wrote_u_name) l("_ = u_name;\n");
-    l("return -1;\n");
+    l("return null;\n");
     l_close("}}\n");
 }
 
