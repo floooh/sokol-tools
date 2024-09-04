@@ -118,6 +118,7 @@ void YamlGenerator::gen_attr(const StageAttr& att) {
     l("name: {}\n", att.name);
     l("sem_name: {}\n", att.sem_name);
     l("sem_index: {}\n", att.sem_index);
+    l("type: {}\n", uniform_type(att.type_info.type));
     l_close();
 }
 

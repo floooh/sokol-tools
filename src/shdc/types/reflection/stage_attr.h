@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "type.h"
 
 namespace shdc::refl {
 
@@ -10,6 +11,7 @@ struct StageAttr {
     std::string sem_name;
     int sem_index = 0;
     std::string snippet_name;
+    Type type_info;
 
     bool equals(const StageAttr& rhs, bool with_snippet_name) const;
     void dump_debug(const std::string& indent) const;
