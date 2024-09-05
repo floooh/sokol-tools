@@ -164,7 +164,7 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
-const Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) {
+Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) {
     const SPIRType& attr_type = compiler.get_type(res_attr.type_id);
     Type out;
     out.name = res_attr.name;
