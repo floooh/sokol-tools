@@ -164,6 +164,37 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
+const Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) {
+    const SPIRType& attr_type = compiler.get_type(res_attr.type_id);
+    Type out;
+    out.name = res_attr.name;
+    out.type = Type::Invalid;
+    uint32_t col_idx = attr_type.columns - 1;
+    uint32_t vec_idx = attr_type.vecsize - 1;
+    if ((col_idx < 4) && (vec_idx < 4)) {
+        switch (attr_type.basetype) {
+            case SPIRType::Boolean:
+                out.type = bool_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Int:
+                out.type = int_types[col_idx][vec_idx];
+                break;
+            case SPIRType::UInt:
+                out.type = uint_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Float:
+                out.type = float_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Struct:
+                out.type = Type::Struct;
+                break;
+            default:
+                break;
+        }
+    }
+    return out;
+}
+
 StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
@@ -197,36 +228,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
         refl_attr.snippet_name = snippet.name;
-
-        // get the attribute type!
-        const SPIRType& attr_type = compiler.get_type(res_attr.type_id);
-        Type out;
-        out.name = refl_attr.name;
-        out.type = Type::Invalid;
-        uint32_t col_idx = attr_type.columns - 1;
-        uint32_t vec_idx = attr_type.vecsize - 1;
-        if ((col_idx < 4) && (vec_idx < 4)) {
-            switch (attr_type.basetype) {
-                case SPIRType::Boolean:
-                    out.type = bool_types[col_idx][vec_idx];
-                    break;
-                case SPIRType::Int:
-                    out.type = int_types[col_idx][vec_idx];
-                    break;
-                case SPIRType::UInt:
-                    out.type = uint_types[col_idx][vec_idx];
-                    break;
-                case SPIRType::Float:
-                    out.type = float_types[col_idx][vec_idx];
-                    break;
-                case SPIRType::Struct:
-                    out.type = Type::Struct;
-                    break;
-                default:
-                    break;
-            }
-        }
-        refl_attr.type_info = out;
+        refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
 
         refl.inputs[refl_attr.slot] = refl_attr;
     }
@@ -237,8 +239,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
         refl_attr.snippet_name = snippet.name;
-
-        const SPIRType& attr_type = compiler.get_type(res_attr.type_id);
+        refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
 
         refl.outputs[refl_attr.slot] = refl_attr;
     }
