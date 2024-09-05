@@ -25,6 +25,32 @@ using namespace spirv_cross;
 
 namespace shdc::refl {
 
+static const Type::Enum bool_types[4][4] = {
+    { Type::Bool,    Type::Bool2,   Type::Bool3,   Type::Bool4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum int_types[4][4] = {
+    { Type::Int,     Type::Int2,    Type::Int3,    Type::Int4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum uint_types[4][4] = {
+    { Type::UInt,    Type::UInt2,   Type::UInt3,   Type::UInt4 },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
+};
+static const Type::Enum float_types[4][4] = {
+    { Type::Float,  Type::Float2, Type::Float3, Type::Float4 },
+    { Type::Mat2x1, Type::Mat2x2, Type::Mat2x3, Type::Mat2x4 },
+    { Type::Mat3x1, Type::Mat3x2, Type::Mat3x3, Type::Mat3x4 },
+    { Type::Mat4x1, Type::Mat4x2, Type::Mat4x3, Type::Mat4x4 },
+};
+
+
 // check that a program's vertex shader outputs match the fragment shader inputs
 // FIXME: this should also check the attribute's type
 static ErrMsg validate_linking(const Input& inp, const Program& prog, const ProgramReflection& prog_refl) {
@@ -138,6 +164,37 @@ static bool spirtype_to_image_multisampled(const SPIRType& type) {
     return type.image.ms;
 }
 
+const Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) {
+    const SPIRType& attr_type = compiler.get_type(res_attr.type_id);
+    Type out;
+    out.name = res_attr.name;
+    out.type = Type::Invalid;
+    uint32_t col_idx = attr_type.columns - 1;
+    uint32_t vec_idx = attr_type.vecsize - 1;
+    if ((col_idx < 4) && (vec_idx < 4)) {
+        switch (attr_type.basetype) {
+            case SPIRType::Boolean:
+                out.type = bool_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Int:
+                out.type = int_types[col_idx][vec_idx];
+                break;
+            case SPIRType::UInt:
+                out.type = uint_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Float:
+                out.type = float_types[col_idx][vec_idx];
+                break;
+            case SPIRType::Struct:
+                out.type = Type::Struct;
+                break;
+            default:
+                break;
+        }
+    }
+    return out;
+}
+
 StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
@@ -171,6 +228,8 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
         refl_attr.snippet_name = snippet.name;
+        refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
+
         refl.inputs[refl_attr.slot] = refl_attr;
     }
     for (const Resource& res_attr: shd_resources.stage_outputs) {
@@ -180,6 +239,8 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
         refl_attr.snippet_name = snippet.name;
+        refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
+
         refl.outputs[refl_attr.slot] = refl_attr;
     }
     // uniform blocks
@@ -383,31 +444,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
     }
     return out_bindings;
 }
-
-static const Type::Enum bool_types[4][4] = {
-    { Type::Bool,    Type::Bool2,   Type::Bool3,   Type::Bool4 },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-};
-static const Type::Enum int_types[4][4] = {
-    { Type::Int,     Type::Int2,    Type::Int3,    Type::Int4 },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-};
-static const Type::Enum uint_types[4][4] = {
-    { Type::UInt,    Type::UInt2,   Type::UInt3,   Type::UInt4 },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-    { Type::Invalid, Type::Invalid, Type::Invalid, Type::Invalid },
-};
-static const Type::Enum float_types[4][4] = {
-    { Type::Float,  Type::Float2, Type::Float3, Type::Float4 },
-    { Type::Mat2x1, Type::Mat2x2, Type::Mat2x3, Type::Mat2x4 },
-    { Type::Mat3x1, Type::Mat3x2, Type::Mat3x3, Type::Mat3x4 },
-    { Type::Mat4x1, Type::Mat4x2, Type::Mat4x3, Type::Mat4x4 },
-};
 
 Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_id, const TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error) {
     const SPIRType& base_type = compiler.get_type(base_type_id);
