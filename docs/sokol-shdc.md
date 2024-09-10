@@ -658,7 +658,7 @@ arguments:
 Currently, `@glsl_options`, `@hlsl_options` and `@msl_options` are only
 allowed inside `@vs, @end` blocks.
 
-Example from the [mrt-sapp sample](https://floooh.github.io/sokol-html5/wasm/mrt-sapp.html),
+Example from the [mrt-sapp sample](https://floooh.github.io/sokol-html5/mrt-sapp.html),
 this renders a fullscreen-quad to blit an offscreen-render-target image to screen,
 which should be flipped vertically for GLSL targets:
 
