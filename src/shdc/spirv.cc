@@ -224,6 +224,48 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
         return false;
     }
 
+    // do intermediate reflection to figure out number of uniform blocks, textures and samplers
+    // in each shader stage
+    fmt::print("---\n");
+    if (program.buildReflection(EShReflectionSeparateBuffers)) {
+        for (int i = 0; i < program.getNumUniformVariables(); i++) {
+            const auto& uniform = program.getUniform(i);
+            if (uniform.getType()->isTexture()) {
+                fmt::print("texture:\n");
+            } else if (uniform.getType()->getSampler().sampler) {
+                fmt::print("sampler:\n");
+            } else {
+                continue;
+            }
+            fmt::print("  name: {}\n", uniform.name);
+            if (uniform.stages & EShLangVertexMask) {
+                fmt::print("  stage: vertex\n");
+            } else if (uniform.stages & EShLangFragmentMask) {
+                fmt::print("  stage: fragment\n");
+            }
+        }
+        for (int i = 0; i < program.getNumUniformBlocks(); i++) {
+            const auto& ub = program.getUniformBlock(i);
+            fmt::print("uniform block:\n");
+            fmt::print("  name: {}\n", ub.name);
+            if (ub.stages & EShLangVertexMask) {
+                fmt::print("  stage: vertex\n");
+            } else if (ub.stages & EShLangFragmentMask) {
+                fmt::print("  stage: fragment\n");
+            }
+        }
+        for (int i = 0; i < program.getNumBufferBlocks(); i++) {
+            const auto& bb = program.getBufferBlock(i);
+            fmt::print("buffer block:\n");
+            fmt::print("  name: {}\n", bb.name);
+            if (bb.stages & EShLangVertexMask) {
+                fmt::print("  stage: vertex\n");
+            } else if (bb.stages & EShLangFragmentMask) {
+                fmt::print("  stage: fragment\n");
+            }
+        }
+    }
+
     // translate intermediate representation to SPIRV
     const glslang::TIntermediate* im = program.getIntermediate(stage);
     assert(im);
