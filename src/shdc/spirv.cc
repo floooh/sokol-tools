@@ -189,6 +189,8 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     const char* sourcesNames[1] = { inp.base_path.c_str() };
     const int linenr_offset = source.linenr_offset;
 
+    SpirvBlob spirv_blob = SpirvBlob(snippet_index);
+
     // compile GLSL vertex- or fragment-shader
     glslang::TShader shader(stage);
     // FIXME: add custom defines here: compiler.addProcess(...)
@@ -224,45 +226,19 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
         return false;
     }
 
-    // do intermediate reflection to figure out number of uniform blocks, textures and samplers
-    // in each shader stage
-    fmt::print("---\n");
-    if (program.buildReflection(EShReflectionSeparateBuffers)) {
-        for (int i = 0; i < program.getNumUniformVariables(); i++) {
-            const auto& uniform = program.getUniform(i);
-            if (uniform.getType()->isTexture()) {
-                fmt::print("texture:\n");
-            } else if (uniform.getType()->getSampler().sampler) {
-                fmt::print("sampler:\n");
-            } else {
-                continue;
-            }
-            fmt::print("  name: {}\n", uniform.name);
-            if (uniform.stages & EShLangVertexMask) {
-                fmt::print("  stage: vertex\n");
-            } else if (uniform.stages & EShLangFragmentMask) {
-                fmt::print("  stage: fragment\n");
-            }
-        }
-        for (int i = 0; i < program.getNumUniformBlocks(); i++) {
-            const auto& ub = program.getUniformBlock(i);
-            fmt::print("uniform block:\n");
-            fmt::print("  name: {}\n", ub.name);
-            if (ub.stages & EShLangVertexMask) {
-                fmt::print("  stage: vertex\n");
-            } else if (ub.stages & EShLangFragmentMask) {
-                fmt::print("  stage: fragment\n");
-            }
-        }
-        for (int i = 0; i < program.getNumBufferBlocks(); i++) {
-            const auto& bb = program.getBufferBlock(i);
-            fmt::print("buffer block:\n");
-            fmt::print("  name: {}\n", bb.name);
-            if (bb.stages & EShLangVertexMask) {
-                fmt::print("  stage: vertex\n");
-            } else if (bb.stages & EShLangFragmentMask) {
-                fmt::print("  stage: fragment\n");
-            }
+    // extract limited reflection info needed for bind slot mapping
+    if (!program.buildReflection(EShReflectionSeparateBuffers)) {
+        fmt::print("TProgram.buildReflection(EShReflectionSeparateBuffers) failed!\n");
+        return false;
+    }
+    spirv_blob.num_uniform_blocks = program.getNumUniformBlocks();
+    spirv_blob.num_storage_buffers = program.getNumBufferBlocks();
+    for (int i = 0; i < program.getNumUniformVariables(); i++) {
+        const auto uniform_type = program.getUniform(i).getType();
+        if (uniform_type->isTexture()) {
+            spirv_blob.num_images += 1;
+        } else if (uniform_type->getSampler().sampler) {
+            spirv_blob.num_samplers += 1;
         }
     }
 
@@ -280,17 +256,19 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     spv_options.validate = false;
     spv_options.emitNonSemanticShaderDebugInfo = false;
     spv_options.emitNonSemanticShaderDebugSource = false;
-    out_spirv.blobs.push_back(SpirvBlob(snippet_index));
-    out_spirv.blobs.back().source = source.src;
-    glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
+    spirv_blob.source = source.src;
+    glslang::GlslangToSpv(*im, spirv_blob.bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
         // FIXME: need to parse string for errors and translate to ErrMsg objects?
         // haven't seen a case yet where this generates log messages
-        fmt::print("{}", spirv_log);
+        fmt::print(stderr, "{}", spirv_log);
     }
     // run optimizer passes
-    spirv_optimize(slang, out_spirv.blobs.back().bytecode);
+    spirv_optimize(slang, spirv_blob.bytecode);
+
+    // and done
+    out_spirv.blobs.push_back(spirv_blob);
     return true;
 }
 
@@ -369,7 +347,12 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
         fmt::print(stderr, "  errors: none\n\n");
     }
     for (const SpirvBlob& blob : blobs) {
-        fmt::print(stderr, "  source for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  snippet: {}\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  uniform blocks: {}\n", blob.num_uniform_blocks);
+        fmt::print(stderr, "  images: {}\n", blob.num_images);
+        fmt::print(stderr, "  samplers: {}\n", blob.num_samplers);
+        fmt::print(stderr, "  storage buffers: {}\n", blob.num_storage_buffers);
+        fmt::print(stderr, "  source:\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);
         for (const std::string& src_line: src_lines) {
@@ -377,7 +360,7 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
         }
         fmt::print(stderr, "\n");
 
-        fmt::print(stderr, "  SPIR-V for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  spirv:\n", inp.snippets[blob.snippet_index].name);
         spvtools::SpirvTools spirv_tools(SPV_ENV_OPENGL_4_5);
         std::string dasm_str;
         spirv_tools.Disassemble(blob.bytecode, &dasm_str, spvtools::SpirvTools::kDefaultDisassembleOption);
