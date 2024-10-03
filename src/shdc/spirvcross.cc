@@ -43,6 +43,9 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
     }
 
     // combined image samplers
+    // FIXME: technically this is wrong since image-samplers have a common
+    // bind space across shader stages, but since the binding happens via
+    // name lookup the DecorationBinding is actually ignored.
     {
         uint32_t binding = 0;
         for (const Resource& res: shader_resources.sampled_images) {

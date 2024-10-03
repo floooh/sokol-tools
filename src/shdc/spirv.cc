@@ -226,22 +226,6 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
         return false;
     }
 
-    // extract limited reflection info needed for bind slot mapping
-    if (!program.buildReflection(EShReflectionSeparateBuffers)) {
-        fmt::print("TProgram.buildReflection(EShReflectionSeparateBuffers) failed!\n");
-        return false;
-    }
-    spirv_blob.num_uniform_blocks = program.getNumUniformBlocks();
-    spirv_blob.num_storage_buffers = program.getNumBufferBlocks();
-    for (int i = 0; i < program.getNumUniformVariables(); i++) {
-        const auto uniform_type = program.getUniform(i).getType();
-        if (uniform_type->isTexture()) {
-            spirv_blob.num_images += 1;
-        } else if (uniform_type->getSampler().sampler) {
-            spirv_blob.num_samplers += 1;
-        }
-    }
-
     // translate intermediate representation to SPIRV
     const glslang::TIntermediate* im = program.getIntermediate(stage);
     assert(im);
@@ -348,10 +332,6 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
     }
     for (const SpirvBlob& blob : blobs) {
         fmt::print(stderr, "  snippet: {}\n", inp.snippets[blob.snippet_index].name);
-        fmt::print(stderr, "  uniform blocks: {}\n", blob.num_uniform_blocks);
-        fmt::print(stderr, "  images: {}\n", blob.num_images);
-        fmt::print(stderr, "  samplers: {}\n", blob.num_samplers);
-        fmt::print(stderr, "  storage buffers: {}\n", blob.num_storage_buffers);
         fmt::print(stderr, "  source:\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);
