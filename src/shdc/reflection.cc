@@ -74,8 +74,9 @@ static ErrMsg validate_linking(const Input& inp, const Program& prog, const Prog
 Reflection Reflection::build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross_array) {
     Reflection res;
 
-    // for each program, just pick the reflection info from the first compiled slang
-    // FIXME: we should check whether the reflection info of all compiled slangs actually matches
+    // for each program, just pick the reflection info from the first compiled slang,
+    // the reflection info is the same for each Slang because it has been generated
+    // with the special Slang::REFLECTION, not the actual slang.
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);

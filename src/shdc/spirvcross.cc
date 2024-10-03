@@ -31,7 +31,13 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
 }
 
 static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum slang) {
+    // WGSL bindslot fixup is handled elsewhere
+    // Also note that this function can be called with the special Slang::REFLECTION
+    // which guarantees zero-based bindings for each resource type
+    assert(!Slang::is_wgsl(slang));
     ShaderResources shader_resources = compiler.get_shader_resources();
+
+FIXME: use the new Reflection::binding_base() helper function
 
     // uniform buffers
     {
@@ -43,11 +49,17 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
     }
 
     // combined image samplers
-    // FIXME: technically this is wrong since image-samplers have a common
-    // bind space across shader stages, but since the binding happens via
-    // name lookup the DecorationBinding is actually ignored.
     {
-        uint32_t binding = 0;
+        uint32_t binding;
+        if (Slang::is_glsl(slang)) {
+            // GLSL has a common bind space across shader stages, so make sure
+            // that bindings can't collide.
+            // NOTE though that currently that binding isn't used by sokol-gfx
+            // because image-samplers use name-lookup
+            binding = Snippet::is_vs(type) ? 0 : ImageSampler::Num;
+        } else {
+            binding = 0;
+        }
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -76,17 +88,17 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
     {
         uint32_t binding;
         if (Slang::is_msl(slang)) {
-            // in Metal, on the vertex stage, storage buffers are bound after uniform- and vertex-buffers,
-            // and on the fragment stage, after the uniform buffers
-            binding = Snippet::is_vs(type) ? 12 : 4;
+            // in Metal, all buffers have a common bind space per stage,
+            // bind storage buffers after uniform buffers
+            binding = UniformBlock::Num;
         } else if (Slang::is_hlsl(slang)) {
-            // in D3D11, storage buffers share bind slots with textures, put textures into
-            // the first 16 slots, and storage buffers starting at slot 16
-            binding = 16;
+            // in D3D11, textures and storage buffers have a common bind space
+            // per stage, bind storage buffers after textures
+            binding = Image::Num;
         } else if (Slang::is_glsl(slang)) {
             // in GL, the shader stages share a common bind space, need to offset
             // fragment bindings
-            binding = Snippet::is_vs(type) ? 0 : 8;
+            binding = Snippet::is_vs(type) ? 0 : StorageBuffer::Num;
         } else {
             binding = 0;
         }
@@ -103,25 +115,30 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
-    // WGPU bindgroups and binding offsets are hardwired:
+    // even though sokol-gfx is flexible now, still use specific
+    // bind slot ranges here:
+    //
     //  - bindgroup 0 for uniform buffer bindings
     //      - vertex stage bindings start at 0
-    //      - fragment stage bindings start at 4
+    //      - fragment stage bindings start at UniformBlock::Num (8)
     //  - bindgroup 1 for all images, samplers and storage buffers
     //      - vertex stage image bindings start at 0
-    //      - vertex stage sampler bindings start at 16
-    //      - vertex stage storage buffer bindings start at 32
-    //      - fragment stage image bindings start at 48
-    //      - fragment stage sampler bindings start at 64
-    //      - fragment stage storage buffer bindings start at 80
+    //      - vertex stage sampler bindings start at Image::Num (16)
+    //      - vertex stage storage buffer bindings start at Image::Num + Sampler::Num (32)
+    //      - fragment stage image bindings start at 64
+    //      - fragment stage sampler bindings start at 64 + Image::Num (80)
+    //      - fragment stage storage buffer bindings start at 64 + Image::Num + Sampler::Num (96)
+
+FIXME: use the new Reflection::binding_base() helper function instead
+
     const uint32_t wgsl_vs_ub_bind_offset = 0;
-    const uint32_t wgsl_fs_ub_bind_offset = 4;
+    const uint32_t wgsl_fs_ub_bind_offset = UniformBlock::Num;
     const uint32_t wgsl_vs_img_bind_offset = 0;
-    const uint32_t wgsl_vs_smp_bind_offset = 16;
-    const uint32_t wgsl_vs_sbuf_bind_offset = 32;
-    const uint32_t wgsl_fs_img_bind_offset = 48;
-    const uint32_t wgsl_fs_smp_bind_offset = 64;
-    const uint32_t wgsl_fs_sbuf_bind_offset = 80;
+    const uint32_t wgsl_vs_smp_bind_offset = Image::Num;
+    const uint32_t wgsl_vs_sbuf_bind_offset = Image::Num + Sampler::Num;
+    const uint32_t wgsl_fs_img_bind_offset = 64;
+    const uint32_t wgsl_fs_smp_bind_offset = 64 + Image::Num;
+    const uint32_t wgsl_fs_sbuf_bind_offset = 64 + Image::Num + Sampler::Num;
 
     const uint32_t ub_bindgroup = 0;
     const uint32_t res_bindgroup = 1;
@@ -129,7 +146,6 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
     uint32_t cur_image_binding = Snippet::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
     uint32_t cur_sampler_binding = Snippet::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
     uint32_t cur_sbuf_binding = Snippet::is_vs(type) ? wgsl_vs_sbuf_bind_offset : wgsl_fs_sbuf_bind_offset;
-
 
     // uniform buffers
     {
@@ -315,6 +331,9 @@ static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, c
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
+    // passing Slang::REFLECTION here makes sure that the bind slots
+    // are zero-based per stage and resource type (otherwise 3D API
+    // specific bind slot allocations would apply)
     fix_bind_slots(compiler, snippet.type, Slang::REFLECTION);
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!

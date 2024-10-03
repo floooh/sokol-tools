@@ -7,7 +7,7 @@
 namespace shdc::refl {
 
 struct Sampler {
-    static const int Num = 12;      // must be identical with SG_MAX_SHADERSTAGE_SAMPLERS
+    static const int Num = 16; // must be identical with SG_MAX_SAMPLER_BINDSLOTS
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     std::string name;

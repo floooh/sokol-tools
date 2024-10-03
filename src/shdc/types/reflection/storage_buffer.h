@@ -7,7 +7,7 @@
 namespace shdc::refl {
 
 struct StorageBuffer {
-    static const int Num = 8;   // must be identical with SG_MAX_SHADERSTAGE_STORAGE_BUFFERS
+    static const int Num = 8; // must be identical with SG_MAX_STORAGEBUFFER_BINDSLOTS
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     std::string inst_name;

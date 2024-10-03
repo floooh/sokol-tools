@@ -7,7 +7,7 @@ namespace shdc::refl {
 
 // special combined-image-samplers for GLSL output with GL semantics
 struct ImageSampler {
-    static const int Num = 12;      // must be identical with SG_MAX_SHADERSTAGE_IMAGES
+    static const int Num = 16; // must be identical with SG_MAX_IMAGE_SAMPLER_PAIRS
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int slot = -1;
     std::string name;

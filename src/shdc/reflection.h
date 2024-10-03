@@ -24,6 +24,9 @@ struct Reflection {
     static Reflection build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross);
     // parse per-snippet reflection info for a compiled shader source
     static StageReflection parse_snippet_reflection(const spirv_cross::Compiler& compiler, const Snippet& snippet, ErrMsg& out_error);
+
+FIXME: add a static helper function which returns binding base by slang, stage and resource type
+
     // print a debug dump to stderr
     void dump_debug(ErrMsg::Format err_fmt) const;
 
