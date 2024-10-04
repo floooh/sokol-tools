@@ -240,7 +240,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
                 l("{}.entry = \"{}\";\n", dsn, refl.entry_point_by_slang(slang));
-                for (int ub_index = 0; ub_index < UniformBlock::Num; ub_index++) {
+                for (int ub_index = 0; ub_index < Bindings::MaxUniformBlocks; ub_index++) {
                     const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
@@ -264,7 +264,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         }
                     }
                 }
-                for (int sbuf_index = 0; sbuf_index < StorageBuffer::Num; sbuf_index++) {
+                for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBuffers; sbuf_index++) {
                     const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
                     if (sbuf) {
                         const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
@@ -272,7 +272,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     }
                 }
-                for (int img_index = 0; img_index < Image::Num; img_index++) {
+                for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
                     const Image* img = refl.bindings.find_image_by_slot(img_index);
                     if (img) {
                         const std::string in = fmt::format("{}.images[{}]", dsn, img_index);
@@ -282,7 +282,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.sample_type = {};\n", in, image_sample_type(img->sample_type));
                     }
                 }
-                for (int smp_index = 0; smp_index < Sampler::Num; smp_index++) {
+                for (int smp_index = 0; smp_index < Bindings::MaxSamplers; smp_index++) {
                     const Sampler* smp = refl.bindings.find_sampler_by_slot(smp_index);
                     if (smp) {
                         const std::string sn = fmt::format("{}.samplers[{}]", dsn, smp_index);
@@ -290,7 +290,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.sampler_type = {};\n", sn, sampler_type(smp->type));
                     }
                 }
-                for (int img_smp_index = 0; img_smp_index < ImageSampler::Num; img_smp_index++) {
+                for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
                     const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_slot(img_smp_index);
                     if (img_smp) {
                         const std::string isn = fmt::format("{}.image_sampler_pairs[{}]", dsn, img_smp_index);

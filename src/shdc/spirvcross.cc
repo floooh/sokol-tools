@@ -30,18 +30,17 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
     return nullptr;
 }
 
-static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum slang) {
+static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang::Enum slang) {
     // WGSL bindslot fixup is handled elsewhere
     // Also note that this function can be called with the special Slang::REFLECTION
     // which guarantees zero-based bindings for each resource type
     assert(!Slang::is_wgsl(slang));
     ShaderResources shader_resources = compiler.get_shader_resources();
-
-FIXME: use the new Reflection::binding_base() helper function
+    ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
 
     // uniform buffers
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
         for (const Resource& res: shader_resources.uniform_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -50,16 +49,7 @@ FIXME: use the new Reflection::binding_base() helper function
 
     // combined image samplers
     {
-        uint32_t binding;
-        if (Slang::is_glsl(slang)) {
-            // GLSL has a common bind space across shader stages, so make sure
-            // that bindings can't collide.
-            // NOTE though that currently that binding isn't used by sokol-gfx
-            // because image-samplers use name-lookup
-            binding = Snippet::is_vs(type) ? 0 : ImageSampler::Num;
-        } else {
-            binding = 0;
-        }
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE_SAMPLER);
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -68,7 +58,7 @@ FIXME: use the new Reflection::binding_base() helper function
 
     // separate images
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
         for (const Resource& res: shader_resources.separate_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -77,7 +67,7 @@ FIXME: use the new Reflection::binding_base() helper function
 
     // separate samplers
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
         for (const Resource& res: shader_resources.separate_samplers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -86,22 +76,7 @@ FIXME: use the new Reflection::binding_base() helper function
 
     // storage buffers
     {
-        uint32_t binding;
-        if (Slang::is_msl(slang)) {
-            // in Metal, all buffers have a common bind space per stage,
-            // bind storage buffers after uniform buffers
-            binding = UniformBlock::Num;
-        } else if (Slang::is_hlsl(slang)) {
-            // in D3D11, textures and storage buffers have a common bind space
-            // per stage, bind storage buffers after textures
-            binding = Image::Num;
-        } else if (Slang::is_glsl(slang)) {
-            // in GL, the shader stages share a common bind space, need to offset
-            // fragment bindings
-            binding = Snippet::is_vs(type) ? 0 : StorageBuffer::Num;
-        } else {
-            binding = 0;
-        }
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
         for (const Resource& res: shader_resources.storage_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -112,43 +87,16 @@ FIXME: use the new Reflection::binding_base() helper function
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
-
-    // even though sokol-gfx is flexible now, still use specific
-    // bind slot ranges here:
-    //
-    //  - bindgroup 0 for uniform buffer bindings
-    //      - vertex stage bindings start at 0
-    //      - fragment stage bindings start at UniformBlock::Num (8)
-    //  - bindgroup 1 for all images, samplers and storage buffers
-    //      - vertex stage image bindings start at 0
-    //      - vertex stage sampler bindings start at Image::Num (16)
-    //      - vertex stage storage buffer bindings start at Image::Num + Sampler::Num (32)
-    //      - fragment stage image bindings start at 64
-    //      - fragment stage sampler bindings start at 64 + Image::Num (80)
-    //      - fragment stage storage buffer bindings start at 64 + Image::Num + Sampler::Num (96)
-
-FIXME: use the new Reflection::binding_base() helper function instead
-
-    const uint32_t wgsl_vs_ub_bind_offset = 0;
-    const uint32_t wgsl_fs_ub_bind_offset = UniformBlock::Num;
-    const uint32_t wgsl_vs_img_bind_offset = 0;
-    const uint32_t wgsl_vs_smp_bind_offset = Image::Num;
-    const uint32_t wgsl_vs_sbuf_bind_offset = Image::Num + Sampler::Num;
-    const uint32_t wgsl_fs_img_bind_offset = 64;
-    const uint32_t wgsl_fs_smp_bind_offset = 64 + Image::Num;
-    const uint32_t wgsl_fs_sbuf_bind_offset = 64 + Image::Num + Sampler::Num;
-
+    const ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
+    const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
-    const uint32_t res_bindgroup = 1;
-    uint32_t cur_ub_binding = Snippet::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
-    uint32_t cur_image_binding = Snippet::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
-    uint32_t cur_sampler_binding = Snippet::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
-    uint32_t cur_sbuf_binding = Snippet::is_vs(type) ? wgsl_vs_sbuf_bind_offset : wgsl_fs_sbuf_bind_offset;
+    const uint32_t img_smp_sbuf_bindgroup = 1;
 
     // uniform buffers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
         for (const Resource& res: shader_resources.uniform_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -157,8 +105,7 @@ FIXME: use the new Reflection::binding_base() helper function instead
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_ub_binding;
-                cur_ub_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -167,16 +114,16 @@ FIXME: use the new Reflection::binding_base() helper function instead
 
     // separate images
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_image_binding;
-                cur_image_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -185,16 +132,16 @@ FIXME: use the new Reflection::binding_base() helper function instead
 
     // separate samplers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_sampler_binding;
-                cur_sampler_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -203,16 +150,16 @@ FIXME: use the new Reflection::binding_base() helper function instead
 
     // storage buffers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
         for (const Resource& res: shader_resources.storage_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_sbuf_binding;
-                cur_sbuf_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }

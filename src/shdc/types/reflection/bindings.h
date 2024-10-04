@@ -8,11 +8,34 @@
 namespace shdc::refl {
 
 struct Bindings {
+    // keep these in sync with:
+    //  - SG_MAX_UNIFORMBLOCK_BINDSLOTS
+    //  - SG_MAX_IMAGE_BINDSLOTS
+    //  - SG_MAX_SAMPLER_BINDSLOTS
+    //  - SG_MAX_STORAGEBUFFER_BINDSLOTS
+    //  - SG_MAX_IMAGE_SAMPLERS_PAIRS
+    //
+    static const int MaxUniformBlocks = 8;
+    static const int MaxImages = 16;
+    static const int MaxSamplers = 16;
+    static const int MaxStorageBuffers = 8;
+    static const int MaxImageSamplers = 16;
+
+    enum Type {
+        UNIFORM_BLOCK,
+        IMAGE,
+        SAMPLER,
+        STORAGE_BUFFER,
+        IMAGE_SAMPLER,
+    };
+
     std::vector<UniformBlock> uniform_blocks;
     std::vector<StorageBuffer> storage_buffers;
     std::vector<Image> images;
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
+
+    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type);
 
     const UniformBlock* find_uniform_block_by_slot(int slot) const;
     const StorageBuffer* find_storage_buffer_by_slot(int slot) const;
@@ -28,6 +51,58 @@ struct Bindings {
 
     void dump_debug(const std::string& indent) const;
 };
+
+// returns the 3D API specific base-binding slot for a shader dialect, stage and resource type
+// NOTE: the special Slang::REFLECTION always returns zero, this can be used
+// to figure out the sokol-gfx bindslots
+inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type) {
+    int res = 0;
+    switch (type) {
+        case Type::UNIFORM_BLOCK:
+            if (Slang::is_wgsl(slang)) {
+                res = ShaderStage::is_vs(stage) ? 0 : MaxUniformBlocks;
+            }
+            break;
+        case Type::IMAGE_SAMPLER:
+            if (Slang::is_glsl(slang)) {
+                res = ShaderStage::is_vs(stage) ? 0 : MaxImageSamplers;
+            }
+        case Type::IMAGE:
+            if (Slang::is_wgsl(slang)) {
+                if (ShaderStage::is_fs(stage)) {
+                    res += 64;
+                }
+            }
+            break;
+        case Type::SAMPLER:
+            if (Slang::is_wgsl(slang)) {
+                res = MaxImages;
+                if (ShaderStage::is_fs(stage)) {
+                    res += 64;
+                }
+            }
+            break;
+        case Type::STORAGE_BUFFER:
+            if (Slang::is_msl(slang)) {
+                res = MaxUniformBlocks;
+            } else if (Slang::is_hlsl(slang)) {
+                res = MaxImages;
+            } else if (Slang::is_glsl(slang)) {
+                if (ShaderStage::is_fs(stage)) {
+                    res = MaxStorageBuffers;
+                }
+            } else if (Slang::is_wgsl(slang)) {
+                res = MaxImages + MaxSamplers;
+                if (ShaderStage::is_fs(stage)) {
+                    res += 64;
+                }
+            } else if (Slang::is_glsl(slang)) {
+
+            }
+            break;
+    }
+    return res;
+}
 
 inline const UniformBlock* Bindings::find_uniform_block_by_slot(int slot) const {
     for (const UniformBlock& ub: uniform_blocks) {

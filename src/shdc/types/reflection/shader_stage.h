@@ -1,4 +1,5 @@
 #pragma once
+#include "types/snippet.h"
 
 namespace shdc::refl {
 
@@ -12,6 +13,7 @@ struct ShaderStage {
     };
     static const char* to_str(Enum e);
     static Enum from_index(int idx);
+    static Enum from_snippet_type(Snippet::Type t);
     static bool is_vs(Enum e);
     static bool is_fs(Enum e);
 };
@@ -21,6 +23,14 @@ inline const char* ShaderStage::to_str(ShaderStage::Enum e) {
         case Vertex: return "VS";
         case Fragment: return "FS";
         default: return "INVALID";
+    }
+}
+
+inline ShaderStage::Enum ShaderStage::from_snippet_type(Snippet::Type t) {
+    switch (t) {
+        case Snippet::Type::VS: return ShaderStage::Vertex;
+        case Snippet::Type::FS: return ShaderStage::Fragment;
+        default: return ShaderStage::Vertex;
     }
 }
 
