@@ -3,6 +3,7 @@
 */
 #include "reflection.h"
 #include "spirvcross.h"
+#include "types/reflection/bindings.h"
 
 // workaround for Compiler.comparison_ids being protected
 class UnprotectedCompiler: spirv_cross::Compiler {
@@ -246,9 +247,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
+        const int slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        const Bindings::Type res_type = Bindings::Type::UNIFORM_BLOCK;
         UniformBlock refl_ub;
         refl_ub.stage = refl.stage;
-        refl_ub.slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
+        refl_ub.slot = slot;
+        refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
@@ -264,9 +270,15 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // storage buffers
     for (const Resource& sbuf_res: shd_resources.storage_buffers) {
+        const int slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
+        const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
         StorageBuffer refl_sbuf;
         refl_sbuf.stage = refl.stage;
-        refl_sbuf.slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
+        refl_sbuf.slot = slot;
+        refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_sbuf.glsl_binding_n = slot + Bindings::base_slot(Slang::GLSL430, refl.stage, res_type);
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
         refl_sbuf.readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         if (refl_sbuf.inst_name.empty()) {
@@ -281,9 +293,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
 
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
+        const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+        const Bindings::Type res_type = Bindings::Type::IMAGE;
         Image refl_img;
         refl_img.stage = refl.stage;
-        refl_img.slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
+        refl_img.slot = slot;
+        refl_img.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_img.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_img.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         refl_img.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_img.type = spirtype_to_image_type(img_type);
@@ -297,10 +314,15 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
+        const int slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
+        const Bindings::Type res_type = Bindings::Type::SAMPLER;
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         Sampler refl_smp;
         refl_smp.stage = refl.stage;
-        refl_smp.slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
+        refl_smp.slot = slot;
+        refl_smp.hlsl_register_s_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_smp.msl_sampler_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_smp.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         refl_smp.name = smp_res.name;
         // HACK ALERT!
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
