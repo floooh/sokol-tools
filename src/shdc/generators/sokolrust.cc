@@ -444,40 +444,40 @@ std::string SokolRustGenerator::vertex_attr_name(const StageAttr& attr) {
     return pystring::upper(fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name));
 }
 
-std::string SokolRustGenerator::image_bind_slot_name(const Image& img) {
-    return pystring::upper(fmt::format("SLOT_{}", img.name));
+std::string SokolRustGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
+    return pystring::upper(fmt::format("IMG_{}_{}", prog_name, img.name));
 }
 
-std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
-    return pystring::upper(fmt::format("SLOT_{}", smp.name));
+std::string SokolRustGenerator::sampler_bind_slot_name(const std::string& prog_name, const Sampler& smp) {
+    return pystring::upper(fmt::format("SMP_{}_{}", prog_name, smp.name));
 }
 
-std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return pystring::upper(fmt::format("SLOT_{}", ub.struct_info.name));
+std::string SokolRustGenerator::uniform_block_bind_slot_name(const std::string& prog_name, const UniformBlock& ub) {
+    return pystring::upper(fmt::format("UB_{}_{}", prog_name, ub.struct_info.name));
 }
 
-std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return pystring::upper(fmt::format("SLOT_{}", sbuf.struct_info.name));
+std::string SokolRustGenerator::storage_buffer_bind_slot_name(const std::string& prog_name, const StorageBuffer& sbuf) {
+    return pystring::upper(fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name));
 }
 
 std::string SokolRustGenerator::vertex_attr_definition(const StageAttr& attr) {
     return fmt::format("pub const {}: usize = {};", vertex_attr_name(attr), attr.slot);
 }
 
-std::string SokolRustGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(img), img.slot);
+std::string SokolRustGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
+    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(prog_name, img), img.slot);
 }
 
-std::string SokolRustGenerator::sampler_bind_slot_definition(const Sampler& smp) {
-    return fmt::format("pub const {}: usize = {};", sampler_bind_slot_name(smp), smp.slot);
+std::string SokolRustGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
+    return fmt::format("pub const {}: usize = {};", sampler_bind_slot_name(prog_name, smp), smp.slot);
 }
 
-std::string SokolRustGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
-    return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(ub), ub.slot);
+std::string SokolRustGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
+    return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(prog_name, ub), ub.slot);
 }
 
-std::string SokolRustGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
-    return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(sbuf), sbuf.slot);
+std::string SokolRustGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
+    return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.slot);
 }
 
 } // namespace

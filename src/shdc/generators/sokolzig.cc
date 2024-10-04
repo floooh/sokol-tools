@@ -442,40 +442,40 @@ std::string SokolZigGenerator::vertex_attr_name(const StageAttr& attr) {
     return fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name);
 }
 
-std::string SokolZigGenerator::image_bind_slot_name(const Image& img) {
-    return fmt::format("SLOT_{}", img.name);
+std::string SokolZigGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
+    return fmt::format("IMG_{}_{}", prog_name, img.name);
 }
 
-std::string SokolZigGenerator::sampler_bind_slot_name(const Sampler& smp) {
-    return fmt::format("SLOT_{}", smp.name);
+std::string SokolZigGenerator::sampler_bind_slot_name(const std::string& prog_name, const Sampler& smp) {
+    return fmt::format("SMP_{}_{}", prog_name, smp.name);
 }
 
-std::string SokolZigGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return fmt::format("SLOT_{}", ub.struct_info.name);
+std::string SokolZigGenerator::uniform_block_bind_slot_name(const std::string& prog_name, const UniformBlock& ub) {
+    return fmt::format("UB_{}_{}", prog_name, ub.struct_info.name);
 }
 
-std::string SokolZigGenerator::storage_buffer_bind_slot_name(const refl::StorageBuffer& sb) {
-    return fmt::format("SLOT_{}", sb.struct_info.name);
+std::string SokolZigGenerator::storage_buffer_bind_slot_name(const std::string& prog_name, const refl::StorageBuffer& sb) {
+    return fmt::format("SBUF_{}_{}", prog_name, sb.struct_info.name);
 }
 
 std::string SokolZigGenerator::vertex_attr_definition(const StageAttr& attr) {
     return fmt::format("pub const {} = {};", vertex_attr_name(attr), attr.slot);
 }
 
-std::string SokolZigGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("pub const {} = {};", image_bind_slot_name(img), img.slot);
+std::string SokolZigGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
+    return fmt::format("pub const {} = {};", image_bind_slot_name(prog_name, img), img.slot);
 }
 
-std::string SokolZigGenerator::sampler_bind_slot_definition(const Sampler& smp) {
-    return fmt::format("pub const {} = {};", sampler_bind_slot_name(smp), smp.slot);
+std::string SokolZigGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
+    return fmt::format("pub const {} = {};", sampler_bind_slot_name(prog_name, smp), smp.slot);
 }
 
-std::string SokolZigGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
-    return fmt::format("pub const {} = {};", uniform_block_bind_slot_name(ub), ub.slot);
+std::string SokolZigGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
+    return fmt::format("pub const {} = {};", uniform_block_bind_slot_name(prog_name, ub), ub.slot);
 }
 
-std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sb) {
-    return fmt::format("pub const {} = {};", storage_buffer_bind_slot_name(sb), sb.slot);
+std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sb) {
+    return fmt::format("pub const {} = {};", storage_buffer_bind_slot_name(prog_name, sb), sb.slot);
 }
 
 void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
