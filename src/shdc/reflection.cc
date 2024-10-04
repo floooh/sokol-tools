@@ -74,10 +74,12 @@ static ErrMsg validate_linking(const Input& inp, const Program& prog, const Prog
 
 Reflection Reflection::build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross_array) {
     Reflection res;
+    ErrMsg error;
 
     // for each program, just pick the reflection info from the first compiled slang,
     // the reflection info is the same for each Slang because it has been generated
     // with the special Slang::REFLECTION, not the actual slang.
+    std::vector<Bindings> prog_bindings;
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
         int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
@@ -91,6 +93,15 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
         prog_refl.name = prog.name;
         prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
         prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
+        prog_refl.bindings = merge_bindings({
+            vs_src->stage_refl.bindings,
+            fs_src->stage_refl.bindings,
+        }, error);
+        if (error.valid()) {
+            res.error = inp.error(0, error.msg);
+            return res;
+        }
+        prog_bindings.push_back(prog_refl.bindings);
 
         // check that the outputs of the vertex stage match the input stage
         res.error = validate_linking(inp, prog, prog_refl);
@@ -102,24 +113,17 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
 
     // create a set of vertex shader inputs with removed duplicates
     // (or error out if the are attribute conflicts)
-    ErrMsg error;
     res.unique_vs_inputs = merge_vs_inputs(res.progs, error);
     if (error.valid()) {
         res.error = inp.error(0, error.msg);
         return res;
     }
 
-    // create a merged set of resource bindings
-    std::vector<Bindings> snippet_bindings;
-    for (int i = 0; i < Slang::Num; i++) {
-        Slang::Enum slang = Slang::from_index(i);
-        if (args.slang & Slang::bit(slang)) {
-            for (const SpirvcrossSource& src: spirvcross_array[i].sources) {
-                snippet_bindings.push_back(src.stage_refl.bindings);
-            }
-        }
+    // create a merged set of resource bindings across all programs
+    for (const auto& prog_refl: res.progs) {
+        prog_bindings.push_back(prog_refl.bindings);
     }
-    res.bindings = merge_bindings(snippet_bindings, error);
+    res.bindings = merge_bindings(prog_bindings, error);
     if (error.valid()) {
         res.error = inp.error(0, error.msg);
     }
