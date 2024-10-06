@@ -23,10 +23,6 @@ struct UniformBlock {
 
 inline bool UniformBlock::equals(const UniformBlock& other) const {
     return (stage == other.stage)
-        && (sokol_slot == other.sokol_slot)
-        && (hlsl_register_b_n == other.hlsl_register_b_n)
-        && (msl_buffer_n == other.msl_buffer_n)
-        && (wgsl_group0_binding_n == other.wgsl_group0_binding_n)
         // NOTE: ignore inst_name
         && (flattened == other.flattened)
         && struct_info.equals(other.struct_info);

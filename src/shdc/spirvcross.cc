@@ -31,10 +31,8 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
 }
 
 static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang::Enum slang) {
-    // WGSL bindslot fixup is handled elsewhere
-    // Also note that this function can be called with the special Slang::REFLECTION
+    // NOTE: this function can be called with the special Slang::REFLECTION
     // which guarantees zero-based bindings for each resource type
-    assert(!Slang::is_wgsl(slang));
     ShaderResources shader_resources = compiler.get_shader_resources();
     ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
 

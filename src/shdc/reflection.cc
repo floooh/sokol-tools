@@ -217,7 +217,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         case spv::ExecutionModelFragment: refl.stage = ShaderStage::Fragment; break;
         default: refl.stage = ShaderStage::Invalid; break;
     }
-    refl.stage_name = ShaderStage::to_str(refl.stage);
 
     // find entry point
     const auto entry_points = compiler.get_entry_points_and_stages();
@@ -411,6 +410,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.uniform_blocks.push_back(ub);
+                out_bindings.uniform_blocks.back().sokol_slot = (int)out_bindings.uniform_blocks.size() - 1;
             }
         }
 
@@ -425,6 +425,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.storage_buffers.push_back(sbuf);
+                out_bindings.storage_buffers.back().sokol_slot = (int)out_bindings.storage_buffers.size() - 1;
             }
         }
 
@@ -439,6 +440,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.images.push_back(img);
+                out_bindings.images.back().sokol_slot = (int)out_bindings.images.size() - 1;
             }
         }
 
@@ -453,6 +455,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.samplers.push_back(smp);
+                out_bindings.samplers.back().sokol_slot = (int)out_bindings.samplers.size() - 1;
             }
         }
 
@@ -467,6 +470,7 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.image_samplers.push_back(img_smp);
+                out_bindings.image_samplers.back().sokol_slot = (int)out_bindings.image_samplers.size() - 1;
             }
         }
     }

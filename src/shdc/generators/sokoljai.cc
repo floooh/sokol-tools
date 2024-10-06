@@ -209,7 +209,7 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
             for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                 const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
                 const StageReflection& refl = prog.stages[stage_index];
-                const std::string dsn = fmt::format("desc.{}", pystring::lower(refl.stage_name));
+                const std::string dsn = fmt::format("desc.{}", pystring::lower(ShaderStage::to_str(refl.stage)));
                 if (info.has_bytecode) {
                     l("{}.bytecode.ptr = *{};\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);

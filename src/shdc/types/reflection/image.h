@@ -24,10 +24,6 @@ struct Image {
 
 inline bool Image::equals(const Image& other) const {
     return (stage == other.stage)
-        && (sokol_slot == other.sokol_slot)
-        && (hlsl_register_t_n == other.hlsl_register_t_n)
-        && (msl_texture_n == other.msl_texture_n)
-        && (wgsl_group1_binding_n == other.wgsl_group1_binding_n)
         && (name == other.name)
         && (type == other.type)
         && (sample_type == other.sample_type)

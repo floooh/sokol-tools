@@ -23,11 +23,6 @@ struct StorageBuffer {
 
 inline bool StorageBuffer::equals(const StorageBuffer& other) const {
     return (stage == other.stage)
-        && (sokol_slot == other.sokol_slot)
-        && (hlsl_register_t_n == other.hlsl_register_t_n)
-        && (msl_buffer_n == other.msl_buffer_n)
-        && (wgsl_group1_binding_n == other.wgsl_group1_binding_n)
-        && (glsl_binding_n == other.glsl_binding_n)
         && (inst_name == other.inst_name)
         && (readonly == other.readonly)
         && (struct_info.equals(other.struct_info));

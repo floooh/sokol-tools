@@ -21,10 +21,6 @@ struct Sampler {
 
 inline bool Sampler::equals(const Sampler& other) const {
     return (stage == other.stage)
-        && (sokol_slot == other.sokol_slot)
-        && (hlsl_register_s_n == other.hlsl_register_s_n)
-        && (msl_sampler_n == other.msl_sampler_n)
-        && (wgsl_group1_binding_n == other.wgsl_group1_binding_n)
         && (name == other.name)
         && (type == other.type);
 }

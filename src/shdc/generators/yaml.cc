@@ -37,8 +37,8 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     const StageReflection& refl = prog.stages[stage_index];
                     const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(refl.snippet_index);
                     const BytecodeBlob* blob = bytecode.find_blob_by_snippet_index(refl.snippet_index);
-                    const std::string file_path = shader_file_path(gen, prog.name, refl.stage_name, slang, blob != nullptr);
-                    l_open("{}:\n", pystring::lower(refl.stage_name));
+                    const std::string file_path = shader_file_path(gen, prog.name, ShaderStage::to_str(refl.stage), slang, blob != nullptr);
+                    l_open("{}:\n", pystring::lower(ShaderStage::to_str(refl.stage)));
                     l("path: {}\n", file_path);
                     l("is_binary: {}\n", blob != nullptr);
                     l("entry_point: {}\n", refl.entry_point_by_slang(slang));

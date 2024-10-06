@@ -67,6 +67,7 @@ protected:
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
 
+    virtual std::string shader_stage(refl::ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string flattened_uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string image_type(refl::ImageType::Enum e) { assert(false && "implement me"); return ""; };
@@ -89,6 +90,7 @@ protected:
 
     struct ShaderStageArrayInfo {
     public:
+        refl::ShaderStage::Enum stage = refl::ShaderStage::Enum::Invalid;
         bool has_bytecode = false;
         size_t bytecode_array_size = 0;
         std::string bytecode_array_name;

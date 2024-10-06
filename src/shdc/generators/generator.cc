@@ -35,6 +35,7 @@ ErrMsg Generator::generate(const GenInput& gen) {
 
 Generator::ShaderStageArrayInfo Generator::shader_stage_array_info(const GenInput& gen, const ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang) {
     ShaderStageArrayInfo info;
+    info.stage = stage;
     const BytecodeBlob* bytecode_blob = gen.bytecode[slang].find_blob_by_snippet_index(prog.stage(stage).snippet_index);
     if (bytecode_blob) {
         info.has_bytecode = true;
@@ -89,8 +90,8 @@ void Generator::gen_prerequisites(const GenInput& gen) {
 }
 
 void Generator::gen_program_info(const GenInput& gen, const ProgramReflection& prog) {
-    cbl_open("Vertex Shader: {}\n", prog.vs_name());
-    cbl_open("Fragment Shader: {}\n", prog.fs_name());
+    cbl("Vertex Shader: {}\n", prog.vs_name());
+    cbl("Fragment Shader: {}\n", prog.fs_name());
     cbl_open("Attributes:\n");
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
@@ -99,7 +100,6 @@ void Generator::gen_program_info(const GenInput& gen, const ProgramReflection& p
     }
     cbl_close();
     gen_bindings_info(gen, prog);
-    cbl_close();
 }
 
 void Generator::gen_bindings_info(const GenInput& gen, const ProgramReflection& prog) {
