@@ -243,7 +243,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 }
                 l("{}.entry = c\"{}\".as_ptr();\n", dsn, refl.entry_point_by_slang(slang));
                 for (int ub_index = 0; ub_index < Bindings::MaxUniformBlocks; ub_index++) {
-                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
+                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_sokol_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
                         l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
@@ -267,7 +267,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
                 for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBuffers; sbuf_index++) {
-                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
+                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
                     if (sbuf) {
                         const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
                         l("{}.used = true;\n", sbn);
@@ -275,7 +275,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
                 for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
-                    const Image* img = refl.bindings.find_image_by_slot(img_index);
+                    const Image* img = refl.bindings.find_image_by_sokol_slot(img_index);
                     if (img) {
                         const std::string in = fmt::format("{}.images[{}]", dsn, img_index);
                         l("{}.used = true;\n", in);
@@ -285,7 +285,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
                 for (int smp_index = 0; smp_index < Bindings::MaxSamplers; smp_index++) {
-                    const Sampler* smp = refl.bindings.find_sampler_by_slot(smp_index);
+                    const Sampler* smp = refl.bindings.find_sampler_by_sokol_slot(smp_index);
                     if (smp) {
                         const std::string sn = fmt::format("{}.samplers[{}]", dsn, smp_index);
                         l("{}.used = true;\n", sn);
@@ -293,12 +293,12 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
                 for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
-                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_slot(img_smp_index);
+                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_sokol_slot(img_smp_index);
                     if (img_smp) {
                         const std::string isn = fmt::format("{}.image_sampler_pairs[{}]", dsn, img_smp_index);
                         l("{}.used = true;\n", isn);
-                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->slot);
-                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
+                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->sokol_slot);
+                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->sokol_slot);
                         if (Slang::is_glsl(slang)) {
                             l("{}.glsl_name = c\"{}\".as_ptr();\n", isn, img_smp->name);
                         }
@@ -465,19 +465,19 @@ std::string SokolRustGenerator::vertex_attr_definition(const StageAttr& attr) {
 }
 
 std::string SokolRustGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
-    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(prog_name, img), img.slot);
+    return fmt::format("pub const {}: usize = {};", image_bind_slot_name(prog_name, img), img.sokol_slot);
 }
 
 std::string SokolRustGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
-    return fmt::format("pub const {}: usize = {};", sampler_bind_slot_name(prog_name, smp), smp.slot);
+    return fmt::format("pub const {}: usize = {};", sampler_bind_slot_name(prog_name, smp), smp.sokol_slot);
 }
 
 std::string SokolRustGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
-    return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(prog_name, ub), ub.slot);
+    return fmt::format("pub const {}: usize = {};", uniform_block_bind_slot_name(prog_name, ub), ub.sokol_slot);
 }
 
 std::string SokolRustGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.slot);
+    return fmt::format("pub const {}: usize = {};", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.sokol_slot);
 }
 
 } // namespace

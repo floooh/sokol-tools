@@ -30,9 +30,8 @@ protected:
     virtual ErrMsg end(const GenInput& gen);
 
     // called by gen_header()
-    virtual void gen_vertex_shader_info(const GenInput& gen, const refl::ProgramReflection& prog);
-    virtual void gen_fragment_shader_info(const GenInput& gen, const refl::ProgramReflection& prog);
-    virtual void gen_bindings_info(const GenInput& gen, const refl::Bindings& bindings);
+    virtual void gen_program_info(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_bindings_info(const GenInput& gen, const refl::ProgramReflection& prog);
 
     // called by gen_uniform_block_decls()
     virtual void gen_uniform_block_decl(const GenInput& gen, const refl::UniformBlock& ub) { assert(false && "implement me"); };

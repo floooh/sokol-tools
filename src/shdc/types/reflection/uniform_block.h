@@ -9,7 +9,7 @@ namespace shdc::refl {
 
 struct UniformBlock {
     ShaderStage::Enum stage = ShaderStage::Invalid;
-    int slot = -1;
+    int sokol_slot = -1;
     int hlsl_register_b_n = -1;
     int msl_buffer_n = -1;
     int wgsl_group0_binding_n = -1;
@@ -23,7 +23,7 @@ struct UniformBlock {
 
 inline bool UniformBlock::equals(const UniformBlock& other) const {
     return (stage == other.stage)
-        && (slot == other.slot)
+        && (sokol_slot == other.sokol_slot)
         && (hlsl_register_b_n == other.hlsl_register_b_n)
         && (msl_buffer_n == other.msl_buffer_n)
         && (wgsl_group0_binding_n == other.wgsl_group0_binding_n)
@@ -36,7 +36,7 @@ inline void UniformBlock::dump_debug(const std::string& indent) const {
     const std::string indent2 = indent + "  ";
     fmt::print(stderr, "{}-\n", indent);
     fmt::print(stderr, "{}stage: {}\n", indent2, ShaderStage::to_str(stage));
-    fmt::print(stderr, "{}slot: {}\n", indent2, slot);
+    fmt::print(stderr, "{}sokol_slot: {}\n", indent2, sokol_slot);
     fmt::print(stderr, "{}hlsl_register_b_n: {}\n", indent2, hlsl_register_b_n);
     fmt::print(stderr, "{}msl_buffer_n: {}\n", indent2, msl_buffer_n);
     fmt::print(stderr, "{}wgsl_group0_binding_n: {}\n", indent2, wgsl_group0_binding_n);

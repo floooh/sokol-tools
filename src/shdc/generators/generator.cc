@@ -77,8 +77,7 @@ void Generator::gen_header(const GenInput& gen) {
     for (const ProgramReflection& prog: gen.refl.progs) {
         cbl_open("Shader program: '{}':\n", prog.name);
         cbl("Get shader desc: {}", get_shader_desc_help(prog.name));
-        gen_vertex_shader_info(gen, prog);
-        gen_fragment_shader_info(gen, prog);
+        gen_program_info(gen, prog);
         cbl_close();
     }
     cbl_end();
@@ -89,8 +88,9 @@ void Generator::gen_prerequisites(const GenInput& gen) {
     // empty
 }
 
-void Generator::gen_vertex_shader_info(const GenInput& gen, const ProgramReflection& prog) {
-    cbl_open("Vertex shader: {}\n", prog.vs_name());
+void Generator::gen_program_info(const GenInput& gen, const ProgramReflection& prog) {
+    cbl_open("Vertex Shader: {}\n", prog.vs_name());
+    cbl_open("Fragment Shader: {}\n", prog.fs_name());
     cbl_open("Attributes:\n");
     for (const StageAttr& attr: prog.vs().inputs) {
         if (attr.slot >= 0) {
@@ -98,44 +98,38 @@ void Generator::gen_vertex_shader_info(const GenInput& gen, const ProgramReflect
         }
     }
     cbl_close();
-    gen_bindings_info(gen, prog.vs().bindings);
+    gen_bindings_info(gen, prog);
     cbl_close();
 }
 
-void Generator::gen_fragment_shader_info(const GenInput& gen, const ProgramReflection& prog) {
-    cbl_open("Fragment shader: {}\n", prog.fs_name());
-    gen_bindings_info(gen, prog.fs().bindings);
-    cbl_close();
-}
-
-void Generator::gen_bindings_info(const GenInput& gen, const Bindings& bindings) {
-    for (const UniformBlock& ub: bindings.uniform_blocks) {
+void Generator::gen_bindings_info(const GenInput& gen, const ProgramReflection& prog) {
+    for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         cbl_open("Uniform block '{}':\n", ub.struct_info.name);
         cbl("{} struct: {}\n", lang_name(), struct_name(ub.struct_info.name));
-        cbl("Bind slot: {} => {}\n", uniform_block_bind_slot_name(ub), ub.slot);
+        cbl("Bind slot: {} => {}\n", uniform_block_bind_slot_name(prog.name, ub), ub.sokol_slot);
         cbl_close();
     }
-    for (const StorageBuffer& sbuf: bindings.storage_buffers) {
+    for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
         cbl_open("Storage buffer '{}':\n", sbuf.struct_info.name);
         cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.struct_info.name));
-        cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(sbuf), sbuf.slot);
+        cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(prog.name, sbuf), sbuf.sokol_slot);
         cbl_close();
     }
-    for (const Image& img: bindings.images) {
+    for (const Image& img: prog.bindings.images) {
         cbl_open("Image '{}':\n", img.name);
         cbl("Image type: {}\n", image_type(img.type));
         cbl("Sample type: {}\n", image_sample_type(img.sample_type));
         cbl("Multisampled: {}\n", img.multisampled);
-        cbl("Bind slot: {} => {}\n", image_bind_slot_name(img), img.slot);
+        cbl("Bind slot: {} => {}\n", image_bind_slot_name(prog.name, img), img.sokol_slot);
         cbl_close();
     }
-    for (const Sampler& smp: bindings.samplers) {
+    for (const Sampler& smp: prog.bindings.samplers) {
         cbl_open("Sampler '{}':\n", smp.name);
         cbl("Type: {}\n", sampler_type(smp.type));
-        cbl("Bind slot: {} => {}\n", sampler_bind_slot_name(smp), smp.slot);
+        cbl("Bind slot: {} => {}\n", sampler_bind_slot_name(prog.name, smp), smp.sokol_slot);
         cbl_close();
     }
-    for (const ImageSampler& img_smp: bindings.image_samplers) {
+    for (const ImageSampler& img_smp: prog.bindings.image_samplers) {
         cbl_open("Image Sampler Pair '{}':\n", img_smp.name);
         cbl("Image: {}\n", img_smp.image_name);
         cbl("Sampler: {}\n", img_smp.sampler_name);
@@ -152,17 +146,19 @@ void Generator::gen_vertex_attr_consts(const GenInput& gen) {
 }
 
 void Generator::gen_bind_slot_consts(const GenInput& gen) {
-    for (const UniformBlock& ub: gen.refl.bindings.uniform_blocks) {
-        l("{}\n", uniform_block_bind_slot_definition(ub));
-    }
-    for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
-        l("{}\n", storage_buffer_bind_slot_definition(sbuf));
-    }
-    for (const Image& img: gen.refl.bindings.images) {
-        l("{}\n", image_bind_slot_definition(img));
-    }
-    for (const Sampler& smp: gen.refl.bindings.samplers) {
-        l("{}\n", sampler_bind_slot_definition(smp));
+    for (const ProgramReflection& prog: gen.refl.progs) {
+        for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
+            l("{}\n", uniform_block_bind_slot_definition(prog.name, ub));
+        }
+        for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
+            l("{}\n", storage_buffer_bind_slot_definition(prog.name, sbuf));
+        }
+        for (const Image& img: prog.bindings.images) {
+            l("{}\n", image_bind_slot_definition(prog.name, img));
+        }
+        for (const Sampler& smp: prog.bindings.samplers) {
+            l("{}\n", sampler_bind_slot_definition(prog.name, smp));
+        }
     }
 }
 

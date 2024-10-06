@@ -120,6 +120,7 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     }
 
     // create a merged set of resource bindings across all programs
+    // NOTE: these are only used to de-duplicate struct declarations
     for (const auto& prog_refl: res.progs) {
         prog_bindings.push_back(prog_refl.bindings);
     }
@@ -255,7 +256,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::UNIFORM_BLOCK;
         UniformBlock refl_ub;
         refl_ub.stage = refl.stage;
-        refl_ub.slot = slot;
+        refl_ub.sokol_slot = slot;
         refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -278,7 +279,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
         StorageBuffer refl_sbuf;
         refl_sbuf.stage = refl.stage;
-        refl_sbuf.slot = slot;
+        refl_sbuf.sokol_slot = slot;
         refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -301,7 +302,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::IMAGE;
         Image refl_img;
         refl_img.stage = refl.stage;
-        refl_img.slot = slot;
+        refl_img.sokol_slot = slot;
         refl_img.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_img.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_img.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -323,7 +324,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         Sampler refl_smp;
         refl_smp.stage = refl.stage;
-        refl_smp.slot = slot;
+        refl_smp.sokol_slot = slot;
         refl_smp.hlsl_register_s_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_smp.msl_sampler_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_smp.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -340,7 +341,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
         ImageSampler refl_img_smp;
         refl_img_smp.stage = refl.stage;
-        refl_img_smp.slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
+        refl_img_smp.sokol_slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
         refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
         refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
         refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);

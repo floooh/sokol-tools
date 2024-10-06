@@ -293,7 +293,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                 }
                 l("{}.entry = \"{}\";\n", dsn, refl.entry_point_by_slang(slang));
                 for (int ub_index = 0; ub_index < Bindings::MaxUniformBlocks; ub_index++) {
-                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_slot(ub_index);
+                    const UniformBlock* ub = refl.bindings.find_uniform_block_by_sokol_slot(ub_index);
                     if (ub) {
                         const std::string ubn = fmt::format("{}.uniform_blocks[{}]", dsn, ub_index);
                         l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
@@ -317,7 +317,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
                 for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBuffers; sbuf_index++) {
-                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_slot(sbuf_index);
+                    const StorageBuffer* sbuf = refl.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
                     if (sbuf) {
                         const std::string& sbn = fmt::format("{}.storage_buffers[{}]", dsn, sbuf_index);
                         l("{}.used = true;\n", sbn);
@@ -325,7 +325,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
                 for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
-                    const Image* img = refl.bindings.find_image_by_slot(img_index);
+                    const Image* img = refl.bindings.find_image_by_sokol_slot(img_index);
                     if (img) {
                         const std::string in = fmt::format("{}.images[{}]", dsn, img_index);
                         l("{}.used = true;\n", in);
@@ -335,7 +335,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
                 for (int smp_index = 0; smp_index < Bindings::MaxSamplers; smp_index++) {
-                    const Sampler* smp = refl.bindings.find_sampler_by_slot(smp_index);
+                    const Sampler* smp = refl.bindings.find_sampler_by_sokol_slot(smp_index);
                     if (smp) {
                         const std::string sn = fmt::format("{}.samplers[{}]", dsn, smp_index);
                         l("{}.used = true;\n", sn);
@@ -343,12 +343,12 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
                 for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
-                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_slot(img_smp_index);
+                    const ImageSampler* img_smp = refl.bindings.find_image_sampler_by_sokol_slot(img_smp_index);
                     if (img_smp) {
                         const std::string isn = fmt::format("{}.image_sampler_pairs[{}]", dsn, img_smp_index);
                         l("{}.used = true;\n", isn);
-                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->slot);
-                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->slot);
+                        l("{}.image_slot = {};\n", isn, refl.bindings.find_image_by_name(img_smp->image_name)->sokol_slot);
+                        l("{}.sampler_slot = {};\n", isn, refl.bindings.find_sampler_by_name(img_smp->sampler_name)->sokol_slot);
                         if (Slang::is_glsl(slang)) {
                             l("{}.glsl_name = \"{}\";\n", isn, img_smp->name);
                         }
@@ -389,9 +389,9 @@ void SokolCGenerator::gen_image_slot_refl_func(const GenInput& gen, const Progra
         if (!refl.bindings.images.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Image& img: refl.bindings.images) {
-                if (img.slot >= 0) {
+                if (img.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(img_name, \"{}\")) {{\n", img.name);
-                    l("return {};\n", img.slot);
+                    l("return {};\n", img.sokol_slot);
                     l_close("}}\n");
                 }
             }
@@ -409,9 +409,9 @@ void SokolCGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Prog
         if (!refl.bindings.samplers.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const Sampler& smp: refl.bindings.samplers) {
-                if (smp.slot >= 0) {
+                if (smp.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(smp_name, \"{}\")) {{\n", smp.name);
-                    l("return {};\n", smp.slot);
+                    l("return {};\n", smp.sokol_slot);
                     l_close("}}\n");
                 }
             }
@@ -429,9 +429,9 @@ void SokolCGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, cons
         if (!refl.bindings.uniform_blocks.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
-                if (ub.slot >= 0) {
+                if (ub.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
-                    l("return {};\n", ub.slot);
+                    l("return {};\n", ub.sokol_slot);
                     l_close("}}\n");
                 }
             }
@@ -449,7 +449,7 @@ void SokolCGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, cons
         if (!refl.bindings.uniform_blocks.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
-                if (ub.slot >= 0) {
+                if (ub.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
                     l("return sizeof({});\n", struct_name(ub.struct_info.name));
                     l_close("}}\n");
@@ -469,9 +469,9 @@ void SokolCGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, con
         if (!refl.bindings.storage_buffers.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const StorageBuffer& sbuf: refl.bindings.storage_buffers) {
-                if (sbuf.slot >= 0) {
+                if (sbuf.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.struct_info.name);
-                    l("return {};\n", sbuf.slot);
+                    l("return {};\n", sbuf.sokol_slot);
                     l_close("}}\n");
                 }
             }
@@ -489,7 +489,7 @@ void SokolCGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pr
         if (!refl.bindings.uniform_blocks.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
-                if (ub.slot >= 0) {
+                if (ub.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
                     for (const Type& u: ub.struct_info.struct_items) {
                         l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
@@ -518,7 +518,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
         if (!refl.bindings.uniform_blocks.empty()) {
             l_open("if (SG_SHADERSTAGE_{} == stage) {{\n", pystring::upper(refl.stage_name));
             for (const UniformBlock& ub: refl.bindings.uniform_blocks) {
-                if (ub.slot >= 0) {
+                if (ub.sokol_slot >= 0) {
                     l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
                     for (const Type& u: ub.struct_info.struct_items) {
                         l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
@@ -707,19 +707,19 @@ std::string SokolCGenerator::vertex_attr_definition(const StageAttr& attr) {
 }
 
 std::string SokolCGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
-    return fmt::format("#define {} ({})", image_bind_slot_name(prog_name, img), img.slot);
+    return fmt::format("#define {} ({})", image_bind_slot_name(prog_name, img), img.sokol_slot);
 }
 
 std::string SokolCGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
-    return fmt::format("#define {} ({})", sampler_bind_slot_name(prog_name, smp), smp.slot);
+    return fmt::format("#define {} ({})", sampler_bind_slot_name(prog_name, smp), smp.sokol_slot);
 }
 
 std::string SokolCGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
-    return fmt::format("#define {} ({})", uniform_block_bind_slot_name(prog_name, ub), ub.slot);
+    return fmt::format("#define {} ({})", uniform_block_bind_slot_name(prog_name, ub), ub.sokol_slot);
 }
 
 std::string SokolCGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return fmt::format("#define {} ({})", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.slot);
+    return fmt::format("#define {} ({})", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.sokol_slot);
 }
 
 } // namespace

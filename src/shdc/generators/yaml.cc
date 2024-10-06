@@ -124,7 +124,7 @@ void YamlGenerator::gen_attr(const StageAttr& att) {
 
 void YamlGenerator::gen_uniform_block(const GenInput& gen, const UniformBlock& ub) {
     l_open("-\n");
-    l("slot: {}\n", ub.slot);
+    l("slot: {}\n", ub.sokol_slot);
     l("size: {}\n", roundup(ub.struct_info.size, 16));
     l("struct_name: {}\n", ub.struct_info.name);
     l("inst_name: {}\n", ub.inst_name);
@@ -169,7 +169,7 @@ void YamlGenerator::gen_uniform_block_refl(const UniformBlock& ub) {
 void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf) {
     const auto& item = sbuf.struct_info.struct_items[0];
     l_open("-\n");
-    l("slot: {}\n", sbuf.slot);
+    l("slot: {}\n", sbuf.sokol_slot);
     l("size: {}\n", sbuf.struct_info.size);
     l("align: {}\n", sbuf.struct_info.align);
     l("struct_name: {}\n", sbuf.struct_info.name);
@@ -181,7 +181,7 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf) {
 
 void YamlGenerator::gen_image(const Image& image) {
     l_open("-\n");
-    l("slot: {}\n", image.slot);
+    l("slot: {}\n", image.sokol_slot);
     l("name: {}\n", image.name);
     l("multisampled: {}\n", image.multisampled);
     l("type: {}\n", image_type(image.type));
@@ -191,7 +191,7 @@ void YamlGenerator::gen_image(const Image& image) {
 
 void YamlGenerator::gen_sampler(const Sampler& sampler) {
     l_open("-\n");
-    l("slot: {}\n", sampler.slot);
+    l("slot: {}\n", sampler.sokol_slot);
     l("name: {}\n", sampler.name);
     l("sampler_type: {}\n", sampler_type(sampler.type));
     l_close();
@@ -199,7 +199,7 @@ void YamlGenerator::gen_sampler(const Sampler& sampler) {
 
 void YamlGenerator::gen_image_sampler(const ImageSampler& image_sampler) {
     l_open("-\n");
-    l("slot: {}\n", image_sampler.slot);
+    l("slot: {}\n", image_sampler.sokol_slot);
     l("name: {}\n", image_sampler.name);
     l("image_name: {}\n", image_sampler.image_name);
     l("sampler_name: {}\n", image_sampler.sampler_name);

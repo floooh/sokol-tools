@@ -37,11 +37,11 @@ struct Bindings {
 
     static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type);
 
-    const UniformBlock* find_uniform_block_by_slot(int slot) const;
-    const StorageBuffer* find_storage_buffer_by_slot(int slot) const;
-    const Image* find_image_by_slot(int slot) const;
-    const Sampler* find_sampler_by_slot(int slot) const;
-    const ImageSampler* find_image_sampler_by_slot(int slot) const;
+    const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
+    const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
+    const Image* find_image_by_sokol_slot(int slot) const;
+    const Sampler* find_sampler_by_sokol_slot(int slot) const;
+    const ImageSampler* find_image_sampler_by_sokol_slot(int slot) const;
 
     const UniformBlock* find_uniform_block_by_name(const std::string& name) const;
     const StorageBuffer* find_storage_buffer_by_name(const std::string& name) const;
@@ -104,45 +104,45 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
     return res;
 }
 
-inline const UniformBlock* Bindings::find_uniform_block_by_slot(int slot) const {
+inline const UniformBlock* Bindings::find_uniform_block_by_sokol_slot(int slot) const {
     for (const UniformBlock& ub: uniform_blocks) {
-        if (ub.slot == slot) {
+        if (ub.sokol_slot == slot) {
             return &ub;
         }
     }
     return nullptr;
 }
 
-inline const StorageBuffer* Bindings::find_storage_buffer_by_slot(int slot) const {
+inline const StorageBuffer* Bindings::find_storage_buffer_by_sokol_slot(int slot) const {
     for (const StorageBuffer& sbuf: storage_buffers) {
-        if (sbuf.slot == slot) {
+        if (sbuf.sokol_slot == slot) {
             return &sbuf;
         }
     }
     return nullptr;
 }
 
-inline const Image* Bindings::find_image_by_slot(int slot) const {
+inline const Image* Bindings::find_image_by_sokol_slot(int slot) const {
     for (const Image& img: images) {
-        if (img.slot == slot) {
+        if (img.sokol_slot == slot) {
             return &img;
         }
     }
     return nullptr;
 }
 
-inline const Sampler* Bindings::find_sampler_by_slot(int slot) const {
+inline const Sampler* Bindings::find_sampler_by_sokol_slot(int slot) const {
     for (const Sampler& smp: samplers) {
-        if (smp.slot == slot) {
+        if (smp.sokol_slot == slot) {
             return &smp;
         }
     }
     return nullptr;
 }
 
-inline const ImageSampler* Bindings::find_image_sampler_by_slot(int slot) const {
+inline const ImageSampler* Bindings::find_image_sampler_by_sokol_slot(int slot) const {
     for (const ImageSampler& img_smp: image_samplers) {
-        if (img_smp.slot == slot) {
+        if (img_smp.sokol_slot == slot) {
             return &img_smp;
         }
     }
