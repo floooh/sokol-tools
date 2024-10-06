@@ -680,8 +680,8 @@ std::string SokolCGenerator::struct_name(const std::string& name) {
     return fmt::format("{}{}_t", mod_prefix, name);
 }
 
-std::string SokolCGenerator::vertex_attr_name(const StageAttr& attr) {
-    return fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name);
+std::string SokolCGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("ATTR_{}_{}", prog_name, attr.name);
 }
 
 std::string SokolCGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
@@ -700,8 +700,8 @@ std::string SokolCGenerator::storage_buffer_bind_slot_name(const std::string& pr
     return fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name);
 }
 
-std::string SokolCGenerator::vertex_attr_definition(const StageAttr& attr) {
-    return fmt::format("#define {} ({})", vertex_attr_name(attr), attr.slot);
+std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("#define {} ({})", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
 std::string SokolCGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {

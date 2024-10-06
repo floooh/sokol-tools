@@ -433,8 +433,8 @@ std::string SokolDGenerator::struct_name(const std::string& name) {
     return to_pascal_case(name);
 }
 
-std::string SokolDGenerator::vertex_attr_name(const StageAttr& attr) {
-    return pystring::upper(fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name));
+std::string SokolDGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
+    return pystring::upper(fmt::format("ATTR_{}_{}", prog_name, attr.name));
 }
 
 std::string SokolDGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
@@ -457,8 +457,8 @@ static std::string const_def(const std::string& name, int slot) {
     return fmt::format("enum {} = {};", name, slot);
 }
 
-std::string SokolDGenerator::vertex_attr_definition(const StageAttr& attr) {
-    return const_def(vertex_attr_name(attr), attr.slot);
+std::string SokolDGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
+    return const_def(vertex_attr_name(prog_name, attr), attr.slot);
 }
 
 std::string SokolDGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {

@@ -438,8 +438,8 @@ std::string SokolZigGenerator::struct_name(const std::string& name) {
     return to_pascal_case(name);
 }
 
-std::string SokolZigGenerator::vertex_attr_name(const StageAttr& attr) {
-    return fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name);
+std::string SokolZigGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("ATTR_{}_{}", prog_name, attr.name);
 }
 
 std::string SokolZigGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
@@ -458,8 +458,8 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_name(const std::string& 
     return fmt::format("SBUF_{}_{}", prog_name, sb.struct_info.name);
 }
 
-std::string SokolZigGenerator::vertex_attr_definition(const StageAttr& attr) {
-    return fmt::format("pub const {} = {};", vertex_attr_name(attr), attr.slot);
+std::string SokolZigGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("pub const {} = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
 std::string SokolZigGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {

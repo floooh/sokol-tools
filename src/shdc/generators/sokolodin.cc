@@ -426,8 +426,8 @@ std::string SokolOdinGenerator::struct_name(const std::string& name) {
     return to_ada_case(name);
 }
 
-std::string SokolOdinGenerator::vertex_attr_name(const StageAttr& attr) {
-    return fmt::format("ATTR_{}_{}", attr.snippet_name, attr.name);
+std::string SokolOdinGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("ATTR_{}_{}", prog_name, attr.name);
 }
 
 std::string SokolOdinGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
@@ -446,8 +446,8 @@ std::string SokolOdinGenerator::storage_buffer_bind_slot_name(const std::string&
     return fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name);
 }
 
-std::string SokolOdinGenerator::vertex_attr_definition(const StageAttr& attr) {
-    return fmt::format("{} :: {}", vertex_attr_name(attr), attr.slot);
+std::string SokolOdinGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
+    return fmt::format("{} :: {}", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
 std::string SokolOdinGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {

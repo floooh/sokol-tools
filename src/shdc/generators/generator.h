@@ -76,13 +76,13 @@ protected:
     virtual std::string backend(Slang::Enum e) { assert(false && "implement me"); return ""; };
 
     virtual std::string struct_name(const std::string& name) { assert(false && "implement me"); return ""; };
-    virtual std::string vertex_attr_name(const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
+    virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string image_bind_slot_name(const std::string& prog_name, const refl::Image& img) { assert(false && "implement me"); return ""; };
     virtual std::string sampler_bind_slot_name(const std::string& prog_name, const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_block_bind_slot_name(const std::string& prog_name, const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
     virtual std::string storage_buffer_bind_slot_name(const std::string& prog_name, const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
 
-    virtual std::string vertex_attr_definition(const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
+    virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string image_bind_slot_definition(const std::string& prog_name, const refl::Image& img) { assert(false && "implement me"); return ""; };
     virtual std::string sampler_bind_slot_definition(const std::string& prog_name, const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_block_bind_slot_definition(const std::string& prog_name, const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };

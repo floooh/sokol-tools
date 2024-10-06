@@ -16,7 +16,6 @@ namespace shdc::refl {
 
 struct Reflection {
     std::vector<ProgramReflection> progs;
-    std::vector<StageAttr> unique_vs_inputs;
     Bindings bindings;
     ErrMsg error;
 
@@ -28,8 +27,6 @@ struct Reflection {
     void dump_debug(ErrMsg::Format err_fmt) const;
 
 private:
-    // create a set of unique vertex shader inputs across all programs
-    static std::vector<StageAttr> merge_vs_inputs(const std::vector<ProgramReflection>& progs, ErrMsg& out_error);
     // create a set of unique resource bindings from shader snippet input bindings
     static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error);
     // parse a struct

@@ -59,7 +59,7 @@ static ErrMsg validate_linking(const Input& inp, const Program& prog, const Prog
         const StageAttr& vs_out = prog_refl.vs().outputs[slot];
         const StageAttr& fs_inp = prog_refl.fs().inputs[slot];
         // ignore snippet-name for equality check
-        if (!vs_out.equals(fs_inp, false)) {
+        if (!vs_out.equals(fs_inp)) {
             return inp.error(prog.line_index,
                 fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
                     prog_refl.vs_name(),
@@ -109,14 +109,6 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
             return res;
         }
         res.progs.push_back(prog_refl);
-    }
-
-    // create a set of vertex shader inputs with removed duplicates
-    // (or error out if the are attribute conflicts)
-    res.unique_vs_inputs = merge_vs_inputs(res.progs, error);
-    if (error.valid()) {
-        res.error = inp.error(0, error.msg);
-        return res;
     }
 
     // create a merged set of resource bindings across all programs
@@ -233,7 +225,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
-        refl_attr.snippet_name = snippet.name;
         refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
 
         refl.inputs[refl_attr.slot] = refl_attr;
@@ -244,7 +235,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_attr.name = res_attr.name;
         refl_attr.sem_name = "TEXCOORD";
         refl_attr.sem_index = refl_attr.slot;
-        refl_attr.snippet_name = snippet.name;
         refl_attr.type_info = get_type_for_attribute(compiler, res_attr);
 
         refl.outputs[refl_attr.slot] = refl_attr;
@@ -361,37 +351,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
     }
     return refl;
-}
-
-const StageAttr* find_attr_by_name(const std::vector<StageAttr>& attrs, const std::string& snippet_name, const std::string& attr_name) {
-    for (const StageAttr& attr: attrs) {
-        if ((attr.name == attr_name) && (attr.snippet_name == snippet_name)) {
-            return &attr;
-        }
-    }
-    return nullptr;
-}
-
-std::vector<StageAttr> Reflection::merge_vs_inputs(const std::vector<ProgramReflection>& progs, ErrMsg& out_error) {
-    std::vector<StageAttr> out_attrs;
-    out_error = ErrMsg();
-    for (const ProgramReflection& prog: progs) {
-        for (const StageAttr& attr: prog.vs().inputs) {
-            if (attr.slot != -1) {
-                const StageAttr* other_attr = find_attr_by_name(out_attrs, attr.snippet_name, attr.name);
-                if (other_attr) {
-                    // take snippet-name into account for equality check
-                    if (!attr.equals(*other_attr, true)) {
-                        out_error = ErrMsg::error(fmt::format("conflicting vertex shader attributes found for '{}/{}'", attr.snippet_name, attr.name));
-                        return std::vector<StageAttr>{};
-                    }
-                } else {
-                    out_attrs.push_back(attr);
-                }
-            }
-        }
-    }
-    return out_attrs;
 }
 
 Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error) {
