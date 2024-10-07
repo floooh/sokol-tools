@@ -112,7 +112,6 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     }
 
     // create a merged set of resource bindings across all programs
-    // NOTE: these are only used to de-duplicate struct declarations
     for (const auto& prog_refl: res.progs) {
         prog_bindings.push_back(prog_refl.bindings);
     }
@@ -194,7 +193,7 @@ Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) 
     return out;
 }
 
-StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, ErrMsg& out_error) {
+StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, const Input& inp, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
 
@@ -245,14 +244,13 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::UNIFORM_BLOCK;
         UniformBlock refl_ub;
         refl_ub.stage = refl.stage;
-        refl_ub.sokol_slot = slot;
-        refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
+        refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
@@ -260,6 +258,11 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         // uniform blocks always have 16 byte alignment
         refl_ub.struct_info.align = 16;
+        refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.struct_info.name);
+        if (refl_ub.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for uniformblock '{}'\n", refl_ub.struct_info.name));
+            return refl;
+        }
         refl.bindings.uniform_blocks.push_back(refl_ub);
     }
     // storage buffers
@@ -268,7 +271,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
         StorageBuffer refl_sbuf;
         refl_sbuf.stage = refl.stage;
-        refl_sbuf.sokol_slot = slot;
         refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -282,6 +284,11 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
+        refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.struct_info.name);
+        if (refl_sbuf.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for storagebuffer '{}'\n", refl_sbuf.struct_info.name));
+            return refl;
+        }
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
@@ -291,7 +298,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const Bindings::Type res_type = Bindings::Type::IMAGE;
         Image refl_img;
         refl_img.stage = refl.stage;
-        refl_img.sokol_slot = slot;
         refl_img.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_img.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_img.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -304,6 +310,11 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
         refl_img.multisampled = spirtype_to_image_multisampled(img_type);
+        refl_img.sokol_slot = inp.find_img_slot(refl_img.name);
+        if (refl_img.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for image '{}'\n", refl_img.name));
+            return refl;
+        }
         refl.bindings.images.push_back(refl_img);
     }
     // (separate) samplers
@@ -313,7 +324,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         Sampler refl_smp;
         refl_smp.stage = refl.stage;
-        refl_smp.sokol_slot = slot;
         refl_smp.hlsl_register_s_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
         refl_smp.msl_sampler_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_smp.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
@@ -323,6 +333,11 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             refl_smp.type = SamplerType::COMPARISON;
         } else {
             refl_smp.type = SamplerType::FILTERING;
+        }
+        refl_smp.sokol_slot = inp.find_smp_slot(refl_smp.name);
+        if (refl_smp.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for sampler '{}'\n", refl_smp.name));
+            return refl;
         }
         refl.bindings.samplers.push_back(refl_smp);
     }
@@ -338,14 +353,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // patch textures with overridden image-sample-types
     for (auto& img: refl.bindings.images) {
-        const auto* tag = snippet.lookup_image_sample_type_tag(img.name);
+        const auto* tag = inp.find_image_sample_type_tag(img.name);
         if (tag) {
             img.sample_type = tag->type;
         }
     }
     // patch samplers with overridden sampler-types
     for (auto& smp: refl.bindings.samplers) {
-        const auto* tag = snippet.lookup_sampler_type_tag(smp.name);
+        const auto* tag = inp.find_sampler_type_tag(smp.name);
         if (tag) {
             smp.type = tag->type;
         }
@@ -369,7 +384,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.uniform_blocks.push_back(ub);
-                out_bindings.uniform_blocks.back().sokol_slot = (int)out_bindings.uniform_blocks.size() - 1;
             }
         }
 
@@ -384,7 +398,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.storage_buffers.push_back(sbuf);
-                out_bindings.storage_buffers.back().sokol_slot = (int)out_bindings.storage_buffers.size() - 1;
             }
         }
 
@@ -399,7 +412,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.images.push_back(img);
-                out_bindings.images.back().sokol_slot = (int)out_bindings.images.size() - 1;
             }
         }
 
@@ -414,7 +426,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.samplers.push_back(smp);
-                out_bindings.samplers.back().sokol_slot = (int)out_bindings.samplers.size() - 1;
             }
         }
 
@@ -429,7 +440,6 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
                 }
             } else {
                 out_bindings.image_samplers.push_back(img_smp);
-                out_bindings.image_samplers.back().sokol_slot = (int)out_bindings.image_samplers.size() - 1;
             }
         }
     }

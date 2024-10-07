@@ -31,7 +31,7 @@ protected:
 
     // called by gen_header()
     virtual void gen_program_info(const GenInput& gen, const refl::ProgramReflection& prog);
-    virtual void gen_bindings_info(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_bindings_info(const GenInput& gen);
 
     // called by gen_uniform_block_decls()
     virtual void gen_uniform_block_decl(const GenInput& gen, const refl::UniformBlock& ub) { assert(false && "implement me"); };
@@ -77,16 +77,16 @@ protected:
 
     virtual std::string struct_name(const std::string& name) { assert(false && "implement me"); return ""; };
     virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
-    virtual std::string image_bind_slot_name(const std::string& prog_name, const refl::Image& img) { assert(false && "implement me"); return ""; };
-    virtual std::string sampler_bind_slot_name(const std::string& prog_name, const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
-    virtual std::string uniform_block_bind_slot_name(const std::string& prog_name, const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
-    virtual std::string storage_buffer_bind_slot_name(const std::string& prog_name, const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
+    virtual std::string image_bind_slot_name(const refl::Image& img) { assert(false && "implement me"); return ""; };
+    virtual std::string sampler_bind_slot_name(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
+    virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
+    virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
 
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
-    virtual std::string image_bind_slot_definition(const std::string& prog_name, const refl::Image& img) { assert(false && "implement me"); return ""; };
-    virtual std::string sampler_bind_slot_definition(const std::string& prog_name, const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
-    virtual std::string uniform_block_bind_slot_definition(const std::string& prog_name, const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
-    virtual std::string storage_buffer_bind_slot_definition(const std::string& prog_name, const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
+    virtual std::string image_bind_slot_definition(const refl::Image& img) { assert(false && "implement me"); return ""; };
+    virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
+    virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
+    virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
 
     struct ShaderStageArrayInfo {
     public:

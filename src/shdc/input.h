@@ -24,11 +24,25 @@ struct Input {
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
     std::map<std::string, int> fs_map;      // name-index mapping for @fs snippets
     std::map<std::string, Program> programs;    // all @program definitions
+    std::map<std::string, int> ub_slots;        // uniform block bindslot definitions
+    std::map<std::string, int> img_slots;       // image bindslot definitions
+    std::map<std::string, int> smp_slots;       // sampler bindslot definitions
+    std::map<std::string, int> sbuf_slots;      // storagebuffer bindslot definitions
+    std::map<std::string, ImageSampleTypeTag> image_sample_type_tags;
+    std::map<std::string, SamplerTypeTag> sampler_type_tags;
 
     static Input load_and_parse(const std::string& path, const std::string& module_override);
     ErrMsg error(int line_index, const std::string& msg) const;
     ErrMsg warning(int line_index, const std::string& msg) const;
     void dump_debug(ErrMsg::Format err_fmt) const;
+    // return -1 if not found
+    int find_ub_slot(const std::string& name) const;
+    int find_img_slot(const std::string& name) const;
+    int find_smp_slot(const std::string& name) const;
+    int find_sbuf_slot(const std::string& name) const;
+    // return nullptr if not found
+    const ImageSampleTypeTag* find_image_sample_type_tag(const std::string& tex_name) const;
+    const SamplerTypeTag* find_sampler_type_tag(const std::string& smp_name) const;
 };
 
 } // namespace shdc

@@ -427,40 +427,40 @@ std::string SokolJaiGenerator::vertex_attr_name(const std::string& prog_name, co
     return fmt::format("ATTR_{}_{}", prog_name, attr.name);
 }
 
-std::string SokolJaiGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
-    return fmt::format("IMG_{}_{}", prog_name, img.name);
+std::string SokolJaiGenerator::image_bind_slot_name(const Image& img) {
+    return fmt::format("IMG_{}", img.name);
 }
 
-std::string SokolJaiGenerator::sampler_bind_slot_name(const std::string& prog_name, const Sampler& smp) {
-    return fmt::format("SMP_{}_{}", prog_name, smp.name);
+std::string SokolJaiGenerator::sampler_bind_slot_name(const Sampler& smp) {
+    return fmt::format("SMP_{}", smp.name);
 }
 
-std::string SokolJaiGenerator::uniform_block_bind_slot_name(const std::string& prog_name, const UniformBlock& ub) {
-    return fmt::format("UB_{}_{}", prog_name, ub.struct_info.name);
+std::string SokolJaiGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
+    return fmt::format("UB_{}", ub.struct_info.name);
 }
 
-std::string SokolJaiGenerator::storage_buffer_bind_slot_name(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name);
+std::string SokolJaiGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return fmt::format("SBUF_{}", sbuf.struct_info.name);
 }
 
 std::string SokolJaiGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("{} :: {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolJaiGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
-    return fmt::format("{} :: {};", image_bind_slot_name(prog_name, img), img.sokol_slot);
+std::string SokolJaiGenerator::image_bind_slot_definition(const Image& img) {
+    return fmt::format("{} :: {};", image_bind_slot_name(img), img.sokol_slot);
 }
 
-std::string SokolJaiGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
-    return fmt::format("{} :: {};", sampler_bind_slot_name(prog_name, smp), smp.sokol_slot);
+std::string SokolJaiGenerator::sampler_bind_slot_definition(const Sampler& smp) {
+    return fmt::format("{} :: {};", sampler_bind_slot_name(smp), smp.sokol_slot);
 }
 
-std::string SokolJaiGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
-    return fmt::format("{} :: {};", uniform_block_bind_slot_name(prog_name, ub), ub.sokol_slot);
+std::string SokolJaiGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
+    return fmt::format("{} :: {};", uniform_block_bind_slot_name(ub), ub.sokol_slot);
 }
 
-std::string SokolJaiGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return fmt::format("{} :: {};", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.sokol_slot);
+std::string SokolJaiGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
+    return fmt::format("{} :: {};", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
 }
 
 } // namespace

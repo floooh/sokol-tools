@@ -22,7 +22,7 @@ struct Reflection {
     // build merged reflection object from per-slang / per-snippet reflections, error will be in .error
     static Reflection build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross);
     // parse per-snippet reflection info for a compiled shader source
-    static StageReflection parse_snippet_reflection(const spirv_cross::Compiler& compiler, const Snippet& snippet, ErrMsg& out_error);
+    static StageReflection parse_snippet_reflection(const spirv_cross::Compiler& compiler, const Snippet& snippet, const Input& inp, ErrMsg& out_error);
     // print a debug dump to stderr
     void dump_debug(ErrMsg::Format err_fmt) const;
 

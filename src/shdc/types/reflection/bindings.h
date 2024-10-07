@@ -15,11 +15,11 @@ struct Bindings {
     //  - SG_MAX_STORAGEBUFFER_BINDSLOTS
     //  - SG_MAX_IMAGE_SAMPLERS_PAIRS
     //
-    static const int MaxUniformBlocks = 8;
-    static const int MaxImages = 16;
-    static const int MaxSamplers = 16;
-    static const int MaxStorageBuffers = 8;
-    static const int MaxImageSamplers = 16;
+    inline static const int MaxUniformBlocks = 8;
+    inline static const int MaxImages = 16;
+    inline static const int MaxSamplers = 16;
+    inline static const int MaxStorageBuffers = 8;
+    inline static const int MaxImageSamplers = 16;
 
     enum Type {
         UNIFORM_BLOCK,

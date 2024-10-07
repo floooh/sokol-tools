@@ -183,7 +183,7 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& source, const Input& inp, int snippet_index, Spirv& out_spirv) {
+static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const MergedSource& source, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { source.src.c_str() };
     const int sourcesLen[1] = { (int) source.src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
@@ -198,11 +198,7 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-    // NOTE: where using AutoMapBinding here, but this will just throw all bindings
-    // into descriptor set null, which is not what we actually want.
-    // We'll fix up the bindings later before calling SPIRVCross.
     shader.setAutoMapLocations(true);
-    shader.setAutoMapBindings(true);
     bool parse_success = shader.parse(GetDefaultResources(), 100, false, EShMsgDefault);
     infolog_to_errors(shader.getInfoLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
@@ -224,6 +220,58 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     infolog_to_errors(program.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     if (!map_success) {
         return false;
+    }
+
+    // extract binding information into Input
+    bool refl_res = program.buildReflection(EShReflectionSeparateBuffers);
+    if (!refl_res) {
+        out_spirv.errors.push_back(inp.error(0, "program.buildReflection() failed!"));
+    }
+    for (int i = 0; i < program.getNumUniformBlocks(); i++) {
+        const auto& ub = program.getUniformBlock(i);
+        const std::string& name = ub.name;
+        const int slot = inp.find_ub_slot(name);
+        const int binding = ub.getBinding();
+        if (slot == -1) {
+            inp.ub_slots[name] = binding;
+        } else if (slot != binding) {
+            out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for uniform block '{}' ({} vs {})", name, slot, binding)));
+            return false;
+        }
+    }
+    for (int i = 0; i < program.getNumBufferBlocks(); i++) {
+        const auto& sbuf = program.getBufferBlock(i);
+        const std::string& name = sbuf.name;
+        const int slot = inp.find_sbuf_slot(name);
+        const int binding = sbuf.getBinding();
+        if (slot == -1) {
+            inp.sbuf_slots[name] = binding;
+        } else if (slot != binding) {
+            out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for buffer block '{}' ({} vs {})", name, slot, binding)));
+            return false;
+        }
+    }
+    for (int i = 0; i < program.getNumUniformVariables(); i++) {
+        const auto& uniform = program.getUniform(i);
+        const std::string& name = uniform.name;
+        const int binding = uniform.getBinding();
+        if (uniform.getType()->getSampler().sampler) {
+            const int slot = inp.find_smp_slot(name);
+            if (slot == -1) {
+                inp.smp_slots[name] = binding;
+            } else if (slot != binding) {
+                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for sampler '{}' ({} vs {})", name, slot)));
+                return false;
+            }
+        } else if (uniform.getType()->isTexture()) {
+            const int slot = inp.find_img_slot(name);
+            if (slot == -1) {
+                inp.img_slots[name] = binding;
+            } else if (slot != binding) {
+                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for image '{}' ({} vs {})", name, slot)));
+                return false;
+            }
+        }
     }
 
     // translate intermediate representation to SPIRV
@@ -257,7 +305,7 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
 }
 
 // compile all shader-snippets into SPIRV bytecode
-Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
+Spirv Spirv::compile_glsl_and_extract_bindings(Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
     Spirv out_spirv;
 
     // compile shader-snippets
@@ -266,14 +314,14 @@ Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector
         if (snippet.type == Snippet::VS) {
             // vertex shader
             const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
+            if (!compile(inp, EShLangVertex, slang, src, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
         } else if (snippet.type == Snippet::FS) {
             // fragment shader
             const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
+            if (!compile(inp, EShLangFragment, slang, src, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -350,6 +398,23 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
             fmt::print(stderr, "    {}\n", dasm_line);
         }
         fmt::print(stderr, "\n");
+    }
+    fmt::print(stderr, "  bindings:\n");
+    fmt::print(stderr, "    uniform blocks:\n");
+    for (const auto& item: inp.ub_slots) {
+        fmt::print(stderr, "      {} => {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    images:\n");
+    for (const auto& item: inp.img_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    samplers:\n");
+    for (const auto& item: inp.smp_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    storage buffers:\n");
+    for (const auto& item: inp.sbuf_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
     }
     fmt::print(stderr, "\n");
 }

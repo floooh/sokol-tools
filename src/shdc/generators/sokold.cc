@@ -437,20 +437,20 @@ std::string SokolDGenerator::vertex_attr_name(const std::string& prog_name, cons
     return pystring::upper(fmt::format("ATTR_{}_{}", prog_name, attr.name));
 }
 
-std::string SokolDGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
-    return pystring::upper(fmt::format("IMG_{}_{}", prog_name, img.name));
+std::string SokolDGenerator::image_bind_slot_name(const Image& img) {
+    return pystring::upper(fmt::format("IMG_{}", img.name));
 }
 
-std::string SokolDGenerator::sampler_bind_slot_name(const std::string& prog_name, const Sampler& smp) {
-    return pystring::upper(fmt::format("SMP_{}_{}", prog_name, smp.name));
+std::string SokolDGenerator::sampler_bind_slot_name(const Sampler& smp) {
+    return pystring::upper(fmt::format("SMP_{}", smp.name));
 }
 
-std::string SokolDGenerator::uniform_block_bind_slot_name(const std::string& prog_name, const UniformBlock& ub) {
-    return pystring::upper(fmt::format("UB_{}_{}", prog_name, ub.struct_info.name));
+std::string SokolDGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
+    return pystring::upper(fmt::format("UB_{}", ub.struct_info.name));
 }
 
-std::string SokolDGenerator::storage_buffer_bind_slot_name(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return pystring::upper(fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name));
+std::string SokolDGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return pystring::upper(fmt::format("SBUF_{}", sbuf.struct_info.name));
 }
 
 static std::string const_def(const std::string& name, int slot) {
@@ -461,20 +461,20 @@ std::string SokolDGenerator::vertex_attr_definition(const std::string& prog_name
     return const_def(vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolDGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
-    return const_def(image_bind_slot_name(prog_name, img), img.sokol_slot);
+std::string SokolDGenerator::image_bind_slot_definition(const Image& img) {
+    return const_def(image_bind_slot_name(img), img.sokol_slot);
 }
 
-std::string SokolDGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
-    return const_def(sampler_bind_slot_name(prog_name, smp), smp.sokol_slot);
+std::string SokolDGenerator::sampler_bind_slot_definition(const Sampler& smp) {
+    return const_def(sampler_bind_slot_name(smp), smp.sokol_slot);
 }
 
-std::string SokolDGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
-    return const_def(uniform_block_bind_slot_name(prog_name, ub), ub.sokol_slot);
+std::string SokolDGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
+    return const_def(uniform_block_bind_slot_name(ub), ub.sokol_slot);
 }
 
-std::string SokolDGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return const_def(storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.sokol_slot);
+std::string SokolDGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
+    return const_def(storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
 }
 
 } // namespace

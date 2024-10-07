@@ -510,40 +510,40 @@ std::string SokolNimGenerator::vertex_attr_name(const std::string& prog_name, co
     return to_camel_case(fmt::format("ATTR_{}_{}", prog_name, attr.name));
 }
 
-std::string SokolNimGenerator::image_bind_slot_name(const std::string& prog_name, const Image& img) {
-    return to_camel_case(fmt::format("IMG_{}_{}", prog_name, img.name));
+std::string SokolNimGenerator::image_bind_slot_name(const Image& img) {
+    return to_camel_case(fmt::format("IMG_{}", img.name));
 }
 
-std::string SokolNimGenerator::sampler_bind_slot_name(const std::string& prog_name, const Sampler& smp) {
-    return to_camel_case(fmt::format("SMP_{}_{}", prog_name, smp.name));
+std::string SokolNimGenerator::sampler_bind_slot_name(const Sampler& smp) {
+    return to_camel_case(fmt::format("SMP_{}", smp.name));
 }
 
-std::string SokolNimGenerator::uniform_block_bind_slot_name(const std::string& prog_name, const UniformBlock& ub) {
-    return to_camel_case(fmt::format("UB_{}_{}", prog_name, ub.struct_info.name));
+std::string SokolNimGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
+    return to_camel_case(fmt::format("UB_{}", ub.struct_info.name));
 }
 
-std::string SokolNimGenerator::storage_buffer_bind_slot_name(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return to_camel_case(fmt::format("SBUF_{}_{}", prog_name, sbuf.struct_info.name));
+std::string SokolNimGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return to_camel_case(fmt::format("SBUF_{}", sbuf.struct_info.name));
 }
 
 std::string SokolNimGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("const {}* = {}", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolNimGenerator::image_bind_slot_definition(const std::string& prog_name, const Image& img) {
-    return fmt::format("const {}* = {}", image_bind_slot_name(prog_name, img), img.sokol_slot);
+std::string SokolNimGenerator::image_bind_slot_definition(const Image& img) {
+    return fmt::format("const {}* = {}", image_bind_slot_name(img), img.sokol_slot);
 }
 
-std::string SokolNimGenerator::sampler_bind_slot_definition(const std::string& prog_name, const Sampler& smp) {
-    return fmt::format("const {}* = {}", sampler_bind_slot_name(prog_name, smp), smp.sokol_slot);
+std::string SokolNimGenerator::sampler_bind_slot_definition(const Sampler& smp) {
+    return fmt::format("const {}* = {}", sampler_bind_slot_name(smp), smp.sokol_slot);
 }
 
-std::string SokolNimGenerator::uniform_block_bind_slot_definition(const std::string& prog_name, const UniformBlock& ub) {
-    return fmt::format("const {}* = {}", uniform_block_bind_slot_name(prog_name, ub), ub.sokol_slot);
+std::string SokolNimGenerator::uniform_block_bind_slot_definition(const UniformBlock& ub) {
+    return fmt::format("const {}* = {}", uniform_block_bind_slot_name(ub), ub.sokol_slot);
 }
 
-std::string SokolNimGenerator::storage_buffer_bind_slot_definition(const std::string& prog_name, const StorageBuffer& sbuf) {
-    return fmt::format("const {}* = {}", storage_buffer_bind_slot_name(prog_name, sbuf), sbuf.sokol_slot);
+std::string SokolNimGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
+    return fmt::format("const {}* = {}", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
 }
 
 } // namespace
