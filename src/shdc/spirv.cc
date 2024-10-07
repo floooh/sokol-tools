@@ -260,7 +260,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             if (slot == -1) {
                 inp.smp_slots[name] = binding;
             } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for sampler '{}' ({} vs {})", name, slot)));
+                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for sampler '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
         } else if (uniform.getType()->isTexture()) {
@@ -268,7 +268,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             if (slot == -1) {
                 inp.img_slots[name] = binding;
             } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for image '{}' ({} vs {})", name, slot)));
+                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for image '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
         }
