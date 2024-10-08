@@ -24,6 +24,7 @@ struct Image {
 
 inline bool Image::equals(const Image& other) const {
     return (stage == other.stage)
+        && (sokol_slot == other.sokol_slot)
         && (name == other.name)
         && (type == other.type)
         && (sample_type == other.sample_type)

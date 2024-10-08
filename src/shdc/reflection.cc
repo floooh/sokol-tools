@@ -74,7 +74,7 @@ static ErrMsg validate_linking(const Input& inp, const Program& prog, const Prog
 
 Reflection Reflection::build(const Args& args, const Input& inp, const std::array<Spirvcross,Slang::Num>& spirvcross_array) {
     Reflection res;
-    ErrMsg error;
+    ErrMsg err;
 
     // for each program, just pick the reflection info from the first compiled slang,
     // the reflection info is the same for each Slang because it has been generated
@@ -93,12 +93,14 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
         prog_refl.name = prog.name;
         prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
         prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
-        prog_refl.bindings = merge_bindings({
-            vs_src->stage_refl.bindings,
-            fs_src->stage_refl.bindings,
-        }, error);
-        if (error.valid()) {
-            res.error = inp.error(0, error.msg);
+        prog_refl.bindings = merge_bindings({ vs_src->stage_refl.bindings, fs_src->stage_refl.bindings }, err);
+        if (err.valid()) {
+            res.error = inp.error(prog.line_index, err.msg);
+            return res;
+        }
+        err = validate_program_bindings(prog_refl.bindings);
+        if (err.valid()) {
+            res.error = inp.error(prog.line_index, err.msg);
             return res;
         }
         prog_bindings.push_back(prog_refl.bindings);
@@ -115,9 +117,9 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     for (const auto& prog_refl: res.progs) {
         prog_bindings.push_back(prog_refl.bindings);
     }
-    res.bindings = merge_bindings(prog_bindings, error);
-    if (error.valid()) {
-        res.error = inp.error(0, error.msg);
+    res.bindings = merge_bindings(prog_bindings, err);
+    if (err.valid()) {
+        res.error = inp.error(0, err.msg);
     }
     return res;
 }
@@ -258,9 +260,10 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         // uniform blocks always have 16 byte alignment
         refl_ub.struct_info.align = 16;
-        refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.struct_info.name);
+        refl_ub.name = refl_ub.struct_info.name;
+        refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.name);
         if (refl_ub.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for uniformblock '{}'\n", refl_ub.struct_info.name));
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for uniformblock '{}'\n", refl_ub.name));
             return refl;
         }
         refl.bindings.uniform_blocks.push_back(refl_ub);
@@ -284,9 +287,10 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
-        refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.struct_info.name);
+        refl_sbuf.name = refl_sbuf.struct_info.name;
+        refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
         if (refl_sbuf.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for storagebuffer '{}'\n", refl_sbuf.struct_info.name));
+            out_error = inp.error(0, fmt::format("no @bindslot definition found for storagebuffer '{}'\n", refl_sbuf.name));
             return refl;
         }
         refl.bindings.storage_buffers.push_back(refl_sbuf);
@@ -375,11 +379,11 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
 
         // merge identical uniform blocks
         for (const UniformBlock& ub: src_bindings.uniform_blocks) {
-            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.struct_info.name);
+            const UniformBlock* other_ub = out_bindings.find_uniform_block_by_name(ub.name);
             if (other_ub) {
                 // another uniform block of the same name exists, make sure it's identical
                 if (!ub.equals(*other_ub)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.struct_info.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting uniform block definitions found for '{}'", ub.name));
                     return Bindings();
                 }
             } else {
@@ -389,11 +393,11 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
 
         // merge identical storage buffers
         for (const StorageBuffer& sbuf: src_bindings.storage_buffers) {
-            const StorageBuffer* other_sbuf = out_bindings.find_storage_buffer_by_name(sbuf.struct_info.name);
+            const StorageBuffer* other_sbuf = out_bindings.find_storage_buffer_by_name(sbuf.name);
             if (other_sbuf) {
                 // another storage buffer of the same name exists, make sure it's identical
                 if (!sbuf.equals(*other_sbuf)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting storage buffer definitions found for '{}'", sbuf.struct_info.name));
+                    out_error = ErrMsg::error(fmt::format("conflicting storage buffer definitions found for '{}'", sbuf.name));
                     return Bindings();
                 }
             } else {
@@ -522,6 +526,86 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
         }
     }
     return out;
+}
+
+ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
+    {
+        std::array<std::string, Bindings::MaxUniformBlocks> ub_slots;
+        for (const auto& ub: bindings.uniform_blocks) {
+            const int slot = ub.sokol_slot;
+            if ((slot < 0) || (slot >= Bindings::MaxUniformBlocks)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for uniform block '{}' (must be 0..{})",
+                    slot,
+                    ub.name,
+                    Bindings::MaxUniformBlocks - 1));
+            }
+            if (!ub_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("uniform blocks {} and {} cannot use the same binding {}",
+                    ub_slots[slot],
+                    ub.name,
+                    slot));
+            }
+            ub_slots[slot] = ub.name;
+        }
+    }
+    {
+        std::array<std::string, Bindings::MaxStorageBuffers> sbuf_slots;
+        for (const auto& sbuf: bindings.storage_buffers) {
+            const int slot = sbuf.sokol_slot;
+            if ((slot < 0) || (slot >= Bindings::MaxStorageBuffers)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for storage buffer '{}' (must be 0..{})",
+                    slot,
+                    sbuf.name,
+                    Bindings::MaxStorageBuffers - 1));
+            }
+            if (!sbuf_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("storage buffer '{}' and '{}' cannot use the same binding {}",
+                    sbuf_slots[slot],
+                    sbuf.name,
+                    slot));
+            }
+            sbuf_slots[slot] = sbuf.name;
+        }
+    }
+    {
+        std::array<std::string, Bindings::MaxImages> img_slots;
+        for (const auto& img: bindings.images) {
+            const int slot = img.sokol_slot;
+            if ((slot < 0) || (slot > Bindings::MaxImages)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for image '{}' (must be 0..{})",
+                    slot,
+                    img.name,
+                    Bindings::MaxImages - 1));
+            }
+            if (!img_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("images '{}' and '{}' cannot use the same binding {}",
+                    img_slots[slot],
+                    img.name,
+                    slot));
+            }
+            img_slots[slot] = img.name;
+        }
+    }
+    {
+        std::array<std::string, Bindings::MaxSamplers> smp_slots;
+        for (const auto& smp: bindings.samplers) {
+            const int slot = smp.sokol_slot;
+            if ((slot < 0) || (slot > Bindings::MaxSamplers)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for sampler '{}' (must be 0..{})",
+                    slot,
+                    smp.name,
+                    Bindings::MaxSamplers - 1));
+            }
+            if (!smp_slots[slot].empty()) {
+                    return ErrMsg::error(fmt::format("samplers '{}' and '{}' cannot use the same binding {}",
+                        smp_slots[slot],
+                        smp.name,
+                        slot));
+            }
+            smp_slots[slot] = smp.name;
+        }
+    }
+    return ErrMsg();
 }
 
 Type Reflection::parse_toplevel_struct(const Compiler& compiler, const Resource& res, ErrMsg& out_error) {

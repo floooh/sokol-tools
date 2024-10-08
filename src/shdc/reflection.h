@@ -33,6 +33,8 @@ private:
     static Type parse_toplevel_struct(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& res, ErrMsg& out_error);
     // parse a struct item
     static Type parse_struct_item(const spirv_cross::Compiler& compiler, const spirv_cross::TypeID& type_id, const spirv_cross::TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error);
+    // check for valid sokol bindslot ranges and binding collisions across shader stages
+    static ErrMsg validate_program_bindings(const Bindings& bindings);
 };
 
 } // namespace reflection

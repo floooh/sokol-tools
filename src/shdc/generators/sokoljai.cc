@@ -26,7 +26,7 @@ void SokolJaiGenerator::gen_prerequisites(const GenInput& gen) {
 }
 
 void SokolJaiGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
-    l_open("{} :: struct {{\n", struct_name(ub.struct_info.name), ub.struct_info.align);
+    l_open("{} :: struct {{\n", struct_name(ub.name), ub.struct_info.align);
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
@@ -234,7 +234,7 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.layout = .STD140;\n", ubn);
                         if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                             if (ub->flattened) {
-                                l("{}.uniforms[0].name = \"{}\";\n", ubn, ub->struct_info.name);
+                                l("{}.uniforms[0].name = \"{}\";\n", ubn, ub->name);
                                 // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
                                 l("{}.uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
                                 l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
@@ -436,11 +436,11 @@ std::string SokolJaiGenerator::sampler_bind_slot_name(const Sampler& smp) {
 }
 
 std::string SokolJaiGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return fmt::format("UB_{}", ub.struct_info.name);
+    return fmt::format("UB_{}", ub.name);
 }
 
 std::string SokolJaiGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}", sbuf.struct_info.name);
+    return fmt::format("SBUF_{}", sbuf.name);
 }
 
 std::string SokolJaiGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

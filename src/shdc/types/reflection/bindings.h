@@ -151,7 +151,7 @@ inline const ImageSampler* Bindings::find_image_sampler_by_sokol_slot(int slot) 
 
 inline const UniformBlock* Bindings::find_uniform_block_by_name(const std::string& name) const {
     for (const UniformBlock& ub: uniform_blocks) {
-        if (ub.struct_info.name == name) {
+        if (ub.name == name) {
             return &ub;
         }
     }
@@ -160,7 +160,7 @@ inline const UniformBlock* Bindings::find_uniform_block_by_name(const std::strin
 
 inline const StorageBuffer* Bindings::find_storage_buffer_by_name(const std::string& name) const {
     for (const StorageBuffer& sbuf: storage_buffers) {
-        if (sbuf.struct_info.name == name) {
+        if (sbuf.name == name) {
             return &sbuf;
         }
     }

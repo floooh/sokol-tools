@@ -106,14 +106,14 @@ void Generator::gen_program_info(const GenInput& gen, const ProgramReflection& p
 
 void Generator::gen_bindings_info(const GenInput& gen) {
     for (const UniformBlock& ub: gen.refl.bindings.uniform_blocks) {
-        cbl_open("Uniform block '{}':\n", ub.struct_info.name);
-        cbl("{} struct: {}\n", lang_name(), struct_name(ub.struct_info.name));
+        cbl_open("Uniform block '{}':\n", ub.name);
+        cbl("{} struct: {}\n", lang_name(), struct_name(ub.name));
         cbl("Bind slot: {} => {}\n", uniform_block_bind_slot_name(ub), ub.sokol_slot);
         cbl_close();
     }
     for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
-        cbl_open("Storage buffer '{}':\n", sbuf.struct_info.name);
-        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.struct_info.name));
+        cbl_open("Storage buffer '{}':\n", sbuf.name);
+        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.name));
         cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
         cbl_close();
     }

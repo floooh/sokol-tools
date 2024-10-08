@@ -13,6 +13,7 @@ struct StorageBuffer {
     int msl_buffer_n = -1;
     int wgsl_group1_binding_n = -1;
     int glsl_binding_n = -1;
+    std::string name;   // shortcut for struct_info.name
     std::string inst_name;
     bool readonly;
     Type struct_info;
@@ -23,6 +24,8 @@ struct StorageBuffer {
 
 inline bool StorageBuffer::equals(const StorageBuffer& other) const {
     return (stage == other.stage)
+        && (sokol_slot == other.sokol_slot)
+        && (name == other.name)
         && (inst_name == other.inst_name)
         && (readonly == other.readonly)
         && (struct_info.equals(other.struct_info));

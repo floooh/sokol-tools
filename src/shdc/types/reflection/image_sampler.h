@@ -19,6 +19,7 @@ struct ImageSampler {
 
 inline bool ImageSampler::equals(const ImageSampler& other) const {
     return (stage == other.stage)
+        && (sokol_slot == other.sokol_slot)
         && (name == other.name)
         && (image_name == other.image_name)
         && (sampler_name == other.sampler_name);

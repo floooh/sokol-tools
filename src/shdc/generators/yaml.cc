@@ -126,12 +126,12 @@ void YamlGenerator::gen_uniform_block(const GenInput& gen, const UniformBlock& u
     l_open("-\n");
     l("slot: {}\n", ub.sokol_slot);
     l("size: {}\n", roundup(ub.struct_info.size, 16));
-    l("struct_name: {}\n", ub.struct_info.name);
+    l("struct_name: {}\n", ub.name);
     l("inst_name: {}\n", ub.inst_name);
     l_open("uniforms:\n");
     if (ub.flattened) {
         l_open("-\n");
-        l("name: {}\n", ub.struct_info.name);
+        l("name: {}\n", ub.name);
         l("type: {}\n", flattened_uniform_type(ub.struct_info.struct_items[0].type));
         l("array_count: {}\n", roundup(ub.struct_info.size, 16) / 16);
         l("offset: 0\n");
@@ -172,7 +172,7 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf) {
     l("slot: {}\n", sbuf.sokol_slot);
     l("size: {}\n", sbuf.struct_info.size);
     l("align: {}\n", sbuf.struct_info.align);
-    l("struct_name: {}\n", sbuf.struct_info.name);
+    l("struct_name: {}\n", sbuf.name);
     l("inst_name: {}\n", sbuf.inst_name);
     l("readonly: {}\n", sbuf.readonly);
     l("inner_struct_name: {}\n", item.struct_typename);

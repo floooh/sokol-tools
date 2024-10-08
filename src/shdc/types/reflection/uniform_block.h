@@ -13,6 +13,7 @@ struct UniformBlock {
     int hlsl_register_b_n = -1;
     int msl_buffer_n = -1;
     int wgsl_group0_binding_n = -1;
+    std::string name;   // shortcut for struct_info.name
     std::string inst_name;
     bool flattened = false;
     Type struct_info;
@@ -24,6 +25,7 @@ struct UniformBlock {
 inline bool UniformBlock::equals(const UniformBlock& other) const {
     return (stage == other.stage)
         // NOTE: ignore inst_name
+        && (name == other.name)
         && (flattened == other.flattened)
         && struct_info.equals(other.struct_info);
 }

@@ -28,7 +28,7 @@ void SokolRustGenerator::gen_prerequisites(const GenInput& gen) {
 
 void SokolRustGenerator::gen_uniform_block_decl(const GenInput& gen, const UniformBlock& ub) {
     l("#[repr(C, align({}))]\n", ub.struct_info.align);
-    l_open("pub struct {} {{\n", struct_name(ub.struct_info.name));
+    l_open("pub struct {} {{\n", struct_name(ub.name));
     int cur_offset = 0;
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
@@ -250,7 +250,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         l("{}.layout = sg::UniformLayout::Std140;\n", ubn);
                         if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                             if (ub->flattened) {
-                                l("{}.uniforms[0].name = c\"{}\".as_ptr();\n", ubn, ub->struct_info.name);
+                                l("{}.uniforms[0].name = c\"{}\".as_ptr();\n", ubn, ub->name);
                                 // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
                                 l("{}.uniforms[0]._type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
                                 l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
@@ -453,11 +453,11 @@ std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
 }
 
 std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return pystring::upper(fmt::format("UB_{}", ub.struct_info.name));
+    return pystring::upper(fmt::format("UB_{}", ub.name));
 }
 
 std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return pystring::upper(fmt::format("SBUF_{}", sbuf.struct_info.name));
+    return pystring::upper(fmt::format("SBUF_{}", sbuf.name));
 }
 
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

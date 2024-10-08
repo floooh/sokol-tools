@@ -84,7 +84,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
 void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
     l("#pragma pack(push,1)\n");
     int cur_offset = 0;
-    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", ub.struct_info.align, struct_name(ub.struct_info.name));
+    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", ub.struct_info.align, struct_name(ub.name));
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
         if (next_offset > cur_offset) {
@@ -129,7 +129,7 @@ void SokolCGenerator::gen_uniform_block_decl(const GenInput &gen, const UniformB
     if (cur_offset < round16) {
         l("uint8_t _pad_{}[{}];\n", cur_offset, round16 - cur_offset);
     }
-    l_close("}} {};\n", struct_name(ub.struct_info.name));
+    l_close("}} {};\n", struct_name(ub.name));
     l("#pragma pack(pop)\n");
 }
 
@@ -311,7 +311,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                             // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
                             l("{}.uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
                             l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
-                            l("{}.uniforms[0].glsl_name = \"{}\";\n", ubn, ub->struct_info.name);
+                            l("{}.uniforms[0].glsl_name = \"{}\";\n", ubn, ub->name);
                         } else {
                             for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
                                 const Type& u = ub->struct_info.struct_items[u_index];
@@ -446,7 +446,7 @@ void SokolCGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, cons
     l("(void)ub_name;\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
             l("return {};\n", ub.sokol_slot);
             l_close("}}\n");
         }
@@ -460,8 +460,8 @@ void SokolCGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, cons
     l("(void)ub_name;\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
-            l("return sizeof({});\n", struct_name(ub.struct_info.name));
+            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
+            l("return sizeof({});\n", struct_name(ub.name));
             l_close("}}\n");
         }
     }
@@ -474,7 +474,7 @@ void SokolCGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, con
     l("(void)sbuf_name;\n");
     for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
         if (sbuf.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.struct_info.name);
+            l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.name);
             l("return {};\n", sbuf.sokol_slot);
             l_close("}}\n");
         }
@@ -488,7 +488,7 @@ void SokolCGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const Pr
     l("(void)ub_name; (void)u_name;\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
             for (const Type& u: ub.struct_info.struct_items) {
                 l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                 l("return {};\n", u.offset);
@@ -511,7 +511,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
     l("#endif\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
-            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.struct_info.name);
+            l_open("if (0 == strcmp(ub_name, \"{}\")) {{\n", ub.name);
             for (const Type& u: ub.struct_info.struct_items) {
                 l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                 l("res.type = {};\n", uniform_type(u.type));
@@ -693,11 +693,11 @@ std::string SokolCGenerator::sampler_bind_slot_name(const Sampler& smp) {
 }
 
 std::string SokolCGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return fmt::format("UB_{}", ub.struct_info.name);
+    return fmt::format("UB_{}", ub.name);
 }
 
 std::string SokolCGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}", sbuf.struct_info.name);
+    return fmt::format("SBUF_{}", sbuf.name);
 }
 
 std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
