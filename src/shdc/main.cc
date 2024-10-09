@@ -26,7 +26,7 @@ int main(int argc, const char** argv) {
     }
 
     // load the source and parse tagged blocks
-    const Input inp = Input::load_and_parse(args.input, args.module);
+    Input inp = Input::load_and_parse(args.input, args.module);
     if (args.debug_dump) {
         inp.dump_debug(args.error_format);
     }
@@ -41,7 +41,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (args.slang & Slang::bit(slang)) {
-            spirv[i] = Spirv::compile_glsl(inp, slang, args.defines);
+            spirv[i] = Spirv::compile_glsl_and_extract_bindings(inp, slang, args.defines);
             if (args.debug_dump) {
                 spirv[i].dump_debug(inp, args.error_format);
             }

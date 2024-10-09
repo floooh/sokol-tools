@@ -7,6 +7,7 @@ namespace shdc::refl {
 struct ProgramReflection {
     std::string name;
     std::array<StageReflection, ShaderStage::Num> stages;
+    Bindings bindings;  // merged stage bindings
 
     const StageReflection& stage(ShaderStage::Enum s) const;
     const StageReflection& vs() const;
@@ -42,6 +43,7 @@ inline void ProgramReflection::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}-\n", indent);
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}stages:\n", indent2);
+    bindings.dump_debug(indent2);
     for (const auto& stage: stages) {
         stage.dump_debug(indent2);
     }

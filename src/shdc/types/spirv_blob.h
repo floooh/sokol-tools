@@ -4,7 +4,7 @@
 
 namespace shdc {
 
-// a SPIRV-bytecode blob with "back-link" to Input.snippets
+// a SPIRV-bytecode blob with "back-link" to Input.snippets and some limited reflection info
 struct SpirvBlob {
     int snippet_index = -1;         // index into Input.snippets
     std::string source;             // source code this blob was compiled from
