@@ -309,13 +309,13 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     } else if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                         if (ub->flattened) {
                             // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
-                            l("{}.uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
-                            l("{}.uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
-                            l("{}.uniforms[0].glsl_name = \"{}\";\n", ubn, ub->name);
+                            l("{}.glsl_uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
+                            l("{}.glsl_uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
+                            l("{}.glsl_uniforms[0].glsl_name = \"{}\";\n", ubn, ub->name);
                         } else {
                             for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
                                 const Type& u = ub->struct_info.struct_items[u_index];
-                                const std::string un = fmt::format("{}.uniforms[{}]", ubn, u_index);
+                                const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
                                 l("{}.type = {};\n", un, uniform_type(u.type));
                                 l("{}.offset = {};\n", un, u.offset);
                                 l("{}.array_count = {};\n", un, u.array_count);
