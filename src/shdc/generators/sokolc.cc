@@ -355,7 +355,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     } else if (Slang::is_msl(slang)) {
                         l("{}.msl_texture_n = {};\n", in, img->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgsl_group1_binding_n = {}\n", in, img->wgsl_group1_binding_n);
+                        l("{}.wgsl_group1_binding_n = {};\n", in, img->wgsl_group1_binding_n);
                     }
                 }
             }
