@@ -263,7 +263,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_ub.name = refl_ub.struct_info.name;
         refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.name);
         if (refl_ub.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for uniformblock '{}'\n", refl_ub.name));
+            out_error = inp.error(0, fmt::format("no binding found for uniformblock '{}' (might be unused in shader code?)\n", refl_ub.name));
             return refl;
         }
         refl.bindings.uniform_blocks.push_back(refl_ub);
@@ -290,7 +290,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_sbuf.name = refl_sbuf.struct_info.name;
         refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
         if (refl_sbuf.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for storagebuffer '{}'\n", refl_sbuf.name));
+            out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
             return refl;
         }
         refl.bindings.storage_buffers.push_back(refl_sbuf);
@@ -316,7 +316,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_img.multisampled = spirtype_to_image_multisampled(img_type);
         refl_img.sokol_slot = inp.find_img_slot(refl_img.name);
         if (refl_img.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for image '{}'\n", refl_img.name));
+            out_error = inp.error(0, fmt::format("no binding found for image '{}' (might be unused in shader code?)\n", refl_img.name));
             return refl;
         }
         refl.bindings.images.push_back(refl_img);
@@ -340,7 +340,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         refl_smp.sokol_slot = inp.find_smp_slot(refl_smp.name);
         if (refl_smp.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no @bindslot definition found for sampler '{}'\n", refl_smp.name));
+            out_error = inp.error(0, fmt::format("no binding found for sampler '{}' (might be unused in shader code?)\n", refl_smp.name));
             return refl;
         }
         refl.bindings.samplers.push_back(refl_smp);
