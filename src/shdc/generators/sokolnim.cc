@@ -496,7 +496,7 @@ std::string SokolNimGenerator::backend(Slang::Enum e) {
         case Slang::METAL_SIM:
             return "backendMetalSimulator";
         case Slang::WGSL:
-            return "backendWgsl";
+            return "backendWgpu";
         default:
             return "<INVALID>";
     }
