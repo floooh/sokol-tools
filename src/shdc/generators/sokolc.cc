@@ -524,7 +524,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
             l_close("}}\n");
         }
     }
-    l("return desc;\n");
+    l("return res;\n");
     l_close("}}\n");
 }
 
