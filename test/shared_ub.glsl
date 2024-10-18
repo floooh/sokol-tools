@@ -1,6 +1,6 @@
 
 @block shared
-uniform params {
+layout(binding=0) uniform params {
     mat4 mvp;
     float bla;
 };
@@ -17,7 +17,7 @@ void main() {
 @end
 
 @vs vs2
-uniform xxx {
+layout(binding=1) uniform xxx {
     float blub;
 };
 @include_block shared

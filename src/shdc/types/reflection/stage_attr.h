@@ -10,26 +10,17 @@ struct StageAttr {
     std::string name;
     std::string sem_name;
     int sem_index = 0;
-    std::string snippet_name;
     Type type_info;
 
-    bool equals(const StageAttr& rhs, bool with_snippet_name) const;
+    bool equals(const StageAttr& rhs) const;
     void dump_debug(const std::string& indent) const;
 };
 
-inline bool StageAttr::equals(const StageAttr& rhs, bool with_snippet_name) const {
-    if (with_snippet_name) {
-        return (slot == rhs.slot) &&
-               (name == rhs.name) &&
-               (sem_name == rhs.sem_name) &&
-               (sem_index == rhs.sem_index) &&
-               (snippet_name == rhs.snippet_name);
-    } else {
-        return (slot == rhs.slot) &&
-               (name == rhs.name) &&
-               (sem_name == rhs.sem_name) &&
-               (sem_index == rhs.sem_index);
-    }
+inline bool StageAttr::equals(const StageAttr& rhs) const {
+    return (slot == rhs.slot) &&
+           (name == rhs.name) &&
+           (sem_name == rhs.sem_name) &&
+           (sem_index == rhs.sem_index);
 }
 
 inline void StageAttr::dump_debug(const std::string& indent) const {
@@ -39,7 +30,6 @@ inline void StageAttr::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}sem_name: {}\n", indent2, sem_name);
     fmt::print(stderr, "{}sem_index: {}\n", indent2, sem_index);
-    fmt::print(stderr, "{}snippet_name: {}\n", indent2, snippet_name);
 }
 
 } // namespace
