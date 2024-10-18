@@ -1,6 +1,6 @@
 
 @vs vs
-uniform params {
+layout(binding=0) uniform params {
     mat4 mvp[3];
     ivec4 b2[1];
 };
@@ -21,4 +21,4 @@ void main() {
 }
 @end
 
-@program shd vs fs 
+@program shd vs fs
