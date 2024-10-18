@@ -49,7 +49,7 @@ const ImageSampleTypeTag* Input::find_image_sample_type_tag(const std::string& t
     }
 }
 
-inline const SamplerTypeTag* Input::find_sampler_type_tag(const std::string& smp_name) const {
+const SamplerTypeTag* Input::find_sampler_type_tag(const std::string& smp_name) const {
     auto it = sampler_type_tags.find(smp_name);
     if (it != sampler_type_tags.end()) {
         return &sampler_type_tags.at(smp_name);
