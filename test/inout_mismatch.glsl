@@ -2,7 +2,7 @@
 
 #pragma sokol @vs vs
 
-uniform vs_params {
+layout(binding=0) uniform vs_params {
 	mat4 u_MVMatrix;       // A constant representing the combined model/view matrix.
 	mat4 u_MVPMatrix;      // A constant representing the combined model/view/projection matrix.
 	mat4 u_NMatrix;        // A constant representing the Normal Matrix
@@ -42,9 +42,9 @@ void main()
 
 #pragma sokol @fs fs
 //precision mediump float;       // Set the default precision to medium. We don't need as high of a precision in the fragment shader
-uniform texture2D tex;
-uniform sampler smp;
-uniform fs_params {
+layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
+layout(binding=1) uniform fs_params {
 	vec4 u_LightPos;       // The position of the light in eye space.
 	vec4 ambientColor;
 	vec4 diffuseColor;

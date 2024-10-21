@@ -1,5 +1,5 @@
 @vs vs
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     vec2 disp_size;
 };
 in vec2 position;
@@ -15,8 +15,8 @@ void main() {
 @end
 
 @fs fs
-uniform texture2D tex;
-uniform sampler smp;
+layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
 in vec2 uv;
 in vec4 color;
 out vec4 frag_color;
