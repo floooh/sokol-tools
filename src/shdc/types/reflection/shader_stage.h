@@ -20,9 +20,9 @@ struct ShaderStage {
 
 inline const char* ShaderStage::to_str(ShaderStage::Enum e) {
     switch (e) {
-        case Vertex: return "VS";
-        case Fragment: return "FS";
-        default: return "INVALID";
+        case Vertex: return "vertex";
+        case Fragment: return "fragment";
+        default: return "invalid";
     }
 }
 

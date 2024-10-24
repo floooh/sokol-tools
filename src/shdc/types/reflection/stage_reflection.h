@@ -17,9 +17,31 @@ struct StageReflection {
     std::array<StageAttr, StageAttr::Num> outputs;      // index == attribute slot
     Bindings bindings;
 
+    size_t num_inputs() const;
+    size_t num_outputs() const;
     std::string entry_point_by_slang(Slang::Enum slang) const;
     void dump_debug(const std::string& indent) const;
 };
+
+inline size_t StageReflection::num_inputs() const {
+    size_t num = 0;
+    for (const auto& attr: inputs) {
+        if (attr.slot >= 0) {
+            num += 1;
+        }
+    }
+    return num;
+}
+
+inline size_t StageReflection::num_outputs() const {
+    size_t num = 0;
+    for (const auto& attr: outputs) {
+        if (attr.slot >= 0) {
+            num += 1;
+        }
+    }
+    return num;
+}
 
 inline std::string StageReflection::entry_point_by_slang(Slang::Enum slang) const {
     if (Slang::is_msl(slang)) {

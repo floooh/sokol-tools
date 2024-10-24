@@ -64,8 +64,8 @@ protected:
     virtual std::string comment_block_line_prefix() { assert(false && "implement me"); return ""; };
     virtual std::string comment_block_end() { assert(false && "implement me"); return ""; };
 
-    virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
-    virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { assert(false && "implement me"); return ""; };
+    virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
+    virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
 
     virtual std::string shader_stage(refl::ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
