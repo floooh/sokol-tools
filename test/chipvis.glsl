@@ -6,14 +6,14 @@
 @ctype vec2 float2_t
 
 @vs vs
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     vec4 color0;
     vec2 half_size;
     vec2 offset;
     vec2 scale;
 };
-uniform texture2D palette_tex;
-uniform sampler smp;
+layout(binding=0) uniform texture2D palette_tex;
+layout(binding=0) uniform sampler smp;
 in vec2 pos;
 in vec2 uv;
 out vec4 color;

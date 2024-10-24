@@ -20,6 +20,7 @@ protected:
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang);
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang);
     virtual std::string get_shader_desc_help(const std::string& prog_name);
+    virtual std::string shader_stage(refl::ShaderStage::Enum e);
     virtual std::string uniform_type(refl::Type::Enum e);
     virtual std::string flattened_uniform_type(refl::Type::Enum e);
     virtual std::string image_type(refl::ImageType::Enum e);
@@ -27,12 +28,12 @@ protected:
     virtual std::string sampler_type(refl::SamplerType::Enum e);
     virtual std::string backend(Slang::Enum e);
     virtual std::string struct_name(const std::string& name);
-    virtual std::string vertex_attr_name(const refl::StageAttr& attr);
+    virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr);
     virtual std::string image_bind_slot_name(const refl::Image& img);
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf);
-    virtual std::string vertex_attr_definition(const refl::StageAttr& attr);
+    virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr);
     virtual std::string image_bind_slot_definition(const refl::Image& img);
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub);
