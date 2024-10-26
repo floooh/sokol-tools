@@ -317,7 +317,6 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                                 const Type& u = ub->struct_info.struct_items[u_index];
                                 const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
                                 l("{}.type = {};\n", un, uniform_type(u.type));
-                                l("{}.offset = {};\n", un, u.offset);
                                 l("{}.array_count = {};\n", un, u.array_count);
                                 l("{}.glsl_name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                             }
@@ -515,7 +514,6 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
             for (const Type& u: ub.struct_info.struct_items) {
                 l_open("if (0 == strcmp(u_name, \"{}\")) {{\n", u.name);
                 l("res.type = {};\n", uniform_type(u.type));
-                l("res.offset = {};\n", u.offset);
                 l("res.array_count = {};\n", u.array_count);
                 l("res.glsl_name = \"{}\";\n", u.name);
                 l("return res;\n");

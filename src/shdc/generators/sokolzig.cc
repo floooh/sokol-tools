@@ -265,7 +265,6 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                                 const Type& u = ub->struct_info.struct_items[u_index];
                                 const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
                                 l("{}.type = {};\n", un, uniform_type(u.type));
-                                l("{}.offset = {};", un, u.offset);
                                 l("{}.array_count = {};\n", un, u.array_count);
                                 l("{}.glsl_name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                             }
@@ -662,7 +661,6 @@ void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Pr
                 l_open("if (std.mem.eql(u8, u_name, \"{}\")) {{\n", u.name);
                 l("var desc: sg.ShaderUniformDesc = .{{}};\n");
                 l("desc.type = {};\n", uniform_type(u.type));
-                l("desc.offset = {};\n", u.offset);
                 l("desc.array_count = {};\n", u.array_count);
                 l("desc.glsl_name = \"{}\";\n", u.name);
                 l("return desc;\n");

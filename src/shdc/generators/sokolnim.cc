@@ -334,7 +334,6 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                                 const Type& u = ub->struct_info.struct_items[u_index];
                                 const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
                                 l("{}.type = {}\n", un, uniform_type(u.type));
-                                l("{}.offset = {}\n", un, u.offset);
                                 l("{}.arrayCount = {}\n", un, u.array_count);
                                 l("{}.glslName = \"{}.{}\"\n", un, ub->inst_name, u.name);
                             }

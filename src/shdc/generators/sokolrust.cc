@@ -267,7 +267,6 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                                 const Type& u = ub->struct_info.struct_items[u_index];
                                 const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
                                 l("{}._type = {};\n", un, uniform_type(u.type));
-                                l("{}.offset = {};\n", un, u.offset);
                                 l("{}.array_count = {};\n", un, u.array_count);
                                 l("{}.glsl_name = c\"{}.{}\".as_ptr();\n", un, ub->inst_name, u.name);
                             }
