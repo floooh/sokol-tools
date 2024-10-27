@@ -231,7 +231,7 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                 const UniformBlock* ub = prog.bindings.find_uniform_block_by_sokol_slot(ub_index);
                 if (ub) {
                     const std::string ubn = fmt::format("desc.uniform_blocks[{}]", ub_index);
-                    l("{}.stage = {}\n", ubn, shader_stage(ub->stage));
+                    l("{}.stage = {};\n", ubn, shader_stage(ub->stage));
                     l("{}.layout = .STD140;\n", ubn);
                     l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
                     if (Slang::is_hlsl(slang)) {
