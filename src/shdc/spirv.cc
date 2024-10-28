@@ -235,7 +235,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
         if (slot == -1) {
             inp.ub_slots[name] = binding;
         } else if (slot != binding) {
-            out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for uniform block '{}' ({} vs {})", name, slot, binding)));
+            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for uniform blocks of same name '{}' ({} vs {})", name, slot, binding)));
             return false;
         }
     }
@@ -247,7 +247,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
         if (slot == -1) {
             inp.sbuf_slots[name] = binding;
         } else if (slot != binding) {
-            out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for buffer block '{}' ({} vs {})", name, slot, binding)));
+            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for buffer blocks of same name '{}' ({} vs {})", name, slot, binding)));
             return false;
         }
     }
@@ -260,7 +260,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             if (slot == -1) {
                 inp.smp_slots[name] = binding;
             } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for sampler '{}' ({} vs {})", name, slot, binding)));
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for samplers of same name '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
         } else if (uniform.getType()->isTexture()) {
@@ -268,7 +268,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             if (slot == -1) {
                 inp.img_slots[name] = binding;
             } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("binding collision for image '{}' ({} vs {})", name, slot, binding)));
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for textures of same name '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
         }
