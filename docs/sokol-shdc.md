@@ -8,7 +8,7 @@ Shader-code-generator for sokol_gfx.h
 - [Build Process Integration with fips](#build-process-integration-with-fips)
 - [Standalone Usage](#standalone-usage)
 - [Shader Tags Reference](#shader-tags-reference)
-- [Shader Authoring Considerations](#shader-authoring-considerations-considerations)
+- [Shader Authoring Considerations](#shader-authoring-considerations)
 - [Runtime Inspection](#runtime-inspection)
 
 ## Feature Overview
