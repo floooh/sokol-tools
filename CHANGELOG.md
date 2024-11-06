@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+#### **07-Nov-2024**
+
+This is the sokol-shdc update going with the sokol-gfx 'bindings cleanup update':
+
+- Input shader code now require explicit `layout(binding=N)` annotations on
+  uniform blocks, textures, samplers and storage buffers.
+- All code generators have been updated for the new `sg_shader_desc` struct
+  interior (this also affects the yaml generator output).
+
+Associated PR: https://github.com/floooh/sokol-tools/pull/151
+
+See also the [sokol repository changelog](https://github.com/floooh/sokol/blob/master/CHANGELOG.md#07-nov-2024)
+for more details.
+
 #### **04-Sep-2024**
 
 The Zig code generator (`-f sokol_zig`) now generates runtime reflection functions
