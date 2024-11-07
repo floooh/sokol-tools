@@ -30,12 +30,15 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
     return nullptr;
 }
 
-static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum slang) {
+static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang::Enum slang) {
+    // NOTE: this function can be called with the special Slang::REFLECTION
+    // which guarantees zero-based bindings for each resource type
     ShaderResources shader_resources = compiler.get_shader_resources();
+    ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
 
     // uniform buffers
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
         for (const Resource& res: shader_resources.uniform_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -44,7 +47,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 
     // combined image samplers
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE_SAMPLER);
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -53,7 +56,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 
     // separate images
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
         for (const Resource& res: shader_resources.separate_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -62,7 +65,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 
     // separate samplers
     {
-        uint32_t binding = 0;
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
         for (const Resource& res: shader_resources.separate_samplers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -71,22 +74,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 
     // storage buffers
     {
-        uint32_t binding;
-        if (Slang::is_msl(slang)) {
-            // in Metal, on the vertex stage, storage buffers are bound after uniform- and vertex-buffers,
-            // and on the fragment stage, after the uniform buffers
-            binding = Snippet::is_vs(type) ? 12 : 4;
-        } else if (Slang::is_hlsl(slang)) {
-            // in D3D11, storage buffers share bind slots with textures, put textures into
-            // the first 16 slots, and storage buffers starting at slot 16
-            binding = 16;
-        } else if (Slang::is_glsl(slang)) {
-            // in GL, the shader stages share a common bind space, need to offset
-            // fragment bindings
-            binding = Snippet::is_vs(type) ? 0 : 8;
-        } else {
-            binding = 0;
-        }
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
         for (const Resource& res: shader_resources.storage_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -97,39 +85,16 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type type, Slang::Enum s
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
-
-    // WGPU bindgroups and binding offsets are hardwired:
-    //  - bindgroup 0 for uniform buffer bindings
-    //      - vertex stage bindings start at 0
-    //      - fragment stage bindings start at 4
-    //  - bindgroup 1 for all images, samplers and storage buffers
-    //      - vertex stage image bindings start at 0
-    //      - vertex stage sampler bindings start at 16
-    //      - vertex stage storage buffer bindings start at 32
-    //      - fragment stage image bindings start at 48
-    //      - fragment stage sampler bindings start at 64
-    //      - fragment stage storage buffer bindings start at 80
-    const uint32_t wgsl_vs_ub_bind_offset = 0;
-    const uint32_t wgsl_fs_ub_bind_offset = 4;
-    const uint32_t wgsl_vs_img_bind_offset = 0;
-    const uint32_t wgsl_vs_smp_bind_offset = 16;
-    const uint32_t wgsl_vs_sbuf_bind_offset = 32;
-    const uint32_t wgsl_fs_img_bind_offset = 48;
-    const uint32_t wgsl_fs_smp_bind_offset = 64;
-    const uint32_t wgsl_fs_sbuf_bind_offset = 80;
-
+    const ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
+    const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
-    const uint32_t res_bindgroup = 1;
-    uint32_t cur_ub_binding = Snippet::is_vs(type) ? wgsl_vs_ub_bind_offset : wgsl_fs_ub_bind_offset;
-    uint32_t cur_image_binding = Snippet::is_vs(type) ? wgsl_vs_img_bind_offset : wgsl_fs_img_bind_offset;
-    uint32_t cur_sampler_binding = Snippet::is_vs(type) ? wgsl_vs_smp_bind_offset : wgsl_fs_smp_bind_offset;
-    uint32_t cur_sbuf_binding = Snippet::is_vs(type) ? wgsl_vs_sbuf_bind_offset : wgsl_fs_sbuf_bind_offset;
-
+    const uint32_t img_smp_sbuf_bindgroup = 1;
 
     // uniform buffers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
         for (const Resource& res: shader_resources.uniform_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -138,8 +103,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_ub_binding;
-                cur_ub_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -148,16 +112,16 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
 
     // separate images
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_image_binding;
-                cur_image_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -166,16 +130,16 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
 
     // separate samplers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_sampler_binding;
-                cur_sampler_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -184,16 +148,16 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type type, std::v
 
     // storage buffers
     {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
         for (const Resource& res: shader_resources.storage_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = res_bindgroup;
+                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
             } else {
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = cur_sbuf_binding;
-                cur_sbuf_binding += 1;
+                inout_bytecode[out_offset] = binding++;
             } else {
                 // FIXME: handle error
             }
@@ -298,7 +262,7 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
+static StageReflection parse_reflection(const Input& inp, const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
     // NOTE: do *NOT* use CompilerReflection here, this doesn't generate
     // the right reflection info for depth textures and comparison samplers
     CompilerGLSL compiler(bytecode);
@@ -312,11 +276,14 @@ static StageReflection parse_reflection(const std::vector<uint32_t>& bytecode, c
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
+    // passing Slang::REFLECTION here makes sure that the bind slots
+    // are zero-based per stage and resource type (otherwise 3D API
+    // specific bind slot allocations would apply)
     fix_bind_slots(compiler, snippet.type, Slang::REFLECTION);
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
-    return Reflection::parse_snippet_reflection(compiler, snippet, out_error);
+    return Reflection::parse_snippet_reflection(compiler, snippet, inp, out_error);
 }
 
 static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
@@ -356,7 +323,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -388,7 +355,7 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -418,7 +385,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -439,7 +406,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
         tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
         if (result.success) {
             res.source_code = result.wgsl;
-            res.stage_refl = parse_reflection(blob.bytecode, snippet, res.error);
+            res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
         } else {
             res.error = inp.error(blob.snippet_index, result.error);
         }
@@ -485,7 +452,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
                 const int line_index = snippet.lines[0];
                 std::string err_msg;
                 if (src.error.valid()) {
-                    err_msg = fmt::format("Failed to cross-compile to {} with:\n{}\n", Slang::to_str(slang), src.error.msg);
+                    err_msg = src.error.msg;
                 } else {
                     err_msg = fmt::format("Failed to cross-compile to {}\n", Slang::to_str(slang));
                 }

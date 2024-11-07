@@ -183,11 +183,13 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
 }
 
 /* compile a vertex or fragment shader to SPIRV */
-static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& source, const Input& inp, int snippet_index, Spirv& out_spirv) {
+static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const MergedSource& source, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { source.src.c_str() };
     const int sourcesLen[1] = { (int) source.src.length() };
     const char* sourcesNames[1] = { inp.base_path.c_str() };
     const int linenr_offset = source.linenr_offset;
+
+    SpirvBlob spirv_blob = SpirvBlob(snippet_index);
 
     // compile GLSL vertex- or fragment-shader
     glslang::TShader shader(stage);
@@ -196,11 +198,7 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
     shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
     shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_0);
-    // NOTE: where using AutoMapBinding here, but this will just throw all bindings
-    // into descriptor set null, which is not what we actually want.
-    // We'll fix up the bindings later before calling SPIRVCross.
     shader.setAutoMapLocations(true);
-    shader.setAutoMapBindings(true);
     bool parse_success = shader.parse(GetDefaultResources(), 100, false, EShMsgDefault);
     infolog_to_errors(shader.getInfoLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
     infolog_to_errors(shader.getInfoDebugLog(), inp, snippet_index, linenr_offset, out_spirv.errors);
@@ -224,6 +222,58 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
         return false;
     }
 
+    // extract binding information into Input
+    bool refl_res = program.buildReflection(EShReflectionSeparateBuffers);
+    if (!refl_res) {
+        out_spirv.errors.push_back(inp.error(0, "program.buildReflection() failed!"));
+    }
+    for (int i = 0; i < program.getNumUniformBlocks(); i++) {
+        const auto& ub = program.getUniformBlock(i);
+        const std::string& name = ub.name;
+        const int slot = inp.find_ub_slot(name);
+        const int binding = ub.getBinding();
+        if (slot == -1) {
+            inp.ub_slots[name] = binding;
+        } else if (slot != binding) {
+            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for uniform blocks of same name '{}' ({} vs {})", name, slot, binding)));
+            return false;
+        }
+    }
+    for (int i = 0; i < program.getNumBufferBlocks(); i++) {
+        const auto& sbuf = program.getBufferBlock(i);
+        const std::string& name = sbuf.name;
+        const int slot = inp.find_sbuf_slot(name);
+        const int binding = sbuf.getBinding();
+        if (slot == -1) {
+            inp.sbuf_slots[name] = binding;
+        } else if (slot != binding) {
+            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for buffer blocks of same name '{}' ({} vs {})", name, slot, binding)));
+            return false;
+        }
+    }
+    for (int i = 0; i < program.getNumUniformVariables(); i++) {
+        const auto& uniform = program.getUniform(i);
+        const std::string& name = uniform.name;
+        const int binding = uniform.getBinding();
+        if (uniform.getType()->getSampler().sampler) {
+            const int slot = inp.find_smp_slot(name);
+            if (slot == -1) {
+                inp.smp_slots[name] = binding;
+            } else if (slot != binding) {
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for samplers of same name '{}' ({} vs {})", name, slot, binding)));
+                return false;
+            }
+        } else if (uniform.getType()->isTexture()) {
+            const int slot = inp.find_img_slot(name);
+            if (slot == -1) {
+                inp.img_slots[name] = binding;
+            } else if (slot != binding) {
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for textures of same name '{}' ({} vs {})", name, slot, binding)));
+                return false;
+            }
+        }
+    }
+
     // translate intermediate representation to SPIRV
     const glslang::TIntermediate* im = program.getIntermediate(stage);
     assert(im);
@@ -238,22 +288,24 @@ static bool compile(EShLanguage stage, Slang::Enum slang, const MergedSource& so
     spv_options.validate = false;
     spv_options.emitNonSemanticShaderDebugInfo = false;
     spv_options.emitNonSemanticShaderDebugSource = false;
-    out_spirv.blobs.push_back(SpirvBlob(snippet_index));
-    out_spirv.blobs.back().source = source.src;
-    glslang::GlslangToSpv(*im, out_spirv.blobs.back().bytecode, &spv_logger, &spv_options);
+    spirv_blob.source = source.src;
+    glslang::GlslangToSpv(*im, spirv_blob.bytecode, &spv_logger, &spv_options);
     std::string spirv_log = spv_logger.getAllMessages();
     if (!spirv_log.empty()) {
         // FIXME: need to parse string for errors and translate to ErrMsg objects?
         // haven't seen a case yet where this generates log messages
-        fmt::print("{}", spirv_log);
+        fmt::print(stderr, "{}", spirv_log);
     }
     // run optimizer passes
-    spirv_optimize(slang, out_spirv.blobs.back().bytecode);
+    spirv_optimize(slang, spirv_blob.bytecode);
+
+    // and done
+    out_spirv.blobs.push_back(spirv_blob);
     return true;
 }
 
 // compile all shader-snippets into SPIRV bytecode
-Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
+Spirv Spirv::compile_glsl_and_extract_bindings(Input& inp, Slang::Enum slang, const std::vector<std::string>& defines) {
     Spirv out_spirv;
 
     // compile shader-snippets
@@ -262,14 +314,14 @@ Spirv Spirv::compile_glsl(const Input& inp, Slang::Enum slang, const std::vector
         if (snippet.type == Snippet::VS) {
             // vertex shader
             const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangVertex, slang, src, inp, snippet_index, out_spirv)) {
+            if (!compile(inp, EShLangVertex, slang, src, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
         } else if (snippet.type == Snippet::FS) {
             // fragment shader
             const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(EShLangFragment, slang, src, inp, snippet_index, out_spirv)) {
+            if (!compile(inp, EShLangFragment, slang, src, snippet_index, out_spirv)) {
                 // spirv.errors contains error list
                 return out_spirv;
             }
@@ -327,7 +379,8 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
         fmt::print(stderr, "  errors: none\n\n");
     }
     for (const SpirvBlob& blob : blobs) {
-        fmt::print(stderr, "  source for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  snippet: {}\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  source:\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);
         for (const std::string& src_line: src_lines) {
@@ -335,7 +388,7 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
         }
         fmt::print(stderr, "\n");
 
-        fmt::print(stderr, "  SPIR-V for snippet '{}':\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  spirv:\n", inp.snippets[blob.snippet_index].name);
         spvtools::SpirvTools spirv_tools(SPV_ENV_OPENGL_4_5);
         std::string dasm_str;
         spirv_tools.Disassemble(blob.bytecode, &dasm_str, spvtools::SpirvTools::kDefaultDisassembleOption);
@@ -345,6 +398,23 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
             fmt::print(stderr, "    {}\n", dasm_line);
         }
         fmt::print(stderr, "\n");
+    }
+    fmt::print(stderr, "  bindings:\n");
+    fmt::print(stderr, "    uniform blocks:\n");
+    for (const auto& item: inp.ub_slots) {
+        fmt::print(stderr, "      {} => {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    images:\n");
+    for (const auto& item: inp.img_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    samplers:\n");
+    for (const auto& item: inp.smp_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    storage buffers:\n");
+    for (const auto& item: inp.sbuf_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
     }
     fmt::print(stderr, "\n");
 }

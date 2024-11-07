@@ -3,6 +3,7 @@
 */
 #include "input.h"
 #include "types/reflection/type.h"
+#include "types/reflection/bindings.h"
 #include "types/option.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,49 @@
 namespace shdc {
 
 using namespace refl;
+
+static int find_slot(const std::map<std::string, int>& map, const std::string& key) {
+    auto it = map.find(key);
+    if (it != map.end()) {
+        return map.at(key);
+    } else {
+        return -1;
+    }
+}
+
+int Input::find_ub_slot(const std::string& name) const {
+    return find_slot(ub_slots, name);
+}
+
+int Input::find_img_slot(const std::string& name) const {
+    return find_slot(img_slots, name);
+}
+
+int Input::find_smp_slot(const std::string& name) const {
+    return find_slot(smp_slots, name);
+}
+
+int Input::find_sbuf_slot(const std::string& name) const {
+    return find_slot(sbuf_slots, name);
+}
+
+const ImageSampleTypeTag* Input::find_image_sample_type_tag(const std::string& tex_name) const {
+    auto it = image_sample_type_tags.find(tex_name);
+    if (it != image_sample_type_tags.end()) {
+        return &image_sample_type_tags.at(tex_name);
+    } else {
+        return nullptr;
+    }
+}
+
+const SamplerTypeTag* Input::find_sampler_type_tag(const std::string& smp_name) const {
+    auto it = sampler_type_tags.find(smp_name);
+    if (it != sampler_type_tags.end()) {
+        return &sampler_type_tags.at(smp_name);
+    } else {
+        return nullptr;
+    }
+}
 
 static std::string load_file_into_str(const std::string& path) {
     FILE* f = fopen(path.c_str(), "rb");
@@ -307,16 +351,12 @@ static bool validate_options_tag(const std::vector<std::string>& tokens, const S
     return true;
 }
 
-static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
-    if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have at least 2 arg (@image_sample_type [texture] {})", ImageSampleType::valid_image_sample_types_as_str()));
+static bool validate_image_sample_type_tag(const std::vector<std::string>& tokens, int line_index, Input& inp) {
+    if (tokens.size() != 3) {
+        inp.out_error = inp.error(line_index, fmt::format("@image_sample_type must have 2 args (@image_sample_type [texture] {})", ImageSampleType::valid_image_sample_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
-        inp.out_error = inp.error(line_index, "@image_sample_type tag must be inside a @vs or @fs block");
-        return false;
-    }
-    if (nullptr != cur_snippet.lookup_image_sample_type_tag(tokens[1])) {
+    if (nullptr != inp.find_image_sample_type_tag(tokens[1])) {
         inp.out_error = inp.error(line_index, "duplicate @image_sample_type (texture name must be unique)");
         return false;
     }
@@ -327,16 +367,12 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
     return true;
 }
 
-static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, const Snippet& cur_snippet, int line_index, Input& inp) {
-    if (tokens.size() < 3) {
-        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have at least 2 arg (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
+static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, int line_index, Input& inp) {
+    if (tokens.size() != 3) {
+        inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have 2 args (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
         return false;
     }
-    if ((cur_snippet.type != Snippet::VS) && (cur_snippet.type != Snippet::FS)) {
-        inp.out_error = inp.error(line_index, "@sampler_type tag must be inside a @vs or @fs block");
-        return false;
-    }
-    if (nullptr != cur_snippet.lookup_sampler_type_tag(tokens[1])) {
+    if (nullptr != inp.find_sampler_type_tag(tokens[1])) {
         inp.out_error = inp.error(line_index, "duplicate @sampler_type (sampler name must be unique)");
         return false;
     }
@@ -345,7 +381,6 @@ static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, co
         return false;
     }
     return true;
-
 }
 
 /* This parses the split input line array for custom tags (@vs, @fs, @block,
@@ -475,16 +510,16 @@ static bool parse(Input& inp) {
                 inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
                 add_line = false;
             } else if (tokens[0] == image_sample_type_tag) {
-                if (!validate_image_sample_type_tag(tokens, cur_snippet, line_index, inp)) {
+                if (!validate_image_sample_type_tag(tokens, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.image_sample_type_tags[tokens[1]] = ImageSampleTypeTag(tokens[1], ImageSampleType::from_str(tokens[2]), line_index);
+                inp.image_sample_type_tags[tokens[1]] = ImageSampleTypeTag(tokens[1], ImageSampleType::from_str(tokens[2]), line_index);
                 add_line = false;
             } else if (tokens[0] == sampler_type_tag) {
-                if (!validate_sampler_type_tag(tokens, cur_snippet, line_index, inp)) {
+                if (!validate_sampler_type_tag(tokens, line_index, inp)) {
                     return false;
                 }
-                cur_snippet.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
+                inp.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
                 add_line = false;
             } else if (tokens[0][0] == '@') {
                 inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
@@ -657,14 +692,6 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
             fmt::print(stderr, "    snippet {}:\n", snippet_nr++);
             fmt::print(stderr, "      name: {}\n", snippet.name);
             fmt::print(stderr, "      type: {}\n", Snippet::type_to_str(snippet.type));
-            fmt::print(stderr, "      image sample type tags:\n");
-            for (const auto& [key, val]: snippet.image_sample_type_tags) {
-                fmt::print(stderr, "        {}: {} (line: {})\n", key, ImageSampleType::to_str(val.type), val.line_index);
-            }
-            fmt::print(stderr, "      sampler type tags:\n");
-            for (const auto& [key, val]: snippet.sampler_type_tags) {
-                fmt::print(stderr, "        {}: {} (line: {})\n", key, SamplerType::to_str(val.type), val.line_index);
-            }
             fmt::print(stderr, "      lines:\n");
             int line_nr = 1;
             for (int line_index : snippet.lines) {
@@ -697,6 +724,14 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
         fmt::print(stderr, "      line_index: {}\n", prog.line_index);
+    }
+    fmt::print(stderr, "    image sample type tags:\n");
+    for (const auto& [key, val]: image_sample_type_tags) {
+        fmt::print(stderr, "      {}: {} (line: {})\n", key, ImageSampleType::to_str(val.type), val.line_index);
+    }
+    fmt::print(stderr, "    sampler type tags:\n");
+    for (const auto& [key, val]: sampler_type_tags) {
+        fmt::print(stderr, "      {}: {} (line: {})\n", key, SamplerType::to_str(val.type), val.line_index);
     }
     fmt::print("\n");
 }

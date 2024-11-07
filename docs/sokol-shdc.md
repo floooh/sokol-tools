@@ -8,7 +8,7 @@ Shader-code-generator for sokol_gfx.h
 - [Build Process Integration with fips](#build-process-integration-with-fips)
 - [Standalone Usage](#standalone-usage)
 - [Shader Tags Reference](#shader-tags-reference)
-- [Programming Considerations](#programming-considerations)
+- [Shader Authoring Considerations](#shader-authoring-considerations)
 - [Runtime Inspection](#runtime-inspection)
 
 ## Feature Overview
@@ -44,7 +44,7 @@ sokol-shdc supports the following output formats:
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
 - D for integration with [sokol-d](https://github.com/kassane/sokol-d)
-- Jai (without separate sokol header bindings)
+- Jai for integration with [sokol-jai](https://github.com/colinbellino/sokol-jai)
 - 'raw' output files in GLSL, MSL and HLSL along with reflection data in YAML files
 
 Error messages from `glslang` are mapped back to the original annotated
@@ -61,7 +61,7 @@ additional information for the C code-generation (note the `@vs`,
 
 ```glsl
 @vs vs
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     mat4 mvp;
 };
 
@@ -77,8 +77,8 @@ void main() {
 @end
 
 @fs fs
-uniform texture2D tex;
-uniform sampler smp;
+layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
 
 in vec2 uv;
 out vec4 frag_color;
@@ -101,10 +101,11 @@ A generated C header contains (similar information is generated for the other ou
 
 - human-readable reflection info in a comment block
 - a C struct for each shader uniform block
+- constants for vertex attribute locations, uniform block, image, sampler
+  and storage buffer binding indices
 - for each shader program, a C function which returns a pointer to a
 ```sg_shader_desc``` for a specific sokol-gfx backend which can be passed
 directly into `sg_make_shader()`
-- constants for vertex attribute locations, uniform-block- and image-bind-slots
 - optionally a set of C functions for runtime inspection of the generated vertex
 attributes, image bind slots and uniform-block structs
 
@@ -122,11 +123,25 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
     .shader = shd,
     .layout = {
         .attrs = {
-            [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-            [ATTR_vs_texcoord0].format = SG_VERTEXFORMAT_FLOAT2,
+            [ATTR_texcube_position].format = SG_VERTEXFORMAT_FLOAT3,
+            [ATTR_texcube_texcoord0].format = SG_VERTEXFORMAT_FLOAT2,
         }
     }
 });
+```
+
+...and then applying resource bindings and uniform updates looks like this:
+
+```c
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .images[IMG_tex] = img,
+    .samplers[SMP_smp] = smp,
+});
+const vs_params_t vs_params = {
+    .mvp = ...,
+};
+sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
 ```
 
 ## Build Process Integration with fips
@@ -387,7 +402,7 @@ Example:
 
 ```glsl
 @vs my_vertex_shader
-uniform vs_params {
+layout(binding=0) uniform vs_params {
     mat4 mvp;
 };
 
@@ -439,7 +454,7 @@ Example for the above vertex- and fragment-shader snippets:
 This will generate a C function:
 
 ```C
-static const sg_shader_desc* my_program_shader_desc(void);
+static const sg_shader_desc* my_program_shader_desc(sg_backend backend);
 ```
 
 ### @block [name]
@@ -516,7 +531,7 @@ Consider the following GLSL uniform block without `@ctype` tags:
 
 ```glsl
 @vs my_vs
-uniform shape_uniforms {
+layout(binding=0) uniform shape_uniforms {
     mat4 mvp;
     mat4 model;
     vec4 shape_color;
@@ -550,7 +565,7 @@ map the GLSL types to their matching hmm_* types:
 @ctype vec4 hmm_vec4
 
 @vs my_vs
-uniform shape_uniforms {
+layout(binding=0) uniform shape_uniforms {
     mat4 mvp;
     mat4 model;
     vec4 shape_color;
@@ -616,7 +631,7 @@ For instance, when adding a `@module` tag to the above @ctype-example:
 @ctype vec4 hmm_vec4
 
 @vs my_vs
-uniform shape_uniforms {
+layout(binding=0) uniform shape_uniforms {
     mat4 mvp;
     mat4 model;
     vec4 shape_color;
@@ -692,7 +707,7 @@ Example from https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-s
 
 ```glsl
 @image_sample_type joint_tex unfilterable_float
-uniform texture2D joint_tex;
+layout(binding=0) uniform texture2D joint_tex;
 ```
 
 ### @sampler_type [sampler] [type]
@@ -717,10 +732,10 @@ Example from https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-s
 
 ```glsl
 @sampler_type smp nonfiltering
-uniform sampler smp;
+layout(binding=0) uniform sampler smp;
 ```
 
-## Programming Considerations
+## Shader Authoring Considerations
 
 ### Target Shader Language Defines
 
@@ -772,9 +787,11 @@ sg_shader shd = sg_make_shader(shape_shader_desc(sg_query_backend()));
 ```
 
 When creating a pipeline object, the shader code generator will
-provide integer constants for the vertex attribute locations.
+provide integer constants for the vertex attribute locations, unique
+for each `@program`.
 
-Consider the following vertex shader inputs in the GLSL source code:
+Consider the following vertex shader inputs in the GLSL source code
+and `@program` definition:
 
 ```glsl
 @vs vs
@@ -783,18 +800,20 @@ in vec3 normal;
 in vec2 texcoords;
 ...
 @end
+...
+@program shd vs fs
 ```
 
 The vertex attribute description in the `sg_pipeline_desc` struct
-could look like this (note the attribute indices names `ATTR_vs_position`, etc...):
+could look like this (note the attribute indices names `ATTR_shd_position`, etc...):
 
 ```c
 sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
     .layout = {
         .attrs = {
-            [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-            [ATTR_vs_normal].format = SG_VERTEXFORMAT_BYTE4N,
-            [ATTR_vs_texcoords].format = SG_VERTEXFORMAT_SHORT2
+            [ATTR_shd_position].format = SG_VERTEXFORMAT_FLOAT3,
+            [ATTR_shd_normal].format = SG_VERTEXFORMAT_BYTE4N,
+            [ATTR_shd_texcoords].format = SG_VERTEXFORMAT_SHORT2
         }
     },
     ...
@@ -802,7 +821,8 @@ sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 ```
 
 It's also possible to provide explicit vertex attribute location in the
-shader code:
+shader code, but be aware that the explicitly defined locations must
+not have gaps:
 
 ```glsl
 @vs vs
@@ -829,90 +849,145 @@ sg_pipeline pip = sg_make_pipeline(&(sg_pipeline_desc){
 });
 ```
 
+### Defining resource bind slots
+
+All GLSL resource types (uniform blocks, textures, samplers and storage buffers)
+must be annotated with explicit bind slots via `layout(binding=N)`. Each resource
+type has its own binding space which directly maps to sokol_gfx.h bindslots:
+
+- uniform blocks:
+    - `layout(binding=N) uniform { ... }` where `(N >= 0) && (N < 8)`
+    - N maps to to the ub_slot params in `sg_apply_uniforms(N, ...)`
+- textures:
+    - `layout(binding=N) texture2D tex;` where `(N >= 0) && (N < 16)`
+    - N maps to the image index in `sg_bindings.images[N]`
+- samplers:
+    - `layout(binding=N) sampler smp;` where `(N >= 0) && (N < 16)`
+    - N maps to the sampler index in `sg_bindings.samplers[N]`
+- storage buffers:
+    - `layout(binding=N) readonly buffer ssbo { ... }` where `(N >= 0) && (N < 8)`
+    - N maps to the storage buffer index in `sg_bindings.storage_buffers[N]`
+
+Bindings must be unique per resource type within a shader `@program` across
+shader stages, and all resources of the same type and name across all programs
+in a shader source file must have matching bindings.
+
+Violations against these rules are checked by sokol-shdc and will result in
+compilation errors.
+
+Note that bind slots are allowed to have gaps. This allows to map specific types of resources
+(like diffuse vs normal-map textures) to specific bindslots even if a shader only
+uses a subset of those resources. This allows to use the same `sg_bindings` struct for
+different related shaders (like the different shader variants of the same material).
+
 ### Binding uniforms blocks
 
-Similar to the vertex attribute location constants, the C code generator
-also provides bind slot constants for images and uniform blocks.
+Uniform blocks must be annotated with `layout(binding=N)` where `(N >=0) && (N < 8)`.
+Those bindings directly map to the `ub_slot` parameter in `sg_apply_uniforms(int ub_slot, ...)`.
+Uniform block bindings must be unique across shader stages of a `@program`.
 
-Consider the following uniform block in GLSL:
+The sokol-shdc code generation will create a bind slot constant for each
+uniquely named uniform block in a shader source file.
+
+Consider the following uniform blocks in the vertex and fragment shader:
 
 ```glsl
-uniform vs_params {
+@ctype mat4 hmm_mat4
+@ctype vec4 hmm_vec4
+
+@vs
+layout(binding=0) uniform vs_params {
     mat4 mvp;
 };
+...
+@end
+
+@fs
+layout(binding=1) uniform fs_params {
+    vec4 color;
+};
+...
+@end
 ```
 
-The C header code generator will create a C struct and a 'bind slot' constant
-for the uniform block:
+The C header code generator will create two C struct and bindslot constants
+looking like this:
 
 ```c
-#define SLOT_vs_params (0)
+#define UB_vs_params (0)
+#define UB_fs_params (1)
 typedef struct vs_params_t {
     hmm_mat4 mvp;
 } vs_params_t;
+typedef struct fs_params_t {
+    hmm_vec4 mvp;
+} fs_params_t;
 ```
 
-...which both are used in the `sg_apply_uniforms()` call like this:
+...which can be used in `sg_apply_uniforms()` calls like this:
 
 ```c
 vs_params_t vs_params = {
     .mvp = ...
 };
-sg_apply_uniforms(SG_SHADERSTAGE_VS, SLOT_vs_params, &SG_RANGE(vs_params));
+fs_params_t fs_params = {
+    .color = ...
+};
+sg_apply_uniforms(UB_vs_params, &SG_RANGE(vs_params));
+sg_apply_uniforms(UB_fs_params, &SG_RANGE(fs_params));
 ```
 
-Note that you cannot use explicit bind locations for uniform blocks in the shader
-code (or rather: you can, but sokol-shdc will ignore those), instead sokol-shdc
-will automatically assign bind slots to uniform blocks.
+Since the bind slots have been explicitly defined in the shader code, you
+may also ignore the generated bind slot constants, but in that case you need
+to make to fix up the C code when changing the bind slots in the shader code.
 
-To get the correct bind slot on the 'CPU side', either use the code
-generated `SLOT_*` constants, or the optionally generated runtime
-inspection functions which allow to lookup bind slots by name.
-
-More on the optional runtime inspection function below in the
-section `Runtime Inspection`.
+```c
+sg_apply_uniforms(0, &SG_RANGE(vs_params));
+sg_apply_uniforms(1, &SG_RANGE(fs_params));
+```
 
 ### Binding images and samplers
 
 Textures and samplers must be defined separately in the input GLSL (this is
-also known as 'Vulkan-style GLSL'):
+also known as 'Vulkan-style GLSL'). Just as with uniform blocks, you must
+define explicit bind slots via `layout(binding=N)`. Textures and samplers
+have separate bindslot spaces, with a range of `(N >=0) && (N < 16)`.
 
 ```glsl
-uniform texture2D tex;
-uniform sampler smp;
+layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform sampler smp;
 ```
-
-Shader in old 'GL-style GLSL' with combined image-samplers will now generate
-an error.
 
 The resource binding slot for texture and sampler uniforms is available
 as code-generated constant:
 
 ```C
-#define SLOT_tex (0)
-#define SLOT_smp (0)
+#define IMG_tex (0)
+#define SMP_smp (0)
 ```
 
-This is used in the `sg_bindings` struct as index into the `vs.images[]`,
-`vs.samplers[]`, `fs.images[]` and `fs.samplers[]` arrays:
+This is used in the `sg_bindings` struct as index into the `.images[]`,
+and `.samplers[]` arrays:
 
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .fs = {
-        .images[SLOT_tex] = img,
-        .samplers[SLOT_smp] = smp,
-    },
+    .images[IMG_tex] = img,
+    .samplers[SMP_smp] = smp,
 });
 ```
 
-Just as with uniform blocks, any explit bind slot definition in the shader
-is ignored, instead bind slots will be automatically assigned. The assigned
-bind slot is available either as constant as shown above, or can be looked
-up by name via the optional runtime inspection functions.
+Instead of the generated constants you can also use the explicit binding
+numbers defined in the shader source file (but when those are changed you
+must not forget also fixing the C side):
 
-More on the optional runtime inspection function below in the
-section `Runtime Inspection`.
+```c
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .images[0] = img,
+    .samplers[0] = smp,
+});
+```
 
 ### Binding storage buffers
 
@@ -929,12 +1004,40 @@ struct sb_vertex {
     vec4 color;
 };
 
-readonly buffer ssbo {
+layout(binding=0) readonly buffer ssbo {
     sb_vertex vtx[];
 };
 ```
 
-The buffer content can be accessed in the a shader like this (for
+The binding range for storage buffers is `(N >= 0) && (N < 8)` within one
+shader program and across all shader stages. `N` directly corresponds to
+the index into the `sg_bindings.storage_buffers[]` array.
+
+A binding constant will be generated for each uniquely named storage buffer
+in a shader source file:
+
+```c
+#define SBUF_ssbo (0)
+```
+
+To apply a storage buffer binding, you can either use this generated constant,
+or directly the binding number from the shader source file:
+
+```c
+// using the code-generated constant:
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .storage_buffers[SBUF_ssbo] = sbuf,
+});
+
+// or directly using the explicit binding:
+sg_apply_bindings(&(sg_bindings){
+    .vertex_buffers[0] = vbuf,
+    .storage_buffers[0] = sbuf,
+});
+```
+
+In the shader code, the buffer content can be accessed like this (for
 instance using gl_VertexIndex):
 
 ```glsl
@@ -951,18 +1054,9 @@ alignment and padding (according to `std430` layout) and a `SLOT_ssbo` define
 which can be used in the `sg_bindings` struct to index into the `vs.storage_buffers` or
 `fs.storage_buffers` arrays.
 
-
-```c
-sg_apply_bindings(&(sg_bindings){
-    .vs = {
-        .storage_buffers[SLOT_ssbo] = img,
-    },
-});
-```
-
 ### GLSL uniform blocks and C structs
 
-There are a few caveats with uniform blocks:
+There are a few caveats to be aware of with uniform blocks:
 
 - The memory layout of uniform blocks on the CPU side must be compatible
   across all sokol-gfx backends. To achieve this, uniform block content
@@ -1089,8 +1183,8 @@ sg_pipeline_desc pip_desc = {
 
 The function
 
-**int [mod]_[prog]_image_slot(sg_shader_stage stage, const char\* image_name)**
-**int [mod]_[prog]_sampler_slot(sg_shader_stage stage, const char\* sampler_name)**
+**int [mod]_[prog]_image_slot(const char\* image_name)**
+**int [mod]_[prog]_sampler_slot(const char\* sampler_name)**
 
 returns the bind-slot of an image or sampler on the given shader stage, or -1 if the
 shader doesn't expect an image or sampler of that name on that shader stage.
@@ -1101,13 +1195,13 @@ Code example:
 sg_image specular_texture = ...;
 sg_bindings binds = { ... };
 
-// check if the shader expects a specular texture on the fragment shader stage,
+// check if the shader expects a specular texture,
 // if yes set it in the bindings struct at the expected slot index:
-const int spec_tex_slot = mod_prog_image_slot(SG_SHADERSTAGE_FS, "spec_tex");
-const int spec_smp_slot = mod_prog_sampler_slot(SG_SHADERSTAGE_FS, "spec_smp");
+const int spec_tex_slot = mod_prog_image_slot("spec_tex");
+const int spec_smp_slot = mod_prog_sampler_slot("spec_smp");
 if ((spec_tex_slot >= 0) && (spec_smp_slot >= 0)) {
-    bindings.fs.images[spec_tex_slot] = specular_texture;
-    bindings.fs.samplers[spex_smp_slot] = specular_sampler;
+    bindings.images[spec_tex_slot] = specular_texture;
+    bindings.samplers[spex_smp_slot] = specular_sampler;
 }
 
 // apply bindings
@@ -1116,16 +1210,18 @@ sg_apply_bindings(&binds);
 
 ### Uniform Block Inspection
 
+> NOTE: some of those dynamic reflection functions are not actually needed anymore, because it's now possible to define explicit bind slots in the shader source
+
 The function
 
-`int [mod]_[prog]_uniformblock_slot(sg_shader_stage stage, const char* ub_name)`
+`int [mod]_[prog]_uniformblock_slot(const char* ub_name)`
 
 returns the bind slot of a shader's uniform block on the given shader stage, or -1
 if the shader doesn't expect a uniform block of that name on that shader stage.
 
 The function
 
-`size_t [mod]_[prog]_uniformblock_size(sg_shader_stage stage, const char* ub_name)`
+`size_t [mod]_[prog]_uniformblock_size(const char* ub_name)`
 
 return the size in bytes of a shader's uniform block on the given shader stage, or 0
 if the shader doesn't expect a uniform block of that name on that shader stage.
@@ -1137,10 +1233,10 @@ Code example:
 ```c
 // NOTE: in real-world code you'd probably want to lookup the uniform block
 // slot and size upfront in initialization code, not in the hot path
-const int ub_slot = prog_mod_uniformblock_slot(SG_SHADERSTAGE_VS, "vs_params");
+const int ub_slot = prog_mod_uniformblock_slot("vs_params");
 if (ub_slot >= 0) {
-    const size_t ub_size = prog_mod_uniformblock_size(SG_SHADERSTAGE_VS, "vs_params");
-    sg_apply_uniforms(SG_SHADERSTAGE_VS, ub_slot, &(sg_range){
+    const size_t ub_size = prog_mod_uniformblock_size("vs_params");
+    sg_apply_uniforms(ub_slot, &(sg_range){
         .ptr = pointer_to_uniform_data,
         .size = ub_size
     });
@@ -1149,23 +1245,21 @@ if (ub_slot >= 0) {
 
 The function
 
-`int [mod]_[prog]_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name)`
+`int [mod]_[prog]_uniform_offset(const char* ub_name, const char* u_name)`
 
 ...allows to lookup the byte offset of a specific uniform within its uniform block.
 This makes it possible to compose uniform data expected by a shader without the
 hardwired uniform block C struct. The function returns -1 if the shader doesn't expect
-a uniform block of that name on that shader stage, or if the uniform block is expected
+a uniform block of that name, or if the uniform block is expected
 but doesn't contain a uniform of that name.
 
-It's also possible to query the ```sg_shader_uniform_desc``` struct of a given uniform, which
+It's also possible to query the ```sg_shader_uniform``` of a given uniform, which
 provides additional type information with the following function:
 
-`sg_shader_uniform_desc [mod]_[prog]_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name)`
-
-The ```sg_shader_uniform_desc``` struct allows to inspect the uniform type (```SG_UNIFORMTYPE_xxx```), and the array count of the uniform (which is 1 for regular uniforms, or >1 for arrays).
+`sg_glsl_shader_uniform [mod]_[prog]_uniform_desc(const char* ub_name, const char* u_name)`
 
 ### Storage buffer inspection
 
 Currently, only the bind slot can be inspected for storage buffers:
 
-`int [mod]_[prog]_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name)`
+`int [mod]_[prog]_storagebuffer_slot(const char* sbuf_name)`
