@@ -131,12 +131,6 @@ void Generator::gen_bindings_info(const GenInput& gen) {
         cbl("Bind slot: {} => {}\n", sampler_bind_slot_name(smp), smp.sokol_slot);
         cbl_close();
     }
-    for (const ImageSampler& img_smp: gen.refl.bindings.image_samplers) {
-        cbl_open("Image Sampler Pair '{}':\n", img_smp.name);
-        cbl("Image: {}\n", img_smp.image_name);
-        cbl("Sampler: {}\n", img_smp.sampler_name);
-        cbl_close();
-    }
 }
 
 void Generator::gen_vertex_attr_consts(const GenInput& gen) {

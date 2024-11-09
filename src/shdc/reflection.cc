@@ -372,7 +372,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     return refl;
 }
 
-Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bool assign_image_sampler_slots, ErrMsg& out_error) {
+Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bool to_prog_bindings, ErrMsg& out_error) {
     Bindings out_bindings;
     out_error = ErrMsg();
     for (const Bindings& src_bindings: in_bindings) {
@@ -433,24 +433,29 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
             }
         }
 
-        // merge image samplers
-        for (const ImageSampler& img_smp: src_bindings.image_samplers) {
-            const ImageSampler* other_img_smp = out_bindings.find_image_sampler_by_name(img_smp.name);
-            if (other_img_smp) {
-                // another image sampler of the same name exists, make sure it's identical
-                if (!img_smp.equals(*other_img_smp)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
-                    return Bindings();
+        // merge image samplers (only for prog bindings)
+        // since image-samplers will have their bindings auto-assigned their slots won't
+        // match across programs, but common image-sampler bindings across programs are also not required
+        // anywhere (such bindings are only needed for generating the common slot constants)
+        if (to_prog_bindings) {
+            for (const ImageSampler& img_smp: src_bindings.image_samplers) {
+                const ImageSampler* other_img_smp = out_bindings.find_image_sampler_by_name(img_smp.name);
+                if (other_img_smp) {
+                    // another image sampler of the same name exists, make sure it's identical
+                    if (!img_smp.equals(*other_img_smp)) {
+                        out_error = ErrMsg::error(fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
+                        return Bindings();
+                    }
+                } else {
+                    out_bindings.image_samplers.push_back(img_smp);
                 }
-            } else {
-                out_bindings.image_samplers.push_back(img_smp);
             }
         }
     }
 
     // if requested, assign new image-sampler slots which are unique across shader stages, this
     // is needed when merging the per-shader-stage bindings into per-program-bindings
-    if (assign_image_sampler_slots) {
+    if (to_prog_bindings) {
         int sokol_slot = 0;
         for (ImageSampler& img_smp: out_bindings.image_samplers) {
             img_smp.sokol_slot = sokol_slot++;
