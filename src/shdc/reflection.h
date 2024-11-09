@@ -28,7 +28,7 @@ struct Reflection {
 
 private:
     // create a set of unique resource bindings from shader snippet input bindings
-    static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error);
+    static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, bool assign_image_sampler_slots, ErrMsg& out_error);
     // parse a struct
     static Type parse_toplevel_struct(const spirv_cross::Compiler& compiler, const spirv_cross::Resource& res, ErrMsg& out_error);
     // parse a struct item

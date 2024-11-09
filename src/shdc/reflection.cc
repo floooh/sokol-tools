@@ -93,7 +93,7 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
         prog_refl.name = prog.name;
         prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
         prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
-        prog_refl.bindings = merge_bindings({ vs_src->stage_refl.bindings, fs_src->stage_refl.bindings }, err);
+        prog_refl.bindings = merge_bindings({ vs_src->stage_refl.bindings, fs_src->stage_refl.bindings }, true, err);
         if (err.valid()) {
             res.error = inp.error(prog.line_index, err.msg);
             return res;
@@ -117,7 +117,7 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     for (const auto& prog_refl: res.progs) {
         prog_bindings.push_back(prog_refl.bindings);
     }
-    res.bindings = merge_bindings(prog_bindings, err);
+    res.bindings = merge_bindings(prog_bindings, false, err);
     if (err.valid()) {
         res.error = inp.error(0, err.msg);
     }
@@ -372,7 +372,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     return refl;
 }
 
-Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, ErrMsg& out_error) {
+Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bool assign_image_sampler_slots, ErrMsg& out_error) {
     Bindings out_bindings;
     out_error = ErrMsg();
     for (const Bindings& src_bindings: in_bindings) {
@@ -447,6 +447,16 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, Er
             }
         }
     }
+
+    // if requested, assign new image-sampler slots which are unique across shader stages, this
+    // is needed when merging the per-shader-stage bindings into per-program-bindings
+    if (assign_image_sampler_slots) {
+        int sokol_slot = 0;
+        for (ImageSampler& img_smp: out_bindings.image_samplers) {
+            img_smp.sokol_slot = sokol_slot++;
+        }
+    }
+
     return out_bindings;
 }
 

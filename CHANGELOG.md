@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+#### **09-Nov-2024**
+
+Important regression fix: shaders which used textures/samplers both on the vertex-
+and fragment-stage didn't code-generate the correct `sg_shader_desc.image_sampler_pairs[]`
+array which then causes validation errors in sokol_gfx.h and general breakage when
+using the GL backend.
+
+See https://github.com/floooh/sokol-tools/issues/154 for details.
+
 #### **07-Nov-2024**
 
 This is the sokol-shdc update going with the sokol-gfx 'bindings cleanup update':
