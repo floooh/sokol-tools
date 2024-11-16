@@ -206,7 +206,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     l("{}.bytecode.ptr = &{}\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {}\n", dsn, info.bytecode_array_size);
                 } else {
-                    l("{}.source = cast(cstring)&{}\n", dsn, info.source_array_name);
+                    l("{}.source = transmute(cstring)&{}\n", dsn, info.source_array_name);
                     const char* d3d11_tgt = nullptr;
                     if (slang == Slang::HLSL4) {
                         d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
