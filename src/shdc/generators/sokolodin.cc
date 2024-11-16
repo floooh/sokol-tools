@@ -331,7 +331,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
 }
 
 void SokolOdinGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
-    l("@(private)\n{} := [{}]u8 {{\n", array_name, num_bytes);
+    l("@(private=\"file\")\n{} := [{}]u8 {{\n", array_name, num_bytes);
 }
 
 void SokolOdinGenerator::gen_shader_array_end(const GenInput& gen) {
