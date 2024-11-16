@@ -650,7 +650,7 @@ void SokolZigGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const 
 }
 
 void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformDesc(ub_name: []const u8, u_name: []const u8) ?sg.GlslShaderUniformDesc {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformDesc(ub_name: []const u8, u_name: []const u8) ?sg.GlslShaderUniform {{\n", to_camel_case(prog.name));
     bool wrote_ub_name = false;
     bool wrote_u_name = false;
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
@@ -659,7 +659,7 @@ void SokolZigGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Pr
             wrote_ub_name = true;
             for (const Type& u: ub.struct_info.struct_items) {
                 l_open("if (std.mem.eql(u8, u_name, \"{}\")) {{\n", u.name);
-                l("var desc: sg.ShaderUniformDesc = .{{}};\n");
+                l("var desc: sg.GlslShaderUniform = .{{}};\n");
                 l("desc.type = {};\n", uniform_type(u.type));
                 l("desc.array_count = {};\n", u.array_count);
                 l("desc.glsl_name = \"{}\";\n", u.name);
