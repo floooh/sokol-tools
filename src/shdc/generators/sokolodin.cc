@@ -206,7 +206,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     l("{}.bytecode.ptr = &{}\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {}\n", dsn, info.bytecode_array_size);
                 } else {
-                    l("{}.source = transmute(cstring)&{}\n", dsn, info.source_array_name);
+                    l("{}.source = cast(cstring)&{}\n", dsn, info.source_array_name);
                     const char* d3d11_tgt = nullptr;
                     if (slang == Slang::HLSL4) {
                         d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
@@ -331,7 +331,7 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
 }
 
 void SokolOdinGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
-    l("@(private)\n{} := [{}]u8 {{\n", array_name, num_bytes);
+    l("@(private=\"file\")\n{} := [{}]u8 {{\n", array_name, num_bytes);
 }
 
 void SokolOdinGenerator::gen_shader_array_end(const GenInput& gen) {
