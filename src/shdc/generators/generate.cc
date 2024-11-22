@@ -11,6 +11,7 @@
 #include "sokolzig.h"
 #include "sokold.h"
 #include "sokoljai.h"
+#include "sokolc3.h"
 #include "yaml.h"
 #include <memory>
 
@@ -34,6 +35,8 @@ std::unique_ptr<Generator> make_generator(Format::Enum format) {
             return std::make_unique<SokolDGenerator>();
         case Format::SOKOL_JAI:
             return std::make_unique<SokolJaiGenerator>();
+        case Format::SOKOL_C3:
+            return std::make_unique<SokolC3Generator>();
         default:
             return std::make_unique<SokolCGenerator>();
     }
