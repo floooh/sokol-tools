@@ -85,91 +85,93 @@ void SokolC3Generator::gen_struct_interior_decl_std430(const GenInput& gen, cons
     for (const Type& item: struc.struct_items) {
         int next_offset = item.offset;
         if (next_offset > cur_offset) {
-            l("_: [{}]u8,\n", next_offset - cur_offset);
+            l("char[{}] _pad_{};\n", next_offset - cur_offset, cur_offset);
             cur_offset = next_offset;
         }
         if (item.type == Type::Struct) {
             // recurse into nested struct
-            if (item.array_count == 0) {
-                l_open("{}: struct {{\n", item.name);
-            } else {
-                l_open("{}: [{}]struct {{\n", item.name, item.array_count);
-            }
+            l_open("struct {{\n");
             gen_struct_interior_decl_std430(gen, item, item.size);
-            l_close("}},\n");
-        } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
-            // user-provided type names
             if (item.array_count == 0) {
-                l("{}: {},\n", item.name, gen.inp.ctype_map.at(item.type_as_glsl()));
+                // FIXME: do we need any padding here if array_stride != struct-size?
+                // NOTE: unbounded arrays are written as regular items
+                l_close("}} {};\n", item.name);
             } else {
-                l("{}: [{}]{},\n", item.name, item.array_count, gen.inp.ctype_map.at(item.type_as_glsl()));
+                l_close("}}[{}] {};\n", item.array_count, item.name);
+            }
+        } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
+            // user-mapped typename
+            if (item.array_count == 0) {
+                l("{} {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.name);
+            } else {
+                l("{}[{}] {};\n", gen.inp.ctype_map.at(item.type_as_glsl()), item.array_count, item.name);
             }
         } else {
             // default typenames
             if (item.array_count == 0) {
                 switch (item.type) {
                     // NOTE: bool => int is not a bug!
-                    case Type::Bool:    l("{}: i32,\n", item.name); break;
-                    case Type::Bool2:   l("{}: [2]i32,\n", item.name); break;
-                    case Type::Bool3:   l("{}: [3]i32,\n", item.name); break;
-                    case Type::Bool4:   l("{}: [4]i32,\n", item.name); break;
-                    case Type::Int:     l("{}: i32,\n", item.name); break;
-                    case Type::Int2:    l("{}: [2]i32,\n", item.name); break;
-                    case Type::Int3:    l("{}: [3]i32,\n", item.name); break;
-                    case Type::Int4:    l("{}: [4]i32,\n", item.name); break;
-                    case Type::UInt:    l("{}: u32,\n", item.name); break;
-                    case Type::UInt2:   l("{}: [2]u32,\n", item.name); break;
-                    case Type::UInt3:   l("{}: [3]u32,\n", item.name); break;
-                    case Type::UInt4:   l("{}: [4]u32,\n", item.name); break;
-                    case Type::Float:   l("{}: f32,\n", item.name); break;
-                    case Type::Float2:  l("{}: [2]f32,\n", item.name); break;
-                    case Type::Float3:  l("{}: [3]f32,\n", item.name); break;
-                    case Type::Float4:  l("{}: [4]f32,\n", item.name); break;
-                    case Type::Mat2x1:  l("{}: [2]f32,\n", item.name); break;
-                    case Type::Mat2x2:  l("{}: [4]f32,\n", item.name); break;
-                    case Type::Mat2x3:  l("{}: [6]f32,\n", item.name); break;
-                    case Type::Mat2x4:  l("{}: [8]f32,\n", item.name); break;
-                    case Type::Mat3x1:  l("{}: [3]f32,\n", item.name); break;
-                    case Type::Mat3x2:  l("{}: [6]f32,\n", item.name); break;
-                    case Type::Mat3x3:  l("{}: [9]f32,\n", item.name); break;
-                    case Type::Mat3x4:  l("{}: [12]f32,\n", item.name); break;
-                    case Type::Mat4x1:  l("{}: [4]f32,\n", item.name); break;
-                    case Type::Mat4x2:  l("{}: [8]f32,\n", item.name); break;
-                    case Type::Mat4x3:  l("{}: [12]f32,\n", item.name); break;
-                    case Type::Mat4x4:  l("{}: [16]f32,\n", item.name); break;
+                    case Type::Bool:    l("int {};\n", item.name); break;
+                    case Type::Bool2:   l("int[2] {};\n", item.name); break;
+                    case Type::Bool3:   l("int[3] {};\n", item.name); break;
+                    case Type::Bool4:   l("int[4] {};\n", item.name); break;
+                    case Type::Int:     l("int {};\n", item.name); break;
+                    case Type::Int2:    l("int[2] {};\n", item.name); break;
+                    case Type::Int3:    l("int[3] {};\n", item.name); break;
+                    case Type::Int4:    l("int[4] {};\n", item.name); break;
+                    case Type::UInt:    l("uint {};\n", item.name); break;
+                    case Type::UInt2:   l("uint[2] {};\n", item.name); break;
+                    case Type::UInt3:   l("uint[3] {};\n", item.name); break;
+                    case Type::UInt4:   l("uint[4] {};\n", item.name); break;
+                    case Type::Float:   l("float {};\n", item.name); break;
+                    case Type::Float2:  l("float[2] {};\n", item.name); break;
+                    case Type::Float3:  l("float[3] {};\n", item.name); break;
+                    case Type::Float4:  l("float[4] {};\n", item.name); break;
+                    case Type::Mat2x1:  l("float[2] {};\n", item.name); break;
+                    case Type::Mat2x2:  l("float[4] {};\n", item.name); break;
+                    case Type::Mat2x3:  l("float[6] {};\n", item.name); break;
+                    case Type::Mat2x4:  l("float[8] {};\n", item.name); break;
+                    case Type::Mat3x1:  l("float[3] {};\n", item.name); break;
+                    case Type::Mat3x2:  l("float[6] {};\n", item.name); break;
+                    case Type::Mat3x3:  l("float[9] {};\n", item.name); break;
+                    case Type::Mat3x4:  l("float[12] {};\n", item.name); break;
+                    case Type::Mat4x1:  l("float[4] {};\n", item.name); break;
+                    case Type::Mat4x2:  l("float[8] {};\n", item.name); break;
+                    case Type::Mat4x3:  l("float[12] {};\n", item.name); break;
+                    case Type::Mat4x4:  l("float[16] {};\n", item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
                 switch (item.type) {
                     // NOTE: bool => int is not a bug!
-                    case Type::Bool:    l("{}: [{}]i32,\n", item.name, item.array_count); break;
-                    case Type::Bool2:   l("{}: [{}][2]i32,\n", item.name, item.array_count); break;
-                    case Type::Bool3:   l("{}: [{}][3]i32,\n", item.name, item.array_count); break;
-                    case Type::Bool4:   l("{}: [{}][4]i32,\n", item.name, item.array_count); break;
-                    case Type::Int:     l("{}: [{}]i32,\n", item.name, item.array_count); break;
-                    case Type::Int2:    l("{}: [{}][2]i32,\n", item.name, item.array_count); break;
-                    case Type::Int3:    l("{}: [{}][3]i32,\n", item.name, item.array_count); break;
-                    case Type::Int4:    l("{}: [{}][4]i32,\n", item.name, item.array_count); break;
-                    case Type::UInt:    l("{}: [{}]u32,\n", item.name, item.array_count); break;
-                    case Type::UInt2:   l("{}: [{}][2]u32,\n", item.name, item.array_count); break;
-                    case Type::UInt3:   l("{}: [{}][3]u32,\n", item.name, item.array_count); break;
-                    case Type::UInt4:   l("{}: [{}][4]u32,\n", item.name, item.array_count); break;
-                    case Type::Float:   l("{}: [{}]f32,\n", item.name, item.array_count); break;
-                    case Type::Float2:  l("{}: [{}][2]f32,\n", item.name, item.array_count); break;
-                    case Type::Float3:  l("{}: [{}][3]f32,\n", item.name, item.array_count); break;
-                    case Type::Float4:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat2x1:  l("{}: [{}][2]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat2x2:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat2x3:  l("{}: [{}][6]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat2x4:  l("{}: [{}][8]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat3x1:  l("{}: [{}][3]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat3x2:  l("{}: [{}][6]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat3x3:  l("{}: [{}][9]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat3x4:  l("{}: [{}][12]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat4x1:  l("{}: [{}][4]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat4x2:  l("{}: [{}][8]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat4x3:  l("{}: [{}][12]f32,\n", item.name, item.array_count); break;
-                    case Type::Mat4x4:  l("{}: [{}][16]f32,\n", item.name, item.array_count); break;
+                    case Type::Bool:    l("int[{}] {};\n", item.array_count, item.name); break;
+                    case Type::Bool2:   l("int[{}][2] {};\n", item.array_count, item.name); break;
+                    case Type::Bool3:   l("int[{}][3] {};\n", item.array_count, item.name); break;
+                    case Type::Bool4:   l("int[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::Int:     l("int[{}] {};\n", item.array_count, item.name); break;
+                    case Type::Int2:    l("int[{}][2] {};\n", item.array_count, item.name); break;
+                    case Type::Int3:    l("int[{}][3] {};\n", item.array_count, item.name); break;
+                    case Type::Int4:    l("int[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::UInt:    l("uint[{}] {};\n", item.array_count, item.name); break;
+                    case Type::UInt2:   l("uint[{}][2] {};\n", item.array_count, item.name); break;
+                    case Type::UInt3:   l("uint[{}][3] {};\n", item.array_count, item.name); break;
+                    case Type::UInt4:   l("uint[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::Float:   l("float[{}] {};\n", item.array_count, item.name); break;
+                    case Type::Float2:  l("float[{}][2] {};\n", item.array_count, item.name); break;
+                    case Type::Float3:  l("float[{}][3] {};\n", item.array_count, item.name); break;
+                    case Type::Float4:  l("float[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::Mat2x1:  l("float[{}][2] {};\n", item.array_count, item.name); break;
+                    case Type::Mat2x2:  l("float[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::Mat2x3:  l("float[{}][6] {};\n", item.array_count, item.name); break;
+                    case Type::Mat2x4:  l("float[{}][8] {};\n", item.array_count, item.name); break;
+                    case Type::Mat3x1:  l("float[{}][3] {};\n", item.array_count, item.name); break;
+                    case Type::Mat3x2:  l("float[{}][6] {};\n", item.array_count, item.name); break;
+                    case Type::Mat3x3:  l("float[{}][9] {};\n", item.array_count, item.name); break;
+                    case Type::Mat3x4:  l("float[{}][12] {};\n", item.array_count, item.name); break;
+                    case Type::Mat4x1:  l("float[{}][4] {};\n", item.array_count, item.name); break;
+                    case Type::Mat4x2:  l("float[{}][8] {};\n", item.array_count, item.name); break;
+                    case Type::Mat4x3:  l("float[{}][12] {};\n", item.array_count, item.name); break;
+                    case Type::Mat4x4:  l("float[{}][16] {};\n", item.array_count, item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }
@@ -177,16 +179,15 @@ void SokolC3Generator::gen_struct_interior_decl_std430(const GenInput& gen, cons
         cur_offset += item.size;
     }
     if (cur_offset < pad_to_size) {
-        l("_: [{}]u8,\n", pad_to_size - cur_offset);
+        l("char[{}] _pad_{};\n", pad_to_size - cur_offset, cur_offset);
     }
 }
 
 void SokolC3Generator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
     const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("{} :: struct #align({}) {{\n", struct_name(item.struct_typename), sbuf.struct_info.align);
-    l_open("using _: struct #packed {{\n");
+    l("struct {} @align({}) @packed\n", struct_name(item.struct_typename), sbuf.struct_info.align);
+    l_open("{{\n");
     gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
-    l_close("}},\n");
     l_close("}}\n");
 }
 
