@@ -192,9 +192,9 @@ void SokolC3Generator::gen_storage_buffer_decl(const GenInput& gen, const Storag
 }
 
 void SokolC3Generator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    l("fn gfx::ShaderDesc {}_shader_desc(gfx::Backend backend)\n", prog.name);
+    l("fn sg::ShaderDesc {}_shader_desc(sg::Backend backend)\n", prog.name);
     l_open("{{\n");
-    l("gfx::ShaderDesc desc;\n");
+    l("sg::ShaderDesc desc;\n");
     l("desc.label = \"{}_shader\";\n", prog.name);
     l("switch (backend)\n");
     l_open("{{\n");
