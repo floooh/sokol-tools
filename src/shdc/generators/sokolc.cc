@@ -679,23 +679,23 @@ std::string SokolCGenerator::struct_name(const std::string& name) {
 }
 
 std::string SokolCGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
-    return fmt::format("ATTR_{}_{}", prog_name, attr.name);
+    return fmt::format("ATTR_{}{}_{}", mod_prefix, prog_name, attr.name);
 }
 
 std::string SokolCGenerator::image_bind_slot_name(const Image& img) {
-    return fmt::format("IMG_{}", img.name);
+    return fmt::format("IMG_{}{}", mod_prefix, img.name);
 }
 
 std::string SokolCGenerator::sampler_bind_slot_name(const Sampler& smp) {
-    return fmt::format("SMP_{}", smp.name);
+    return fmt::format("SMP_{}{}", mod_prefix, smp.name);
 }
 
 std::string SokolCGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return fmt::format("UB_{}", ub.name);
+    return fmt::format("UB_{}{}", mod_prefix, ub.name);
 }
 
 std::string SokolCGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}", sbuf.name);
+    return fmt::format("SBUF_{}{}", mod_prefix, sbuf.name);
 }
 
 std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

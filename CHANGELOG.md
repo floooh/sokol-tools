@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+#### **10-Dec-2024**
+
+Another minor regression fix: in the C code generator, attribute and bindslot
+defines now include the `@module` tag again, this can be used to avoid name
+conflicts across shader files.
+
+See issue https://github.com/floooh/sokol-tools/issues/160 and PR [FIXME]
+for details!
+
 #### **09-Nov-2024**
 
 Important regression fix: shaders which used textures/samplers both on the vertex-

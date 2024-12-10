@@ -1,7 +1,7 @@
 #
 # project: sokol-tools
 #
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "")
 project(sokol-tools)
