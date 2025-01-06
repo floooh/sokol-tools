@@ -11,3 +11,6 @@ zig-*/
 .zig-*/
 test/out/
 
+build
+cmake-build-debug
+cmake-build-release

@@ -14,6 +14,7 @@ static const char* sokol_define(Slang::Enum slang) {
     switch (slang) {
         case Slang::GLSL410:
         case Slang::GLSL430:
+        case Slang::GLSL450:
             return "SOKOL_GLCORE";
         case Slang::GLSL300ES:
             return "SOKOL_GLES3";
@@ -655,6 +656,7 @@ std::string SokolCGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
         case Slang::GLSL430:
+        case Slang::GLSL450:
             return "SG_BACKEND_GLCORE";
         case Slang::GLSL300ES:
             return "SG_BACKEND_GLES3";

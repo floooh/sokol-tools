@@ -290,6 +290,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
+    options.vulkan_semantics = false;
     switch (slang) {
         case Slang::GLSL410:
             options.version = 410;
@@ -298,6 +299,11 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
         case Slang::GLSL430:
             options.version = 430;
             options.es = false;
+            break;
+        case Slang::GLSL450:
+            options.version = 450;
+            options.es = false;
+            options.vulkan_semantics = true;
             break;
         case Slang::GLSL300ES:
             options.version = 300;
@@ -308,7 +314,6 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
             assert(false);
             break;
     }
-    options.vulkan_semantics = false;
     options.enable_420pack_extension = false;
     options.emit_uniform_buffer_as_plain_uniforms = true;
     options.vertex.support_nonzero_base_instance = false;

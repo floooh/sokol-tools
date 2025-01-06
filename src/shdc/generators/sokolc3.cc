@@ -444,6 +444,7 @@ std::string SokolC3Generator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
         case Slang::GLSL430:
+        case Slang::GLSL450:
             return "backend::GLCORE";
         case Slang::GLSL300ES:
             return "backend::GLES3";

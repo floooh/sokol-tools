@@ -18,6 +18,7 @@ struct Slang {
         METAL_SIM,
         WGSL,
         REFLECTION,     // special 'virtual slang' for extracting reflection info
+        GLSL450,
         Num,
     };
 
@@ -46,6 +47,7 @@ inline const char* Slang::to_str(Enum c) {
     switch (c) {
         case GLSL410:       return "glsl410";
         case GLSL430:       return "glsl430";
+        case GLSL450:       return "glsl450";
         case GLSL300ES:     return "glsl300es";
         case HLSL4:         return "hlsl4";
         case HLSL5:         return "hlsl5";
@@ -77,6 +79,7 @@ inline bool Slang::is_glsl(Enum c) {
     switch (c) {
         case GLSL410:
         case GLSL430:
+        case GLSL450:
         case GLSL300ES:
             return true;
         default:

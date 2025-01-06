@@ -427,6 +427,7 @@ static bool parse(Input& inp) {
                     uint32_t option_bit = Option::from_string(tokens[i]);
                     cur_snippet.options[Slang::GLSL410] |= option_bit;
                     cur_snippet.options[Slang::GLSL430] |= option_bit;
+                    cur_snippet.options[Slang::GLSL450] |= option_bit;
                     cur_snippet.options[Slang::GLSL300ES] |= option_bit;
                 }
                 add_line = false;
