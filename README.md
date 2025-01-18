@@ -61,8 +61,7 @@ The executables for Linux **must** be compiled via Docker since they use
 static linking with musl, and Alpine Linux in Docker is the easiest option for this.
 
 ```
-> cd docker
-> ./build.sh
+> ./build_docker.sh
 ```
 The compiled Linux executable will be in the same directory (docker/)
 
