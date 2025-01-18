@@ -42,3 +42,16 @@ jobs:
           run:  python fips build linux-ninja-release
         - name: test
           run:  python3 fips run_tests linux-ninja-release
+    linux-arm64:
+        runs-on: ubuntu-24.04-arm
+        steps:
+        - uses: lukka/get-cmake@latest
+        - uses: actions/checkout@v4
+          with:
+            submodules: true
+        - name: build debug
+          run:  python fips build linux-ninja-debug
+        - name: build release
+          run:  python fips build linux-ninja-release
+        - name: test
+          run:  python3 fips run_tests linux-ninja-release
