@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+#### **20-Jan-2024**
+
+The binary distribution repo https://github.com/floooh/sokol-tools-bin now also
+has a binary for ARM64 Linux under the path `bin/linux_arm64/sokol-shdc`).
+This is experimental and not fully integrated yet with fips projects (needs
+a fix [here](https://github.com/floooh/sokol-tools-bin/blob/176fe04861f57921a365853964961b3f29f24363/fips-files/generators/SokolShader.py#L28-L32))
+
 #### **10-Dec-2024**
 
 Another minor regression fix: in the C code generator, attribute and bindslot
