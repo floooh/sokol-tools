@@ -70,7 +70,7 @@ jobs:
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: linux-x86_64-ninja-release
+        name: linux-x64-ninja-release
         path: sokol-shdc
         retention-days: 1
   linux_arm:
@@ -86,7 +86,7 @@ jobs:
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: linux-aarch64-ninja-release
+        name: linux-arm64-ninja-release
         path: sokol-shdc
         retention-days: 1
   deploy:
@@ -111,20 +111,20 @@ jobs:
         path: bin/osx_arm64
     - uses: actions/download-artifact@v4
       with:
-        name: linux-x86_64-ninja-release
+        name: linux-x64-ninja-release
         path: bin/linux
     - uses: actions/download-artifact@v4
       with:
-        name: linux-aarch64-ninja-release
-        path: bin/linux_aarch64
+        name: linux-arm64-ninja-release
+        path: bin/linux_arm64
     - name: "commit and push"
       run: |
         md5sum bin/win32/sokol-shdc.exe
         md5sum bin/osx/sokol-shdc
         md5sum bin/osx_arm64/sokol-shdc
         md5sum bin/linux/sokol-shdc
-        md5sum bin/linux_aarch64/sokol-shdc
-        chmod a+x bin/osx/sokol-shdc bin/osx_arm64/sokol-shdc bin/linux/sokol-shdc bin/linux_aarch64/sokol-shdc
+        md5sum bin/linux_arm64/sokol-shdc
+        chmod a+x bin/osx/sokol-shdc bin/osx_arm64/sokol-shdc bin/linux/sokol-shdc bin/linux_arm64/sokol-shdc
         git config user.email "none"
         git config user.name "GH Action"
         git add .
