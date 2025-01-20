@@ -18,6 +18,7 @@ struct Spirv {
     static void finalize_spirv_tools();
     static Spirv compile_glsl_and_extract_bindings(Input& inp, Slang::Enum slang, const std::vector<std::string>& defines);
     bool write_to_file(const Args& args, const Input& inp, Slang::Enum slang);
+    bool extract_glsl_spv(const Input& inp, std::vector<uint8_t>& vs, std::vector<uint8_t>& fs);
     void dump_debug(const Input& inp, ErrMsg::Format err_fmt) const;
 };
 
