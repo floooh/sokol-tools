@@ -75,7 +75,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
                 l("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
                 l("int {}{}_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
-                l("sg_shader_uniform_desc {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
+                l("sg_glsl_shader_uniform {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
             }
         }
     }
