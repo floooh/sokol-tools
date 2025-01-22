@@ -273,13 +273,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const int slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
         const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
         StorageBuffer refl_sbuf;
-        refl_sbuf.stage = refl.stage;
-        refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        refl_sbuf.glsl_binding_n = slot + Bindings::base_slot(Slang::GLSL430, refl.stage, res_type);
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
-        refl_sbuf.readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
         }
@@ -293,6 +287,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
             return refl;
         }
+        refl_sbuf.stage = refl.stage;
+        refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        // SPECIAL CASE GL: the GL storage buffer bind slot is identical with the sokol-bind slot
+        // since GL also has a common bindspace across shader stages for storage buffers
+        refl_sbuf.glsl_binding_n = refl_sbuf.sokol_slot;
+        refl_sbuf.readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
