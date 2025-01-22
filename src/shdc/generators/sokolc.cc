@@ -69,13 +69,13 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
             l("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix, prog.name);
             if (gen.args.reflection) {
                 l("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix, prog.name);
-                l("int {}{}_image_slot(sg_shader_stage stage, const char* img_name);\n", mod_prefix, prog.name);
-                l("int {}{}_sampler_slot(sg_shader_stage stage, const char* smp_name);\n", mod_prefix, prog.name);
-                l("int {}{}_uniformblock_slot(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
-                l("size_t {}{}_uniformblock_size(sg_shader_stage stage, const char* ub_name);\n", mod_prefix, prog.name);
-                l("int {}{}_storagebuffer_slot(sg_shader_stage stage, const char* sbuf_name);\n", mod_prefix, prog.name);
-                l("int {}{}_uniform_offset(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
-                l("sg_glsl_shader_uniform {}{}_uniform_desc(sg_shader_stage stage, const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
+                l("int {}{}_image_slot(const char* img_name);\n", mod_prefix, prog.name);
+                l("int {}{}_sampler_slot(const char* smp_name);\n", mod_prefix, prog.name);
+                l("int {}{}_uniformblock_slot(const char* ub_name);\n", mod_prefix, prog.name);
+                l("size_t {}{}_uniformblock_size(const char* ub_name);\n", mod_prefix, prog.name);
+                l("int {}{}_storagebuffer_slot(const char* sbuf_name);\n", mod_prefix, prog.name);
+                l("int {}{}_uniform_offset(const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
+                l("sg_glsl_shader_uniform {}{}_uniform_desc(const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
             }
         }
     }
