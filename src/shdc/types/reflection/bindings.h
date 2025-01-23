@@ -88,10 +88,6 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
                 res = MaxUniformBlocks;
             } else if (Slang::is_hlsl(slang)) {
                 res = MaxImages;
-            } else if (Slang::is_glsl(slang)) {
-                if (ShaderStage::is_fs(stage)) {
-                    res = MaxStorageBuffers;
-                }
             } else if (Slang::is_wgsl(slang)) {
                 res = MaxImages + MaxSamplers;
                 if (ShaderStage::is_fs(stage)) {

@@ -1,7 +1,16 @@
 CHANGELOG
 =========
 
-#### **20-Jan-2024**
+#### **23-Jan-2025**
+
+GLSL v430 output will no longer remap storage buffer bindings to the slot
+range 0..15 but instead only use the slot range 0..7 (this is ok because sokol_gfx.h
+only allows to use up to 8 storage buffer bindings anyway). This change allows
+sokol_gfx.h to run on min-spec GL drivers that only allow the minimal number of
+storage buffer bindings (see sokol issue [#1193](https://github.com/floooh/sokol/issues/1193)
+for details).
+
+#### **20-Jan-2025**
 
 The binary distribution repo https://github.com/floooh/sokol-tools-bin now also
 has a binary for ARM64 Linux under the path `bin/linux_arm64/sokol-shdc`).
