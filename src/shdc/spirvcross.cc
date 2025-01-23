@@ -78,7 +78,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
         for (const Resource& res: shader_resources.storage_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             // special case: for GL storage buffers we actually keep the original binding,
-            // so that the the GL bind slot is (0..7) across all stages
+            // so that the GL bind slot is (0..7) across all stages
             if (!Slang::is_glsl(slang)) {
                 compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
             }
