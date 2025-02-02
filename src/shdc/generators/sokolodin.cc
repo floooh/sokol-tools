@@ -440,9 +440,9 @@ void SokolOdinGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const P
             l_open("if ub_name == \"{}\" {{\n", ub.name);
             for (const Type& u: ub.struct_info.struct_items) {
                 l_open("if u_name == \"{}\" {{\n", u.name);
-                l("res.type = {};\n", uniform_type(u.type));
-                l("res.array_count = {};\n", u.array_count);
-                l("res.glsl_name = \"{}\";\n", u.name);
+                l("res.type = {}\n", uniform_type(u.type));
+                l("res.array_count = {}\n", u.array_count);
+                l("res.glsl_name = \"{}\"\n", u.name);
                 l("return res\n");
                 l_close("}}\n");
             }
