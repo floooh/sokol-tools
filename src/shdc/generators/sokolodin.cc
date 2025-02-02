@@ -10,6 +10,13 @@ namespace shdc::gen {
 
 using namespace refl;
 
+ErrMsg SokolOdinGenerator::begin(const GenInput& gen) {
+    if (!gen.inp.module.empty()) {
+        mod_prefix = fmt::format("{}_", gen.inp.module);
+    }
+    return Generator::begin(gen);
+}
+
 void SokolOdinGenerator::gen_prolog(const GenInput& gen) {
     for (const auto& header: gen.inp.headers) {
         l("{}\n", header);
@@ -330,6 +337,122 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
     l_close("}}\n"); // close function
 }
 
+void SokolOdinGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_attr_slot :: proc (attr_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const StageAttr& attr: prog.vs().inputs) {
+        if (attr.slot >= 0) {
+            l_open("if attr_name == \"{}\" {{\n", attr.name);
+            l("return {}\n", attr.slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_image_slot :: proc (img_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const Image& img: prog.bindings.images) {
+        if (img.sokol_slot >= 0) {
+            l_open("if img_name == \"{}\" {{\n", img.name);
+            l("return {}\n", img.sokol_slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_sampler_slot :: proc (smp_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const Sampler& smp: prog.bindings.samplers) {
+        if (smp.sokol_slot >= 0) {
+            l_open("if smp_name == \"{}\" {{\n", smp.name);
+            l("return {}\n", smp.sokol_slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_uniformblock_slot :: proc (ub_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
+        if (ub.sokol_slot >= 0) {
+            l_open("if ub_name == \"{}\" {{\n", ub.name);
+            l("return {}\n", ub.sokol_slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_uniformblock_size :: proc (ub_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
+        if (ub.sokol_slot >= 0) {
+            l_open("if ub_name == \"{}\" {{\n", ub.name);
+            l("return size_of({})\n", struct_name(ub.name));
+            l_close("}}\n");
+        }
+    }
+    l("return 0\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_storagebuffer_slot :: proc (sbuf_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
+        if (sbuf.sokol_slot >= 0) {
+            l_open("if sbuf_name == \"{}\" {{\n", sbuf.name);
+            l("return {}\n", sbuf.sokol_slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_uniform_offset :: proc (ub_name, u_name: string) -> int {{\n", mod_prefix, prog.name);
+    for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
+        if (ub.sokol_slot >= 0) {
+            l_open("if ub_name == \"{}\" {{\n", ub.name);
+            for (const Type& u: ub.struct_info.struct_items) {
+                l_open("if u_name == \"{}\" {{\n", u.name);
+                l("return {}\n", u.offset);
+                l_close("}}\n");
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return -1\n");
+    l_close("}}\n");
+}
+
+void SokolOdinGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}{}_uniform_desc :: proc (ub_name, u_name: string) -> sg.Glsl_Shader_Uniform {{\n", mod_prefix, prog.name);
+    l("res := sg.Glsl_Shader_Uniform {{}};\n");
+    for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
+        if (ub.sokol_slot >= 0) {
+            l_open("if ub_name == \"{}\" {{\n", ub.name);
+            for (const Type& u: ub.struct_info.struct_items) {
+                l_open("if u_name == \"{}\" {{\n", u.name);
+                l("res.type = {};\n", uniform_type(u.type));
+                l("res.array_count = {};\n", u.array_count);
+                l("res.glsl_name = \"{}\";\n", u.name);
+                l("return res\n");
+                l_close("}}\n");
+            }
+            l_close("}}\n");
+        }
+    }
+    l("return res\n");
+    l_close("}}\n");
+}
+
 void SokolOdinGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
     l("@(private=\"file\")\n{} := [{}]u8 {{\n", array_name, num_bytes);
 }
@@ -461,27 +584,27 @@ std::string SokolOdinGenerator::backend(Slang::Enum e) {
 }
 
 std::string SokolOdinGenerator::struct_name(const std::string& name) {
-    return to_ada_case(name);
+    return to_ada_case(fmt::format("{}{}", mod_prefix, name));
 }
 
 std::string SokolOdinGenerator::vertex_attr_name(const std::string& prog_name, const StageAttr& attr) {
-    return fmt::format("ATTR_{}_{}", prog_name, attr.name);
+    return fmt::format("ATTR_{}{}_{}", mod_prefix, prog_name, attr.name);
 }
 
 std::string SokolOdinGenerator::image_bind_slot_name(const Image& img) {
-    return fmt::format("IMG_{}", img.name);
+    return fmt::format("IMG_{}{}", mod_prefix, img.name);
 }
 
 std::string SokolOdinGenerator::sampler_bind_slot_name(const Sampler& smp) {
-    return fmt::format("SMP_{}", smp.name);
+    return fmt::format("SMP_{}{}", mod_prefix, smp.name);
 }
 
 std::string SokolOdinGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
-    return fmt::format("UB_{}", ub.name);
+    return fmt::format("UB_{}{}", mod_prefix, ub.name);
 }
 
 std::string SokolOdinGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}", sbuf.name);
+    return fmt::format("SBUF_{}{}", mod_prefix, sbuf.name);
 }
 
 std::string SokolOdinGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
