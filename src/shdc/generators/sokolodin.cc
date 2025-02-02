@@ -434,7 +434,7 @@ void SokolOdinGenerator::gen_uniform_offset_refl_func(const GenInput& gen, const
 
 void SokolOdinGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("{}{}_uniform_desc :: proc (ub_name, u_name: string) -> sg.Glsl_Shader_Uniform {{\n", mod_prefix, prog.name);
-    l("res := sg.Glsl_Shader_Uniform {{}};\n");
+    l("res := sg.Glsl_Shader_Uniform {{}}\n");
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
             l_open("if ub_name == \"{}\" {{\n", ub.name);
