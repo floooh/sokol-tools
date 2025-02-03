@@ -1,6 +1,17 @@
 CHANGELOG
 =========
 
+#### **03-Feb-2025**
+
+Update to the Odin code generator:
+
+- now supports runtime reflection via `--reflection` cmdline arg
+- symbol names are prefixed with the optional `@module` tag
+- visibility for the embedded shader binary blobs changed to `@(private="file")`
+
+Many thanks to @keenanwoodall for the PR (https://github.com/floooh/sokol-tools/pull/172)!
+
+
 #### **23-Jan-2025**
 
 GLSL v430 output will no longer remap storage buffer bindings to the slot
