@@ -192,7 +192,7 @@ to generate.
 
 There are also other versions of the sokol_shader() macro:
 
-- **sokoL_shader_debuggable([filename] [slang])**: same as ```sokol_shader()``` but
+- **sokol_shader_debuggable([filename] [slang])**: same as ```sokol_shader()``` but
   doesn't create binary blobs for HLSL and MSL. This allows source-level debugging
   in graphics debuggers.
 - **sokol_shader_with_reflection([filename] [slang])**: same as ```sokol_shader()``` but
