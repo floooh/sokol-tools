@@ -144,6 +144,7 @@ static const std::string ctype_tag = "@ctype";
 static const std::string header_tag = "@header";
 static const std::string vs_tag = "@vs";
 static const std::string fs_tag = "@fs";
+static const std::string cs_tag = "@cs";
 static const std::string block_tag = "@block";
 static const std::string inclblock_tag = "@include_block";
 static const std::string end_tag = "@end";
@@ -243,7 +244,7 @@ static bool validate_block_tag(const std::vector<std::string>& tokens, bool in_s
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@block {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs, @fs and @cs tag names must be unique (@block {}).", tokens[1]));
         return false;
     }
     return true;
@@ -259,7 +260,7 @@ static bool validate_vs_tag(const std::vector<std::string>& tokens, bool in_snip
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@vs {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs, @fs and @cs tag names must be unique (@vs {}).", tokens[1]));
         return false;
     }
     return true;
@@ -275,7 +276,23 @@ static bool validate_fs_tag(const std::vector<std::string>& tokens, bool in_snip
         return false;
     }
     if (inp.snippet_map.count(tokens[1]) > 0) {
-        inp.out_error = inp.error(line_index, fmt::format("@block, @vs and @fs tag names must be unique (@fs {}).", tokens[1]));
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs, @fs and @cs tag names must be unique (@fs {}).", tokens[1]));
+        return false;
+    }
+    return true;
+}
+
+static bool validate_cs_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
+    if (tokens.size() != 2) {
+        inp.out_error = inp.error(line_index, "@cs tag must have exactly one arg (@cs name).");
+        return false;
+    }
+    if (in_snippet) {
+        inp.out_error = inp.error(line_index, "@cs tag cannot be inside other tag block (missing @end?).");
+        return false;
+    }
+    if (inp.snippet_map.count(tokens[1]) > 0) {
+        inp.out_error = inp.error(line_index, fmt::format("@block, @vs, @fs and @cs tag names must be unique (@cs {}).", tokens[1]));
         return false;
     }
     return true;
@@ -310,8 +327,8 @@ static bool validate_end_tag(const std::vector<std::string>& tokens, bool in_sni
 }
 
 static bool validate_program_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
-    if (tokens.size() != 4) {
-        inp.out_error = inp.error(line_index, "@program tag must have exactly 3 args (@program name vs_name fs_name).");
+    if ((tokens.size() != 3) && (tokens.size() != 4)) {
+        inp.out_error = inp.error(line_index, "@program tag must have 2 or 3 args (@program name [vs_name fs_name]|[cs_name]).");
         return false;
     }
     if (in_snippet) {
@@ -322,13 +339,20 @@ static bool validate_program_tag(const std::vector<std::string>& tokens, bool in
         inp.out_error = inp.error(line_index, fmt::format("@program '{}' already defined.", tokens[1]));
         return false;
     }
-    if (inp.vs_map.count(tokens[2]) != 1) {
-        inp.out_error = inp.error(line_index, fmt::format("@vs '{}' not found for @program '{}'.", tokens[2], tokens[1]));
-        return false;
-    }
-    if (inp.fs_map.count(tokens[3]) != 1) {
-        inp.out_error = inp.error(line_index, fmt::format("@fs '{}' not found for @program '{}'.", tokens[3], tokens[1]));
-        return false;
+    if (tokens.size() == 4) {
+        if (inp.vs_map.count(tokens[2]) != 1) {
+            inp.out_error = inp.error(line_index, fmt::format("@vs '{}' not found for @program '{}'.", tokens[2], tokens[1]));
+            return false;
+        }
+        if (inp.fs_map.count(tokens[3]) != 1) {
+            inp.out_error = inp.error(line_index, fmt::format("@fs '{}' not found for @program '{}'.", tokens[3], tokens[1]));
+            return false;
+        }
+    } else {
+        if (inp.cs_map.count(tokens[2]) != 1) {
+            inp.out_error = inp.error(line_index, fmt::format("@cs '{}' not found for @program '{}.", tokens[2], tokens[1]));
+            return false;
+        }
     }
     return true;
 }
@@ -472,6 +496,13 @@ static bool parse(Input& inp) {
                 cur_snippet = Snippet(Snippet::FS, tokens[1]);
                 add_line = false;
                 in_snippet = true;
+            } else if (tokens[0] == cs_tag) {
+                if (!validate_cs_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                cur_snippet = Snippet(Snippet::CS, tokens[1]);
+                add_line = false;
+                in_snippet = true;
             } else if (tokens[0] == inclblock_tag) {
                 if (!validate_inclblock_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
@@ -497,6 +528,9 @@ static bool parse(Input& inp) {
                     case Snippet::FS:
                         inp.fs_map[cur_snippet.name] = cur_snippet.index;
                         break;
+                    case Snippet::CS:
+                        inp.cs_map[cur_snippet.name] = cur_snippet.index;
+                        break;
                     default: break;
                 }
                 inp.snippets.push_back(std::move(cur_snippet));
@@ -507,7 +541,11 @@ static bool parse(Input& inp) {
                 if (!validate_program_tag(tokens, in_snippet, line_index, inp)) {
                     return false;
                 }
-                inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
+                if (tokens.size() == 4) {
+                    inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
+                } else {
+                    inp.programs[tokens[1]] = Program(tokens[1], tokens[2], line_index);
+                }
                 add_line = false;
             } else if (tokens[0] == image_sample_type_tag) {
                 if (!validate_image_sample_type_tag(tokens, line_index, inp)) {
@@ -651,6 +689,7 @@ ErrMsg Input::error(int line_index, const std::string& msg) const {
         return ErrMsg::error(base_path, 0, msg);
     }
 };
+
 ErrMsg Input::warning(int line_index, const std::string& msg) const {
     if (line_index < (int)lines.size()) {
         const Line& line = lines[line_index];
@@ -715,6 +754,10 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
     for (const auto& item : fs_map) {
         fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
     }
+    fmt::print(stderr, "  cs_map:\n");
+    for (const auto& item : cs_map) {
+        fmt::print(stderr, "    {} => snippet {}\n", item.first, item.second);
+    }
     fmt::print(stderr, "  programs:\n");
     for (const auto& item : programs) {
         const std::string& key = item.first;
@@ -723,6 +766,7 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
         fmt::print(stderr, "      name: {}\n", prog.name);
         fmt::print(stderr, "      vs: {}\n", prog.vs_name);
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
+        fmt::print(stderr, "      cs: {}\n", prog.cs_name);
         fmt::print(stderr, "      line_index: {}\n", prog.line_index);
     }
     fmt::print(stderr, "    image sample type tags:\n");
