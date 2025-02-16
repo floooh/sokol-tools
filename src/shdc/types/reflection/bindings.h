@@ -35,7 +35,7 @@ struct Bindings {
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
 
-    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type);
+    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type, bool readonly=true);
 
     const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
     const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
@@ -55,7 +55,7 @@ struct Bindings {
 // returns the 3D API specific base-binding slot for a shader dialect, stage and resource type
 // NOTE: the special Slang::REFLECTION always returns zero, this can be used
 // to figure out the sokol-gfx bindslots
-inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type) {
+inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type, bool readonly) {
     int res = 0;
     switch (type) {
         case Type::UNIFORM_BLOCK:
@@ -87,7 +87,13 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             if (Slang::is_msl(slang)) {
                 res = MaxUniformBlocks;
             } else if (Slang::is_hlsl(slang)) {
-                res = MaxImages;
+                if (readonly) {
+                    // read-only storage buffers are bound as SRV
+                    res = MaxImages;
+                } else {
+                    // read/write storage buffers are bound as UAV
+                    res = 0;
+                }
             } else if (Slang::is_wgsl(slang)) {
                 res = MaxImages + MaxSamplers;
                 if (ShaderStage::is_fs(stage)) {

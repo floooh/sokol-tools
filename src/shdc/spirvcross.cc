@@ -74,12 +74,31 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
 
     // storage buffers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
-        for (const Resource& res: shader_resources.storage_buffers) {
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            // special case: for GL storage buffers we actually keep the original binding,
-            // so that the GL bind slot is (0..7) across all stages
-            if (!Slang::is_glsl(slang)) {
+        if (Slang::is_glsl(slang)) {
+            // special case GLSL: keep the original bindings across all shader stages
+            for (const Resource& res: shader_resources.storage_buffers) {
+                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            }
+        } else if(Slang::is_hlsl(slang)) {
+            // special case HLSL:
+            // - readonly storage buffers are bound as SRV (register(tn))
+            // - read/write storage buffers are bound as UAV (register(un))
+            const uint32_t t_base = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER, true);
+            const uint32_t u_base = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER, false);
+            uint32_t bind_idx = 0;
+            for (const Resource& res: shader_resources.storage_buffers) {
+                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+                const bool readonly = compiler.get_buffer_block_flags(res.id).get(spv::DecorationNonWritable);
+                if (readonly) {
+                    compiler.set_decoration(res.id, spv::DecorationBinding, t_base + bind_idx++);
+                } else {
+                    compiler.set_decoration(res.id, spv::DecorationBinding, u_base + bind_idx++);
+                }
+            }
+        } else {
+            uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
+            for (const Resource& res: shader_resources.storage_buffers) {
+                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
                 compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
             }
         }
@@ -178,7 +197,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     //   - arrays must be 1-dimensional
     // - storage buffers:
     //   - must only have a single flexible array struct item
-    //   - must be readonly
+    //   - must be readonly in vertex/fragment shaders
     // - must use separate image and sampler objects
     //
     // FIXME: disallow vec3 arrays
@@ -214,9 +233,11 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
         if (!content_valid) {
             return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one flexible array of a struct", sbuf_res.name));
         }
-        bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
-        if (!readonly) {
-            return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed currently", sbuf_res.name));
+        if (compiler.get_execution_model() != spv::ExecutionModelGLCompute) {
+            bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
+            if (!readonly) {
+                return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex- and fragment-shaders", sbuf_res.name));
+            }
         }
     }
     if (res.sampled_images.size() > 0) {
@@ -435,7 +456,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
             SpirvcrossSource src;
             uint32_t opt_mask = inp.snippets[blob.snippet_index].options[(int)slang];
             const Snippet& snippet = inp.snippets[blob.snippet_index];
-            assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS));
+            assert((snippet.type == Snippet::VS) || (snippet.type == Snippet::FS) || (snippet.type == Snippet::CS));
             spv_cross.error = validate_resource_restrictions(inp, blob);
             if (spv_cross.error.valid()) {
                 return spv_cross;

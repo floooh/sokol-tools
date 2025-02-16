@@ -149,6 +149,7 @@ protected:
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
+    static const char* hlsl_target(Slang::Enum slang, refl::ShaderStage::Enum stage);
 
     std::string content;
     int tab_width = 4;

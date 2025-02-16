@@ -16,6 +16,7 @@ struct StageReflection {
     std::array<StageAttr, StageAttr::Num> inputs;       // index == attribute slot
     std::array<StageAttr, StageAttr::Num> outputs;      // index == attribute slot
     Bindings bindings;
+    int cs_workgroup_size[3];  // layout(local_size_x=x, local_size_y=y, local_size_z=z)
 
     size_t num_inputs() const;
     size_t num_outputs() const;
@@ -58,6 +59,7 @@ inline void StageReflection::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}snippet_index: {}\n", indent2, snippet_index);
     fmt::print(stderr, "{}snippet_name: {}\n", indent2, snippet_name);
     fmt::print(stderr, "{}entry_point: {}\n", indent2, entry_point);
+    fmt::print(stderr, "{}workgroup_size: {} {} {}\n", indent2, cs_workgroup_size[0], cs_workgroup_size[1], cs_workgroup_size[2]);
     fmt::print(stderr, "{}inputs:\n", indent2);
     for (const auto& input: inputs) {
         if (input.slot != -1) {

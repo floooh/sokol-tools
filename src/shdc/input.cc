@@ -542,9 +542,9 @@ static bool parse(Input& inp) {
                     return false;
                 }
                 if (tokens.size() == 4) {
-                    inp.programs[tokens[1]] = Program(tokens[1], tokens[2], tokens[3], line_index);
+                    inp.programs[tokens[1]] = Program::from_vs_fs(tokens[1], tokens[2], tokens[3], line_index);
                 } else {
-                    inp.programs[tokens[1]] = Program(tokens[1], tokens[2], line_index);
+                    inp.programs[tokens[1]] = Program::from_cs(tokens[1], tokens[2], line_index);
                 }
                 add_line = false;
             } else if (tokens[0] == image_sample_type_tag) {
