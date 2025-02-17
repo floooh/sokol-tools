@@ -290,16 +290,18 @@ static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slan
         ID3DBlob* errors = NULL;
         const char* compile_target = nullptr;
         if (slang == Slang::HLSL4) {
-            if (snippet.type == Snippet::VS) {
-                compile_target = "vs_4_0";
-            } else {
-                compile_target = "ps_4_0";
+            switch (snippet.type) {
+                case Snippet::VS: compile_target = "vs_4_0"; break;
+                case Snippet::FS: compile_target = "ps_4_0"; break;
+                case Snippet::CS: compile_target = "cs_4_0"; break;
+                default: compile_target = "UNKNOWN"; break;
             }
         } else {
-            if (snippet.type == Snippet::VS) {
-                compile_target = "vs_5_0";
-            } else {
-                compile_target = "ps_5_0";
+            switch (snippet.type) {
+                case Snippet::VS: compile_target = "vs_5_0"; break;
+                case Snippet::FS: compile_target = "ps_5_0"; break;
+                case Snippet::CS: compile_target = "cs_5_0"; break;
+                default: compile_target = "UNKNOWN"; break;
             }
         }
         d3dcompile_func(
