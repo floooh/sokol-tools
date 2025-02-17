@@ -142,6 +142,10 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     if (err.valid()) {
         res.error = inp.error(0, err.msg);
     }
+    res.sbuf_structs = merge_storagebuffer_structs(res.bindings, err);
+    if (err.valid()) {
+        res.error = inp.error(0, err.msg);
+    }
     return res;
 }
 
@@ -312,6 +316,15 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             return refl;
         }
         refl_sbuf.name = refl_sbuf.struct_info.name;
+        // check that the size and alignment of the nested struct is identical with the outher struct
+        if (refl_sbuf.struct_info.size != refl_sbuf.struct_info.struct_items[0].size) {
+            out_error = inp.error(0, fmt::format("SSBO struct size doesn't match nested item struct size (in ssbo '{}')\n", refl_sbuf.name));
+            return refl;
+        }
+        if (refl_sbuf.struct_info.align != refl_sbuf.struct_info.struct_items[0].align) {
+            out_error = inp.error(0, fmt::format("SSBO struct alignment doesn't match nested item struct alignment (in ssbo '{}')\n", refl_sbuf.name));
+            return refl;
+        }
         refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
         if (refl_sbuf.sokol_slot == -1) {
             out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
@@ -502,6 +515,32 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
     return out_bindings;
 }
 
+const Type* Reflection::find_struct_by_typename(const std::vector<Type>& structs, const std::string& struct_typename) {
+    for (const auto& t: structs) {
+        if (t.struct_typename == struct_typename) {
+            return &t;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<Type> Reflection::merge_storagebuffer_structs(const Bindings& bindings, ErrMsg& out_error) {
+    std::vector<Type> merged_structs;
+    for (const StorageBuffer& sbuf: bindings.storage_buffers) {
+        const Type* other_struct = find_struct_by_typename(merged_structs, sbuf.struct_info.struct_items[0].struct_typename);
+        if (other_struct) {
+            // another struct of the same typename exists, make sure it's identical
+            if (!sbuf.struct_info.struct_items[0].equals(*other_struct)) {
+                out_error = ErrMsg::error(fmt::format("conflicting struct definitions found for '{}'", sbuf.struct_info.struct_items[0].struct_typename));
+                return std::vector<Type>();
+            }
+        } else {
+            merged_structs.push_back(sbuf.struct_info.struct_items[0]);
+        }
+    }
+    return merged_structs;
+}
+
 Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_id, const TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error) {
     const SPIRType& base_type = compiler.get_type(base_type_id);
     const TypeID& item_base_type_id = base_type.member_types[item_index];
@@ -680,6 +719,12 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const Resource&
             out.align = item_type.align;
         }
         out.struct_items.push_back(item_type);
+    }
+    // special case for SSBOs: fix the struct size to its array stride
+    if ((out.struct_items.size() == 1) && (out.struct_items[0].type == Type::Struct)) {
+        if (out.struct_items[0].array_stride > out.struct_items[0].size) {
+            out.struct_items[0].size = out.struct_items[0].array_stride;
+        }
     }
     return out;
 }

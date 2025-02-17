@@ -37,7 +37,7 @@ protected:
     virtual void gen_uniform_block_decl(const GenInput& gen, const refl::UniformBlock& ub) { assert(false && "implement me"); };
 
     // called by gen_storage_buffer_decls()
-    virtual void gen_storage_buffer_decl(const GenInput& gen, const refl::StorageBuffer& sbuf) { assert(false && "implement me"); };
+    virtual void gen_storage_buffer_decl(const GenInput& gen, const refl::Type& sbuf_struct) { assert(false && "implement me"); };
 
     // called by gen_shader_arrays()
     virtual void gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) { assert(false && "implement me"); };

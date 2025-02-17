@@ -239,12 +239,11 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
     }
 }
 
-void SokolCGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
+void SokolCGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
     l("#pragma pack(push,1)\n");
-    const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", sbuf.struct_info.align, struct_name(item.struct_typename));
-    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
-    l_close("}} {};\n", struct_name(item.struct_typename));
+    l_open("SOKOL_SHDC_ALIGN({}) typedef struct {} {{\n", struc.align, struct_name(struc.struct_typename));
+    gen_struct_interior_decl_std430(gen, struc, struc.size);
+    l_close("}} {};\n", struct_name(struc.struct_typename));
     l("#pragma pack(pop)\n");
 }
 

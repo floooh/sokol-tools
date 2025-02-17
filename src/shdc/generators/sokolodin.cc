@@ -187,11 +187,10 @@ void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
     }
 }
 
-void SokolOdinGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
-    const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("{} :: struct #align({}) {{\n", struct_name(item.struct_typename), sbuf.struct_info.align);
+void SokolOdinGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
+    l_open("{} :: struct #align({}) {{\n", struct_name(struc.struct_typename), struc.align);
     l_open("using _: struct #packed {{\n");
-    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
+    gen_struct_interior_decl_std430(gen, struc, struc.size);
     l_close("}},\n");
     l_close("}}\n");
 }

@@ -125,7 +125,7 @@ void Generator::gen_bindings_info(const GenInput& gen) {
     }
     for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
         cbl_open("Storage buffer '{}':\n", sbuf.name);
-        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.name));
+        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.struct_info.struct_items[0].struct_typename));
         cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
         cbl("Readonly: {}\n", sbuf.readonly);
         cbl_close();
@@ -180,8 +180,8 @@ void Generator::gen_uniform_block_decls(const GenInput& gen) {
 }
 
 void Generator::gen_storage_buffer_decls(const GenInput& gen) {
-    for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
-        gen_storage_buffer_decl(gen, sbuf);
+    for (const Type& sbuf_struct: gen.refl.sbuf_structs) {
+        gen_storage_buffer_decl(gen, sbuf_struct);
     }
 }
 

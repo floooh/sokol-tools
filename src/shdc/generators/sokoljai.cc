@@ -179,10 +179,9 @@ void SokolJaiGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
     }
 }
 
-void SokolJaiGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
-    const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("{} :: struct #align {} {{\n", struct_name(item.struct_typename), sbuf.struct_info.align);
-    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.size);
+void SokolJaiGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
+    l_open("{} :: struct #align {} {{\n", struct_name(struc.struct_typename), struc.align);
+    gen_struct_interior_decl_std430(gen, struc, struc.size);
     l_close("}}\n");
 }
 
