@@ -285,10 +285,10 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                 }
                 l("{}.entry = \"{}\";\n", dsn, refl.entry_point_by_slang(slang));
             }
-            if (prog.has_cs()) {
-                l("desc.compute_workgroup_size.x = {};\n", prog.cs().cs_workgroup_size[0]);
-                l("desc.compute_workgroup_size.y = {};\n", prog.cs().cs_workgroup_size[1]);
-                l("desc.compute_workgroup_size.z = {};\n", prog.cs().cs_workgroup_size[2]);
+            if (Slang::is_msl(slang) && prog.has_cs()) {
+                l("desc.mtl_threads_per_threadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
+                l("desc.mtl_threads_per_threadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
+                l("desc.mtl_threads_per_threadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
             }
             if (prog.has_vs()) {
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
