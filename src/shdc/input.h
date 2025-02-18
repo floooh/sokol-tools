@@ -23,6 +23,7 @@ struct Input {
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
     std::map<std::string, int> fs_map;      // name-index mapping for @fs snippets
+    std::map<std::string, int> cs_map;      // name-index mapping for @cs snippets
     std::map<std::string, Program> programs;    // all @program definitions
     std::map<std::string, int> ub_slots;        // uniform block bindslot definitions
     std::map<std::string, int> img_slots;       // image bindslot definitions

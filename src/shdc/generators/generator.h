@@ -37,7 +37,7 @@ protected:
     virtual void gen_uniform_block_decl(const GenInput& gen, const refl::UniformBlock& ub) { assert(false && "implement me"); };
 
     // called by gen_storage_buffer_decls()
-    virtual void gen_storage_buffer_decl(const GenInput& gen, const refl::StorageBuffer& sbuf) { assert(false && "implement me"); };
+    virtual void gen_storage_buffer_decl(const GenInput& gen, const refl::Type& sbuf_struct) { assert(false && "implement me"); };
 
     // called by gen_shader_arrays()
     virtual void gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) { assert(false && "implement me"); };
@@ -149,6 +149,7 @@ protected:
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
+    static const char* hlsl_target(Slang::Enum slang, refl::ShaderStage::Enum stage);
 
     std::string content;
     int tab_width = 4;

@@ -182,7 +182,7 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
     optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 }
 
-/* compile a vertex or fragment shader to SPIRV */
+/* compile a shader to SPIRV */
 static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const MergedSource& source, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { source.src.c_str() };
     const int sourcesLen[1] = { (int) source.src.length() };
@@ -311,20 +311,26 @@ Spirv Spirv::compile_glsl_and_extract_bindings(Input& inp, Slang::Enum slang, co
     // compile shader-snippets
     int snippet_index = 0;
     for (const Snippet& snippet: inp.snippets) {
-        if (snippet.type == Snippet::VS) {
-            // vertex shader
-            const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(inp, EShLangVertex, slang, src, snippet_index, out_spirv)) {
-                // spirv.errors contains error list
-                return out_spirv;
-            }
-        } else if (snippet.type == Snippet::FS) {
-            // fragment shader
-            const MergedSource src = merge_source(inp, snippet, slang, defines);
-            if (!compile(inp, EShLangFragment, slang, src, snippet_index, out_spirv)) {
-                // spirv.errors contains error list
-                return out_spirv;
-            }
+        const MergedSource src = merge_source(inp, snippet, slang, defines);
+        // NOTE: if compilation fails, out_spirv contains error list
+        switch (snippet.type) {
+            case Snippet::VS:
+                if (!compile(inp, EShLangVertex, slang, src, snippet_index, out_spirv)) {
+                    return out_spirv;
+                }
+                break;
+            case Snippet::FS:
+                if (!compile(inp, EShLangFragment, slang, src, snippet_index, out_spirv)) {
+                    return out_spirv;
+                }
+                break;
+            case Snippet::CS:
+                if (!compile(inp, EShLangCompute, slang, src, snippet_index, out_spirv)) {
+                    return out_spirv;
+                }
+                break;
+            default:
+                break;
         }
         snippet_index++;
     }

@@ -10,6 +10,7 @@ struct StorageBuffer {
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int sokol_slot = -1;
     int hlsl_register_t_n = -1;
+    int hlsl_register_u_n = -1;
     int msl_buffer_n = -1;
     int wgsl_group1_binding_n = -1;
     int glsl_binding_n = -1;
