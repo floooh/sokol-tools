@@ -195,11 +195,10 @@ void SokolRustGenerator::recurse_unfold_structs(const GenInput& gen, const Type&
     l_close("}}\n");
 }
 
-void SokolRustGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
+void SokolRustGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
     // Rust doesn't allow nested struct declarations, so we need to use the same
     // awkward workaround as in Nim :/
-    const auto& item = sbuf.struct_info.struct_items[0];
-    recurse_unfold_structs(gen, item, item.struct_typename, sbuf.struct_info.align, sbuf.struct_info.size);
+    recurse_unfold_structs(gen, struc, struc.struct_typename, struc.align, struc.size);
 }
 
 void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {

@@ -193,10 +193,9 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
     }
 }
 
-void SokolZigGenerator::gen_storage_buffer_decl(const GenInput& gen, const StorageBuffer& sbuf) {
-    const auto& item = sbuf.struct_info.struct_items[0];
-    l_open("pub const {} = extern struct {{\n", struct_name(item.struct_typename));
-    gen_struct_interior_decl_std430(gen, item, sbuf.struct_info.align, sbuf.struct_info.size);
+void SokolZigGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
+    l_open("pub const {} = extern struct {{\n", struct_name(struc.struct_typename));
+    gen_struct_interior_decl_std430(gen, struc, struc.align, struc.size);
     l_close("}};\n");
 }
 

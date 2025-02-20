@@ -15,7 +15,8 @@ struct Snippet {
         INVALID,
         BLOCK,
         VS,
-        FS
+        FS,
+        CS,
     };
     int index = -1;
     Type type = INVALID;
@@ -28,6 +29,7 @@ struct Snippet {
     static const char* type_to_str(Type t);
     static bool is_vs(Type t);
     static bool is_fs(Type t);
+    static bool is_cs(Type t);
 };
 
 inline Snippet::Snippet() { };
@@ -39,6 +41,7 @@ inline const char* Snippet::type_to_str(Type t) {
         case BLOCK: return "block";
         case VS: return "vs";
         case FS: return "fs";
+        case CS: return "cs";
         default: return "<invalid>";
     }
 }
@@ -49,6 +52,10 @@ inline bool Snippet::is_vs(Type t) {
 
 inline bool Snippet::is_fs(Type t) {
     return FS == t;
+}
+
+inline bool Snippet::is_cs(Type t) {
+    return CS == t;
 }
 
 } // namespace shdc
