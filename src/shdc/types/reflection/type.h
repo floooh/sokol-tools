@@ -62,9 +62,6 @@ struct Type {
 };
 
 inline bool Type::equals(const Type& other) const {
-    if (name != other.name) {
-        return false;
-    }
     if (struct_typename != other.struct_typename) {
         return false;
     }
