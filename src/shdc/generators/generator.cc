@@ -353,13 +353,13 @@ const char* Generator::hlsl_target(Slang::Enum slang, ShaderStage::Enum stage) {
     switch (slang) {
         case Slang::HLSL4: switch (stage) {
             case ShaderStage::Vertex: return "vs_4_0";
-            case ShaderStage::Fragment: return "fs_4_0";
+            case ShaderStage::Fragment: return "ps_4_0";
             case ShaderStage::Compute: return "cs_4_0";
             default: return nullptr;
         }
         case Slang::HLSL5: switch (stage) {
             case ShaderStage::Vertex: return "vs_5_0";
-            case ShaderStage::Fragment: return "fs_5_0";
+            case ShaderStage::Fragment: return "ps_5_0";
             case ShaderStage::Compute: return "cs_5_0";
             default: return nullptr;
         }
