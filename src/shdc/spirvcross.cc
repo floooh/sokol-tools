@@ -328,6 +328,10 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
             options.version = 300;
             options.es = true;
             break;
+        case Slang::GLSL310ES:
+            options.version = 310;
+            options.es = true;
+            break;
         default:
             // can't happen
             assert(false);

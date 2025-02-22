@@ -565,6 +565,7 @@ std::string SokolOdinGenerator::backend(Slang::Enum e) {
         case Slang::GLSL430:
             return ".GLCORE";
         case Slang::GLSL300ES:
+        case Slang::GLSL310ES:
             return ".GLES3";
         case Slang::HLSL4:
         case Slang::HLSL5:

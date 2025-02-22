@@ -449,6 +449,7 @@ std::string SokolDGenerator::backend(Slang::Enum e) {
         case Slang::GLSL430:
             return "sg.Backend.Glcore";
         case Slang::GLSL300ES:
+        case Slang::GLSL310ES:
             return "sg.Backend.Gles3";
         case Slang::HLSL4:
         case Slang::HLSL5:

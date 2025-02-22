@@ -452,6 +452,7 @@ static bool parse(Input& inp) {
                     cur_snippet.options[Slang::GLSL410] |= option_bit;
                     cur_snippet.options[Slang::GLSL430] |= option_bit;
                     cur_snippet.options[Slang::GLSL300ES] |= option_bit;
+                    cur_snippet.options[Slang::GLSL310ES] |= option_bit;
                 }
                 add_line = false;
             } else if (tokens[0] == hlsl_options_tag) {

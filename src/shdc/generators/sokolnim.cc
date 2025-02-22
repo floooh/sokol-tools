@@ -522,6 +522,7 @@ std::string SokolNimGenerator::backend(Slang::Enum e) {
         case Slang::GLSL430:
             return "backendGlcore";
         case Slang::GLSL300ES:
+        case Slang::GLSL310ES:
             return "backendGles3";
         case Slang::HLSL4:
         case Slang::HLSL5:
