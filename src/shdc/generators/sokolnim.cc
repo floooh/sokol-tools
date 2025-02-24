@@ -20,7 +20,7 @@ void SokolNimGenerator::gen_shader_arrays(const GenInput& gen) {
             const Bytecode& bytecode = gen.bytecode[slang];
             for (int snippet_index = 0; snippet_index < (int)gen.inp.snippets.size(); snippet_index++) {
                 const Snippet& snippet = gen.inp.snippets[snippet_index];
-                if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
+                if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS) && (snippet.type != Snippet::CS)) {
                     continue;
                 }
                 const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(snippet_index);
@@ -279,33 +279,44 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
             l_open("of {}:\n", backend(slang));
             for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                 const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+                if (info.stage == ShaderStage::Invalid) {
+                    continue;
+                }
                 const StageReflection& refl = prog.stages[stage_index];
-                const std::string dsn = fmt::format("result.{}", info.stage == ShaderStage::Vertex ? "vertexFunc" : "fragmentFunc");
+                std::string dsn;
+                switch (info.stage) {
+                    case ShaderStage::Vertex: dsn = "result.vertexFunc"; break;
+                    case ShaderStage::Fragment: dsn = "result.fragmentFunc"; break;
+                    case ShaderStage::Compute: dsn = "result.computeFunc"; break;
+                    default: dsn = "INVALID"; break;
+                }
                 if (info.has_bytecode) {
                     l("{}.bytecode.ptr = {}\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {}\n", dsn, info.bytecode_array_size);
                 } else {
                     l("{}.source = cast[cstring](addr({}))\n", dsn, info.source_array_name);
-                    const char* d3d11_tgt = nullptr;
-                    if (slang == Slang::HLSL4) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
-                    } else if (slang == Slang::HLSL5) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_5_0" : "ps_5_0";
-                    }
+                    const char* d3d11_tgt = hlsl_target(slang, info.stage);
                     if (d3d11_tgt) {
                         l("{}.d3d11Target = \"{}\"\n", dsn, d3d11_tgt);
                     }
                 }
                 l("{}.entry = \"{}\"\n", dsn, refl.entry_point_by_slang(slang));
             }
-            for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
-                const StageAttr& attr = prog.vs().inputs[attr_index];
-                if (attr.slot >= 0) {
-                    if (Slang::is_glsl(slang)) {
-                        l("result.attrs[{}].glslName = \"{}\"\n", attr_index, attr.name);
-                    } else if (Slang::is_hlsl(slang)) {
-                        l("result.attrs[{}].hlslSemName = \"{}\"\n", attr_index, attr.sem_name);
-                        l("result.attrs[{}].hlslSemIndex = {}\n", attr_index, attr.sem_index);
+            if (Slang::is_msl(slang)) {
+                l("result.mtlThreadsPerThreadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
+                l("result.mtlThreadsPerThreadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
+                l("result.mtlThreadsPerThreadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
+            }
+            if (prog.has_vs()) {
+                for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
+                    const StageAttr& attr = prog.vs().inputs[attr_index];
+                    if (attr.slot >= 0) {
+                        if (Slang::is_glsl(slang)) {
+                            l("result.attrs[{}].glslName = \"{}\"\n", attr_index, attr.name);
+                        } else if (Slang::is_hlsl(slang)) {
+                            l("result.attrs[{}].hlslSemName = \"{}\"\n", attr_index, attr.sem_name);
+                            l("result.attrs[{}].hlslSemIndex = {}\n", attr_index, attr.sem_index);
+                        }
                     }
                 }
             }
@@ -347,7 +358,12 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     l("{}.stage = {}\n", sbn, shader_stage(sbuf->stage));
                     l("{}.readonly = {}\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
-                        l("{}.hlslRegisterTN = {}\n", sbn, sbuf->hlsl_register_t_n);
+                        if (sbuf->hlsl_register_t_n >= 0) {
+                            l("{}.hlslRegisterTN = {}\n", sbn, sbuf->hlsl_register_t_n);
+                        }
+                        if (sbuf->hlsl_register_u_n >= 0) {
+                            l("{}.hlslRegisterUN = {}\n", sbn, sbuf->hlsl_register_u_n);
+                        }
                     } else if (Slang::is_msl(slang)) {
                         l("{}.mslBufferN = {}\n", sbn, sbuf->msl_buffer_n);
                     } else if (Slang::is_wgsl(slang)) {
@@ -449,6 +465,7 @@ std::string SokolNimGenerator::shader_stage(ShaderStage::Enum e) {
     switch (e) {
         case ShaderStage::Vertex: return "shaderStageVertex";
         case ShaderStage::Fragment: return "shaderStageFragment";
+        case ShaderStage::Compute: return "shaderStageCompute";
         default: return "INVALID";
     }
 }
