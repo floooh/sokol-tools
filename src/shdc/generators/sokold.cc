@@ -212,33 +212,44 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
             l_open("case {}:\n", backend(slang));
             for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                 const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+                if (info.stage == ShaderStage::Invalid) {
+                    continue;
+                }
                 const StageReflection& refl = prog.stages[stage_index];
-                const std::string dsn = fmt::format("desc.{}", info.stage == ShaderStage::Vertex ? "vertex_func" : "fragment_func");
+                std::string dsn;
+                switch (info.stage) {
+                    case ShaderStage::Vertex: dsn = "desc.vertex_func"; break;
+                    case ShaderStage::Fragment: dsn = "desc.fragment_func"; break;
+                    case ShaderStage::Compute: dsn = "desc.compute_func"; break;
+                    default: dsn = "INVALID"; break;
+                }
                 if (info.has_bytecode) {
                     l("{}.bytecode.ptr = {}.ptr;\n", dsn, info.bytecode_array_name);
                     l("{}.bytecode.size = {};\n", dsn, info.bytecode_array_size);
                 } else {
                     l("{}.source = &{}[0];\n", dsn, info.source_array_name);
-                    const char* d3d11_tgt = nullptr;
-                    if (slang == Slang::HLSL4) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
-                    } else if (slang == Slang::HLSL5) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_5_0" : "ps_5_0";
-                    }
+                    const char* d3d11_tgt = hlsl_target(slang, info.stage);
                     if (d3d11_tgt) {
                         l("{}.d3d11_target = \"{}\";\n", dsn, d3d11_tgt);
                     }
                 }
                 l("{}.entry = \"{}\";\n", dsn, refl.entry_point_by_slang(slang));
             }
-            for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
-                const StageAttr& attr = prog.vs().inputs[attr_index];
-                if (attr.slot >= 0) {
-                    if (Slang::is_glsl(slang)) {
-                        l("desc.attrs[{}].glsl_name = \"{}\";\n", attr_index, attr.name);
-                    } else if (Slang::is_hlsl(slang)) {
-                        l("desc.attrs[{}].hlsl_sem_name = \"{}\";\n", attr_index, attr.sem_name);
-                        l("desc.attrs[{}].hlsl_sem_index = {};\n", attr_index, attr.sem_index);
+            if (Slang::is_msl(slang) && prog.has_cs()) {
+                l("desc.mtl_threads_per_threadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
+                l("desc.mtl_threads_per_threadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
+                l("desc.mtl_threads_per_threadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
+            }
+            if (prog.has_vs()) {
+                for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
+                    const StageAttr& attr = prog.vs().inputs[attr_index];
+                    if (attr.slot >= 0) {
+                        if (Slang::is_glsl(slang)) {
+                            l("desc.attrs[{}].glsl_name = \"{}\";\n", attr_index, attr.name);
+                        } else if (Slang::is_hlsl(slang)) {
+                            l("desc.attrs[{}].hlsl_sem_name = \"{}\";\n", attr_index, attr.sem_name);
+                            l("desc.attrs[{}].hlsl_sem_index = {};\n", attr_index, attr.sem_index);
+                        }
                     }
                 }
             }
@@ -280,7 +291,12 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     l("{}.stage = {};\n", sbn, shader_stage(sbuf->stage));
                     l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
-                        l("{}.hlsl_register_t_n = {};\n", sbn, sbuf->hlsl_register_t_n);
+                        if (sbuf->hlsl_register_t_n >= 0) {
+                            l("{}.hlsl_register_t_n = {};\n", sbn, sbuf->hlsl_register_t_n);
+                        }
+                        if (sbuf->hlsl_register_u_n >= 0) {
+                            l("{}.hlsl_register_u_n = {};\n", sbn, sbuf->hlsl_register_u_n);
+                        }
                     } else if (Slang::is_msl(slang)) {
                         l("{}.msl_buffer_n = {};\n", sbn, sbuf->msl_buffer_n);
                     } else if (Slang::is_wgsl(slang)) {
@@ -376,6 +392,7 @@ std::string SokolDGenerator::shader_stage(ShaderStage::Enum e) {
     switch (e) {
         case ShaderStage::Vertex: return "sg.ShaderStage.Vertex";
         case ShaderStage::Fragment: return "sg.ShaderStage.Fragment";
+        case ShaderStage::Compute: return "sg.ShaderStage.Compute";
         default: return "INVALID";
     }
 }
