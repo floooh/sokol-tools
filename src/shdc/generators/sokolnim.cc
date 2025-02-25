@@ -302,7 +302,7 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                 }
                 l("{}.entry = \"{}\"\n", dsn, refl.entry_point_by_slang(slang));
             }
-            if (Slang::is_msl(slang)) {
+            if (Slang::is_msl(slang) && prog.has_cs()) {
                 l("result.mtlThreadsPerThreadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
                 l("result.mtlThreadsPerThreadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
                 l("result.mtlThreadsPerThreadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
