@@ -32,24 +32,36 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                 l("name: {}\n", prog.name);
                 for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                     const ShaderStageArrayInfo& info = shader_stage_array_info(gen, prog, ShaderStage::from_index(stage_index), slang);
+                    if (info.stage == ShaderStage::Invalid) {
+                        continue;
+                    }
+                    std::string func;
+                    switch (info.stage) {
+                        case ShaderStage::Vertex: func = "vertex_func"; break;
+                        case ShaderStage::Fragment: func = "fragment_func"; break;
+                        case ShaderStage::Compute: func = "compute_func"; break;
+                        default: func = "INVALID"; break;
+                    }
+                    l_open("{}:\n", func);
                     const StageReflection& refl = prog.stages[stage_index];
-                    l_open("{}:\n", info.stage == ShaderStage::Vertex ? "vertex_func" : "fragment_func");
                     const std::string file_path = shader_file_path(gen, prog.name, ShaderStage::to_str(info.stage), slang, info.has_bytecode);
                     l("path: {}\n", file_path);
                     l("is_binary: {}\n", info.has_bytecode);
                     l("entry_point: {}\n", refl.entry_point_by_slang(slang));
-                    const char* d3d11_tgt = nullptr;
-                    if (slang == Slang::HLSL4) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_4_0" : "ps_4_0";
-                    } else if (slang == Slang::HLSL5) {
-                        d3d11_tgt = (0 == stage_index) ? "vs_5_0" : "ps_5_0";
-                    }
+                    const char* d3d11_tgt = hlsl_target(slang, info.stage);
                     if (d3d11_tgt) {
                         l("d3d11_target: {}\n", d3d11_tgt);
                     }
                     l_close();
                 }
-                if (prog.vs().num_inputs() > 0) {
+                if (Slang::is_msl(slang) && prog.has_cs()) {
+                    l_open("mtl_threads_per_threadgroup:\n");
+                    l("x: {}\n", prog.cs().cs_workgroup_size[0]);
+                    l("y: {}\n", prog.cs().cs_workgroup_size[1]);
+                    l("z: {}\n", prog.cs().cs_workgroup_size[2]);
+                    l_close();
+                }
+                if (prog.has_vs() && prog.vs().num_inputs() > 0) {
                     l_open("attrs:\n");
                     for (const auto& attr: prog.vs().inputs) {
                         if (attr.slot >= 0) {
@@ -190,7 +202,12 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum sl
     l("inner_struct_name: {}\n", item.struct_typename);
     l("readonly: {}\n", sbuf.readonly);
     if (Slang::is_hlsl(slang)) {
-        l("hlsl_register_t_n: {}\n", sbuf.hlsl_register_t_n);
+        if (sbuf.hlsl_register_t_n >= 0) {
+            l("hlsl_register_t_n: {}\n", sbuf.hlsl_register_t_n);
+        }
+        if (sbuf.hlsl_register_u_n >= 0) {
+            l("hlsl_register_u_n: {}\n", sbuf.hlsl_register_u_n);
+        }
     } else if (Slang::is_msl(slang)) {
         l("msl_buffer_n: {}\n", sbuf.msl_buffer_n);
     } else if (Slang::is_wgsl(slang)) {
