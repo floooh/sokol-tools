@@ -49,6 +49,9 @@ ErrMsg BareGenerator::generate(const GenInput& gen) {
             for (const ProgramReflection& prog: gen.refl.progs) {
                 for (int stage_index = 0; stage_index < ShaderStage::Num; stage_index++) {
                     const StageReflection& refl = prog.stages[stage_index];
+                    if (refl.stage == ShaderStage::Invalid) {
+                        continue;
+                    }
                     const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(refl.snippet_index);
                     const BytecodeBlob* blob = bytecode.find_blob_by_snippet_index(refl.snippet_index);
                     const std::string file_path = shader_file_path(gen, prog.name, ShaderStage::to_str(refl.stage), slang, blob != nullptr);

@@ -55,18 +55,20 @@ static const Type::Enum float_types[4][4] = {
 // check that a program's vertex shader outputs match the fragment shader inputs
 // FIXME: this should also check the attribute's type
 static ErrMsg validate_linking(const Input& inp, const Program& prog, const ProgramReflection& prog_refl) {
-    for (int slot = 0; slot < StageAttr::Num; slot++) {
-        const StageAttr& vs_out = prog_refl.vs().outputs[slot];
-        const StageAttr& fs_inp = prog_refl.fs().inputs[slot];
-        // ignore snippet-name for equality check
-        if (!vs_out.equals(fs_inp)) {
-            return inp.error(prog.line_index,
-                fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
-                    prog_refl.vs_name(),
-                    prog_refl.fs_name(),
-                    slot,
-                    vs_out.name,
-                    fs_inp.name));
+    if (prog.has_vs_fs()) {
+        for (int slot = 0; slot < StageAttr::Num; slot++) {
+            const StageAttr& vs_out = prog_refl.vs().outputs[slot];
+            const StageAttr& fs_inp = prog_refl.fs().inputs[slot];
+            // ignore snippet-name for equality check
+            if (!vs_out.equals(fs_inp)) {
+                return inp.error(prog.line_index,
+                    fmt::format("outputs of vs '{}' don't match inputs of fs '{}' for attr #{} (vs={},fs={})\n",
+                        prog_refl.vs_name(),
+                        prog_refl.fs_name(),
+                        slot,
+                        vs_out.name,
+                        fs_inp.name));
+            }
         }
     }
     return ErrMsg();
@@ -82,18 +84,37 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     std::vector<Bindings> prog_bindings;
     for (const auto& item: inp.programs) {
         const Program& prog = item.second;
-        int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
-        int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
         const Slang::Enum slang = Slang::first_valid(args.slang);
         const Spirvcross& spirvcross = spirvcross_array[slang];
-        const SpirvcrossSource* vs_src = spirvcross.find_source_by_snippet_index(vs_snippet_index);
-        const SpirvcrossSource* fs_src = spirvcross.find_source_by_snippet_index(fs_snippet_index);
-        assert(vs_src && fs_src);
         ProgramReflection prog_refl;
         prog_refl.name = prog.name;
-        prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
-        prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
-        prog_refl.bindings = merge_bindings({ vs_src->stage_refl.bindings, fs_src->stage_refl.bindings }, true, err);
+
+        const SpirvcrossSource *vs_src = nullptr;
+        const SpirvcrossSource *fs_src = nullptr;
+        const SpirvcrossSource *cs_src = nullptr;
+        if (prog.has_vs()) {
+            int vs_snippet_index = inp.snippet_map.at(prog.vs_name);
+            vs_src = spirvcross.find_source_by_snippet_index(vs_snippet_index);
+            assert(vs_src);
+            prog_refl.stages[ShaderStage::Vertex] = vs_src->stage_refl;
+        }
+        if (prog.has_fs()) {
+            int fs_snippet_index = inp.snippet_map.at(prog.fs_name);
+            fs_src = spirvcross.find_source_by_snippet_index(fs_snippet_index);
+            assert(fs_src);
+            prog_refl.stages[ShaderStage::Fragment] = fs_src->stage_refl;
+        }
+        if (prog.has_cs()) {
+            int cs_snippet_index = inp.snippet_map.at(prog.cs_name);
+            cs_src = spirvcross.find_source_by_snippet_index(cs_snippet_index);
+            assert(cs_src);
+            prog_refl.stages[ShaderStage::Compute] = cs_src->stage_refl;
+        }
+        if (prog.has_vs_fs()) {
+            prog_refl.bindings = merge_bindings({ vs_src->stage_refl.bindings, fs_src->stage_refl.bindings }, true, err);
+        } else {
+            prog_refl.bindings = merge_bindings({ cs_src->stage_refl.bindings }, true, err);
+        }
         if (err.valid()) {
             res.error = inp.error(prog.line_index, err.msg);
             return res;
@@ -118,6 +139,10 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
         prog_bindings.push_back(prog_refl.bindings);
     }
     res.bindings = merge_bindings(prog_bindings, false, err);
+    if (err.valid()) {
+        res.error = inp.error(0, err.msg);
+    }
+    res.sbuf_structs = merge_storagebuffer_structs(res.bindings, err);
     if (err.valid()) {
         res.error = inp.error(0, err.msg);
     }
@@ -208,6 +233,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     switch (compiler.get_execution_model()) {
         case spv::ExecutionModelVertex:   refl.stage = ShaderStage::Vertex; break;
         case spv::ExecutionModelFragment: refl.stage = ShaderStage::Fragment; break;
+        case spv::ExecutionModelGLCompute: refl.stage = ShaderStage::Compute; break;
         default: refl.stage = ShaderStage::Invalid; break;
     }
 
@@ -219,6 +245,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             break;
         }
     }
+
+    // workgroup size
+    if (refl.stage == ShaderStage::Compute) {
+        for (int i = 0; i < 3; i++) {
+            refl.cs_workgroup_size[i] = compiler.get_execution_mode_argument(spv::ExecutionModeLocalSize, (uint32_t)i);
+        }
+    }
+
     // stage inputs and outputs
     for (const Resource& res_attr: shd_resources.stage_inputs) {
         StageAttr refl_attr;
@@ -282,19 +316,33 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             return refl;
         }
         refl_sbuf.name = refl_sbuf.struct_info.name;
+        // check that the size and alignment of the nested struct is identical with the outher struct
+        if (refl_sbuf.struct_info.size != refl_sbuf.struct_info.struct_items[0].size) {
+            out_error = inp.error(0, fmt::format("SSBO struct size doesn't match nested item struct size (in ssbo '{}')\n", refl_sbuf.name));
+            return refl;
+        }
+        if (refl_sbuf.struct_info.align != refl_sbuf.struct_info.struct_items[0].align) {
+            out_error = inp.error(0, fmt::format("SSBO struct alignment doesn't match nested item struct alignment (in ssbo '{}')\n", refl_sbuf.name));
+            return refl;
+        }
         refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
         if (refl_sbuf.sokol_slot == -1) {
             out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
             return refl;
         }
+        const bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         refl_sbuf.stage = refl.stage;
-        refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_sbuf.readonly = readonly;
+        if (readonly) {
+            refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
+        } else {
+            refl_sbuf.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
+        }
         refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
         refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
         // SPECIAL CASE GL: the GL storage buffer bind slot is identical with the sokol-bind slot
         // since GL also has a common bindspace across shader stages for storage buffers
         refl_sbuf.glsl_binding_n = refl_sbuf.sokol_slot;
-        refl_sbuf.readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
@@ -465,6 +513,32 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
     }
 
     return out_bindings;
+}
+
+const Type* Reflection::find_struct_by_typename(const std::vector<Type>& structs, const std::string& struct_typename) {
+    for (const auto& t: structs) {
+        if (t.struct_typename == struct_typename) {
+            return &t;
+        }
+    }
+    return nullptr;
+}
+
+std::vector<Type> Reflection::merge_storagebuffer_structs(const Bindings& bindings, ErrMsg& out_error) {
+    std::vector<Type> merged_structs;
+    for (const StorageBuffer& sbuf: bindings.storage_buffers) {
+        const Type* other_struct = find_struct_by_typename(merged_structs, sbuf.struct_info.struct_items[0].struct_typename);
+        if (other_struct) {
+            // another struct of the same typename exists, make sure it's identical
+            if (!sbuf.struct_info.struct_items[0].equals(*other_struct)) {
+                out_error = ErrMsg::error(fmt::format("conflicting struct definitions found for '{}'", sbuf.struct_info.struct_items[0].struct_typename));
+                return std::vector<Type>();
+            }
+        } else {
+            merged_structs.push_back(sbuf.struct_info.struct_items[0]);
+        }
+    }
+    return merged_structs;
 }
 
 Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_id, const TypeID& base_type_id, uint32_t item_index, ErrMsg& out_error) {
@@ -645,6 +719,12 @@ Type Reflection::parse_toplevel_struct(const Compiler& compiler, const Resource&
             out.align = item_type.align;
         }
         out.struct_items.push_back(item_type);
+    }
+    // special case for SSBOs: fix the struct size to its array stride
+    if ((out.struct_items.size() == 1) && (out.struct_items[0].type == Type::Struct)) {
+        if (out.struct_items[0].array_stride > out.struct_items[0].size) {
+            out.struct_items[0].size = out.struct_items[0].array_stride;
+        }
     }
     return out;
 }

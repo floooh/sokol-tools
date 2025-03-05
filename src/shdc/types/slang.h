@@ -11,6 +11,7 @@ struct Slang {
         GLSL410 = 0,
         GLSL430,
         GLSL300ES,
+        GLSL310ES,
         HLSL4,
         HLSL5,
         METAL_MACOS,
@@ -47,6 +48,7 @@ inline const char* Slang::to_str(Enum c) {
         case GLSL410:       return "glsl410";
         case GLSL430:       return "glsl430";
         case GLSL300ES:     return "glsl300es";
+        case GLSL310ES:     return "glsl310es";
         case HLSL4:         return "hlsl4";
         case HLSL5:         return "hlsl5";
         case METAL_MACOS:   return "metal_macos";
@@ -78,6 +80,7 @@ inline bool Slang::is_glsl(Enum c) {
         case GLSL410:
         case GLSL430:
         case GLSL300ES:
+        case GLSL310ES:
             return true;
         default:
             return false;

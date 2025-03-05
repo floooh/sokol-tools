@@ -64,6 +64,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - glsl410        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl430        desktop OpenGL backend (SOKOL_GLCORE)\n"
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
+        "  - glsl310es      OpenGLES3.1 (SOKOL_GLES3)\n"
         "  - hlsl4          Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
         "  - hlsl5          Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
         "  - metal_macos    Metal on macOS (SOKOL_METAL)\n"

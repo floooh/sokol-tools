@@ -35,7 +35,10 @@ ErrMsg Generator::generate(const GenInput& gen) {
 
 Generator::ShaderStageArrayInfo Generator::shader_stage_array_info(const GenInput& gen, const ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang) {
     ShaderStageArrayInfo info;
-    info.stage = stage;
+    info.stage = prog.stages[stage].stage;
+    if (info.stage == ShaderStage::Invalid) {
+        return info;
+    }
     const BytecodeBlob* bytecode_blob = gen.bytecode[slang].find_blob_by_snippet_index(prog.stage(stage).snippet_index);
     if (bytecode_blob) {
         info.has_bytecode = true;
@@ -93,15 +96,24 @@ void Generator::gen_prerequisites(const GenInput& gen) {
 }
 
 void Generator::gen_program_info(const GenInput& gen, const ProgramReflection& prog) {
-    cbl("Vertex Shader: {}\n", prog.vs_name());
-    cbl("Fragment Shader: {}\n", prog.fs_name());
-    cbl_open("Attributes:\n");
-    for (const StageAttr& attr: prog.vs().inputs) {
-        if (attr.slot >= 0) {
-            cbl("{} => {}\n", vertex_attr_name(prog.name, attr), attr.slot);
-        }
+    if (prog.has_vs()) {
+        cbl("Vertex Shader: {}\n", prog.vs_name());
     }
-    cbl_close();
+    if (prog.has_fs()) {
+        cbl("Fragment Shader: {}\n", prog.fs_name());
+    }
+    if (prog.has_cs()) {
+        cbl("Compute Shader: {}\n", prog.cs_name());
+    }
+    if (prog.has_vs()) {
+        cbl_open("Attributes:\n");
+        for (const StageAttr& attr: prog.vs().inputs) {
+            if (attr.slot >= 0) {
+                cbl("{} => {}\n", vertex_attr_name(prog.name, attr), attr.slot);
+            }
+        }
+        cbl_close();
+    }
 }
 
 void Generator::gen_bindings_info(const GenInput& gen) {
@@ -113,8 +125,9 @@ void Generator::gen_bindings_info(const GenInput& gen) {
     }
     for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
         cbl_open("Storage buffer '{}':\n", sbuf.name);
-        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.name));
+        cbl("{} struct: {}\n", lang_name(), struct_name(sbuf.struct_info.struct_items[0].struct_typename));
         cbl("Bind slot: {} => {}\n", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
+        cbl("Readonly: {}\n", sbuf.readonly);
         cbl_close();
     }
     for (const Image& img: gen.refl.bindings.images) {
@@ -135,9 +148,11 @@ void Generator::gen_bindings_info(const GenInput& gen) {
 
 void Generator::gen_vertex_attr_consts(const GenInput& gen) {
     for (const ProgramReflection& prog: gen.refl.progs) {
-        for (const StageAttr& attr: prog.vs().inputs) {
-            if (attr.slot >= 0) {
-                l("{}\n", vertex_attr_definition(prog.name, attr));
+        if (prog.has_vs()) {
+            for (const StageAttr& attr: prog.vs().inputs) {
+                if (attr.slot >= 0) {
+                    l("{}\n", vertex_attr_definition(prog.name, attr));
+                }
             }
         }
     }
@@ -165,8 +180,8 @@ void Generator::gen_uniform_block_decls(const GenInput& gen) {
 }
 
 void Generator::gen_storage_buffer_decls(const GenInput& gen) {
-    for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
-        gen_storage_buffer_decl(gen, sbuf);
+    for (const Type& sbuf_struct: gen.refl.sbuf_structs) {
+        gen_storage_buffer_decl(gen, sbuf_struct);
     }
 }
 
@@ -178,7 +193,7 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
             const Bytecode& bytecode = gen.bytecode[slang];
             for (int snippet_index = 0; snippet_index < (int)gen.inp.snippets.size(); snippet_index++) {
                 const Snippet& snippet = gen.inp.snippets[snippet_index];
-                if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS)) {
+                if ((snippet.type != Snippet::VS) && (snippet.type != Snippet::FS) && (snippet.type != Snippet::CS)) {
                     continue;
                 }
                 const SpirvcrossSource* src = spirvcross.find_source_by_snippet_index(snippet_index);
@@ -257,26 +272,36 @@ ErrMsg Generator::end(const GenInput& gen) {
     return ErrMsg();
 }
 
-// check that each input shader has a vs and fs source
+// check that each input shader has the expected stage shaders
 ErrMsg Generator::check_errors(const GenInput& gen) {
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
             for (const auto& item: gen.inp.programs) {
                 const Program& prog = item.second;
-                int vs_snippet_index = gen.inp.snippet_map.at(prog.vs_name);
-                int fs_snippet_index = gen.inp.snippet_map.at(prog.fs_name);
-                const SpirvcrossSource* vs_src = gen.spirvcross[i].find_source_by_snippet_index(vs_snippet_index);
-                const SpirvcrossSource* fs_src = gen.spirvcross[i].find_source_by_snippet_index(fs_snippet_index);
-                if (vs_src == nullptr) {
-                    return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
-                        fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
-                        Slang::to_str(slang), prog.vs_name, prog.name));
-                }
-                if (fs_src == nullptr) {
-                    return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
-                        fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
-                        Slang::to_str(slang), prog.fs_name, prog.name));
+                if (prog.has_vs_fs()) {
+                    int vs_snippet_index = gen.inp.snippet_map.at(prog.vs_name);
+                    int fs_snippet_index = gen.inp.snippet_map.at(prog.fs_name);
+                    const SpirvcrossSource* vs_src = gen.spirvcross[i].find_source_by_snippet_index(vs_snippet_index);
+                    const SpirvcrossSource* fs_src = gen.spirvcross[i].find_source_by_snippet_index(fs_snippet_index);
+                    if (vs_src == nullptr) {
+                        return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
+                            fmt::format("no generated '{}' source for vertex shader '{}' in program '{}'",
+                            Slang::to_str(slang), prog.vs_name, prog.name));
+                    }
+                    if (fs_src == nullptr) {
+                        return gen.inp.error(gen.inp.snippets[vs_snippet_index].lines[0],
+                            fmt::format("no generated '{}' source for fragment shader '{}' in program '{}'",
+                            Slang::to_str(slang), prog.fs_name, prog.name));
+                    }
+                } else {
+                    int cs_snippet_index = gen.inp.snippet_map.at(prog.cs_name);
+                    const SpirvcrossSource* cs_src = gen.spirvcross[i].find_source_by_snippet_index(cs_snippet_index);
+                    if (cs_src == nullptr) {
+                        return gen.inp.error(gen.inp.snippets[cs_snippet_index].lines[0],
+                            fmt::format("no generated '{}' source for compute shader '{}' in program '{}'",
+                            Slang::to_str(slang), prog.vs_name, prog.name));
+                    }
                 }
             }
         }
@@ -322,6 +347,24 @@ std::string Generator::to_camel_case(const std::string& str) {
     std::string res = to_pascal_case(str);
     res[0] = tolower(res[0]);
     return res;
+}
+
+const char* Generator::hlsl_target(Slang::Enum slang, ShaderStage::Enum stage) {
+    switch (slang) {
+        case Slang::HLSL4: switch (stage) {
+            case ShaderStage::Vertex: return "vs_4_0";
+            case ShaderStage::Fragment: return "ps_4_0";
+            case ShaderStage::Compute: return "cs_4_0";
+            default: return nullptr;
+        }
+        case Slang::HLSL5: switch (stage) {
+            case ShaderStage::Vertex: return "vs_5_0";
+            case ShaderStage::Fragment: return "ps_5_0";
+            case ShaderStage::Compute: return "cs_5_0";
+            default: return nullptr;
+        }
+        default: return 0;
+    }
 }
 
 } // namespace

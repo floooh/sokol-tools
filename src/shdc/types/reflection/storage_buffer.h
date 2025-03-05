@@ -10,6 +10,7 @@ struct StorageBuffer {
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int sokol_slot = -1;
     int hlsl_register_t_n = -1;
+    int hlsl_register_u_n = -1;
     int msl_buffer_n = -1;
     int wgsl_group1_binding_n = -1;
     int glsl_binding_n = -1;
@@ -26,7 +27,6 @@ inline bool StorageBuffer::equals(const StorageBuffer& other) const {
     return (stage == other.stage)
         && (sokol_slot == other.sokol_slot)
         && (name == other.name)
-        && (inst_name == other.inst_name)
         && (readonly == other.readonly)
         && (struct_info.equals(other.struct_info));
 }

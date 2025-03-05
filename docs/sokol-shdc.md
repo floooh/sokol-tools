@@ -21,8 +21,9 @@ Shaders are written in 'Vulkan-style GLSL' (version 450 with separate texture an
 uniforms) and translated into the following shader dialects:
 
 - GLSL v300es (for GLES3 and WebGL2)
-- GLSL v410 (for desktop GL without storage buffer support)
-- GLSL v430 (for desktop GL with storage buffer support)
+- GLSL v310es (for GLES3.1, note that this currently isn't supported by sokol_gfx.h)
+- GLSL v410 (for desktop GL without compute shader support)
+- GLSL v430 (for desktop GL with compute shader support)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 - WGSL (for WebGPU)
@@ -100,7 +101,7 @@ Note: For compatibility with other tools which parse GLSL, `#pragma sokol` may b
 A generated C header contains (similar information is generated for the other output languages):
 
 - human-readable reflection info in a comment block
-- a C struct for each shader uniform block
+- a C struct for each shader uniform block and storage buffer binding
 - constants for vertex attribute locations, uniform block, image, sampler
   and storage buffer binding indices
 - for each shader program, a C function which returns a pointer to a
@@ -206,7 +207,7 @@ There are also other versions of the sokol_shader() macro:
   as ```sokol_shader_variant()```, but additionally adds the ```--reflection``` command
   line argument for generating runtime inspection functions
 
-I recommend to initialize the ${slang} variable together with the
+I recommend to initialize the `${slang}` variable together with the
 target-platform defines for sokol_gfx.h For instance, the [sokol-app
 samples](https://github.com/floooh/sokol-samples/tree/master/sapp) have the following
 block in their CMakeLists.txt file:
@@ -312,7 +313,8 @@ void main() {
   Valid shader language names are:
     - **glsl410**: desktop GL 4.1 (e.g. macOS: no SSBOs and compute shaders)
     - **glsl430**: desktop GL 4.3
-    - **glsl300es**: GLES3 / WebGL2
+    - **glsl300es**: GLES3.0 / WebGL2
+    - **glsl310es**: GLES3.1 (currently not supported by sokol_gfx.h)
     - **hlsl4**: D3D11
     - **hlsl5**: D3D11
     - **metal_macos**: Metal on macOS
@@ -361,8 +363,9 @@ follows:
     - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
     - **sokol_nim**: generates output for the [sokol-nim bindings](https://github.com/floooh/sokol-nim)
     - **sokol_rust**: generates output for the [sokol-rust bindings](https://github.com/floooh/sokol-rust)
-    - **sokol_jai**: generates output for the Jai language (note that there are currently no auto-generated Jai bindings
-      for the sokol headers)
+    - **sokol_d**: generates output for the [sokol-d bindings](https://github.com/kassane/sokol-d)
+    - **sokol_c3**: generates output for the [sokol-c3 bindings](https://github.com/floooh/sokol-c3)
+    - **sokol_jai**: generates output for the [sokol-jai bindings](https://github.com/colinbellino/sokol-jai)
 
   Note that some options and features of sokol-shdc can be contradictory to
   (and thus, ignored by) backends. For example, the **bare** backend only
@@ -386,7 +389,8 @@ works, but not much else :)
 - **--defines=[define1:define2:define3]**: a colon-separated list of
 preprocessor defines for the initial GLSL-to-SPIRV compilation pass
 - **--module=[name]**: a command-line override for the ```@module``` keyword
-- **--reflection**: if present, code-generate additional runtime-inspection functions
+- **--reflection**: if present, code-generate additional runtime-inspection functions (not that this is not supported by all
+  code generation backends)
 - **--save-intermediate-spirv**: debug feature to save out the intermediate SPIRV blob, useful for debug inspection
 
 ## Shader Tags Reference
@@ -421,7 +425,7 @@ void main() {
 ### @fs [name]
 
 Starts a named fragment shader code block. The code between the ```@fs``` and
-the next ```@end``` will be compiled as a fragment shader:
+the next ```@end``` will be compiled as a fragment shader.
 
 Example:
 
@@ -436,19 +440,65 @@ void main() {
 @end
 ```
 
-### @program [name] [vs] [fs]
+### @cs [name]
 
-The ```@program``` tag links a vertex- and fragment-shader into a named
-shader program. The program name will be used for naming the generated
-```sg_shader_desc``` C struct and a C function to get a pointer to the
-generated shader desc.
+Starts a named compute shader code block. The code between the `@cs` and
+the next `end` will be compiled as a compute shader.
+
+Example:
+
+```glsl
+@cs my_compute_shader
+
+layout(binding=0) uniform cs_params {
+    float dt;
+    int num_particles;
+};
+
+struct particle {
+    vec4 pos;
+    vec4 vel;
+};
+
+layout(binding=0) buffer cs_ssbo {
+    particle prt[];
+};
+
+layout(local_size_x=64, local_size_y=1, local_size_z=1) in;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= num_particles) {
+        return;
+    }
+    vec4 pos = prt[idx].pos;
+    vec4 vel = prt[idx].vel;
+    vel.y -= dt;
+    pos += vel * dt;
+    prt[idx].pos = pos;
+    prt[idx].vel = vel;
+}
+@end
+```
+
+### @program [name] [vs] [fs]
+### @program [name] [cs]
+
+The ```@program``` tag links stage shader functions into a shader program
+consisting of either a vertex- and fragment-shader, or just a compute-shader.
+
+The program name will be used for naming the generated ```sg_shader_desc``` C
+struct and a C function to get a pointer to the generated shader desc.
 
 At least one ```@program``` tag must exist in an annotated GLSL source file.
 
-Example for the above vertex- and fragment-shader snippets:
+Example for the above shader snippets:
 
 ```glsl
+// vertex- and fragment-shader
 @program my_program my_vertex_shader my_fragment_shader
+// ...or just a compute shader
+@program my_program my_compute_shader
 ```
 
 This will generate a C function:
@@ -459,8 +509,8 @@ static const sg_shader_desc* my_program_shader_desc(sg_backend backend);
 
 ### @block [name]
 
-The ```@block``` tag starts a named code block which can be included in
-other ```@vs```, ```@fs``` or ```@block``` code blocks. This is useful
+The `@block` tag starts a named code block which can be included in
+other `@vs`, `@fs`, `@cs` or `@block` code blocks. This is useful
 for sharing code between shaders.
 
 Example for having a common lighting function shared between two fragment
@@ -494,7 +544,7 @@ void main() {
 
 ### @end
 
-The ```@end``` tag closes a ```@vs```, ```@fs``` or ```@block``` code block.
+The `@end` tag closes a `@vs`, `@fs`, `@cs` or `@block` code block.
 
 ### @include_block [name]
 
@@ -503,7 +553,7 @@ This is useful for sharing code snippets between different shaders.
 
 ### @include [path]
 
-Include a file from the files system. ```@include``` takes one argument:
+Include a file from the files system. `@include` takes one argument:
 the path of the file to be included. The path must be relative to the directory
 where the top-level source file is located and must not contain whitespace or
 quotes. The ```@include``` tag can appear inside or outside a code block:
@@ -994,7 +1044,7 @@ sg_apply_bindings(&(sg_bindings){
 Note the following restrictions:
 
 - storage buffers are not supported for the output formats `glsl300es` and `glsl410`
-- currently, only readonly storage buffers are supported
+- in vertex- and fragment-shaders, only `readonly` bindings are supported
 
 In the input GLSL, define a storage buffer like this:
 
@@ -1004,7 +1054,13 @@ struct sb_vertex {
     vec4 color;
 };
 
-layout(binding=0) readonly buffer ssbo {
+// a readonly 'input buffer'
+layout(binding=0) readonly buffer in_ssbo {
+    sb_vertex vtx[];
+};
+
+// a read/write 'output buffer'
+layout(binding=1) buffer out_ssbo {
     sb_vertex vtx[];
 };
 ```
@@ -1027,13 +1083,19 @@ or directly the binding number from the shader source file:
 // using the code-generated constant:
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .storage_buffers[SBUF_ssbo] = sbuf,
+    .storage_buffers = {
+        [SBUF_in_ssbo] = sbuf_in,
+        [SBUF_out_ssbo] = sbuf_out,
+    },
 });
 
 // or directly using the explicit binding:
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .storage_buffers[0] = sbuf,
+    .storage_buffers = {
+        [0] = sbuf_in,
+        [1] = sbuf_out,
+    },
 });
 ```
 
@@ -1118,7 +1180,12 @@ There are a few caveats to be aware of with uniform blocks:
 
 ### Storage buffer content restrictions
 
-- currently, storage buffers must be declared as readonly: `readonly buffer [name] { ... }`
+- in vertex- and fragment-shaders, storage buffer bindings must be
+  declared as `readonly`: `layout(binding=N) readonly buffer [name] { ... }`
+- in compute-shaders, storage buffers bindings which are not modified by the
+  shader code must be defined as `readonly` (otherwise the hazard tracking
+  code in sokol_gfx.h will assume that the storage buffer content is modified
+  by the shader)
 - the storage buffer content must be a single flexible struct array member
 - structs used in storage buffers have fewer type restrictions than
   uniform blocks, but please note that a lot of type combinations are
