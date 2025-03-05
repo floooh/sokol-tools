@@ -1,6 +1,22 @@
 CHANGELOG
 =========
 
+#### **05-Mar-2025**
+
+Add support for compute shaders.
+
+See PR https://github.com/floooh/sokol-tools/pull/173
+
+Related sokol PR: https://github.com/floooh/sokol/pull/1200
+
+- a new tag `@cs [name]` to start a compute shader snippet
+- new output target `gles310es` (not very useful so far because
+  the sokol-gfx GLES3 backend only supports GLES3.0)
+- all code generators updated for compute shaders and new
+  `sg_shader_desc` items
+- documentation updated
+- also see the related [blog post](https://floooh.github.io/2025/03/03/sokol-gfx-compute-update.html)
+
 #### **03-Feb-2025**
 
 Update to the Odin code generator:
