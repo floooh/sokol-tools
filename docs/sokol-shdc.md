@@ -442,8 +442,8 @@ void main() {
 
 ### @cs [name]
 
-Starts a named compute shader code block. The code between the `@cs` and
-the next `end` will be compiled as a compute shader.
+Starts a named compute shader code block. The code between `@cs` and
+the next `@end` will be compiled as a compute shader.
 
 Example:
 
