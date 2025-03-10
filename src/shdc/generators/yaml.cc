@@ -128,6 +128,7 @@ void YamlGenerator::gen_attr(const StageAttr& attr, Slang::Enum slang) {
     l_open("-\n");
     l("slot: {}\n", attr.slot);
     l("type: {}\n", uniform_type(attr.type_info.type));
+    l("base_type: {}\n", attr_basetype(attr.type_info.basetype()));
     if (Slang::is_glsl(slang)) {
         l("glsl_name: {}\n", attr.name);
     } else if (Slang::is_hlsl(slang)) {
@@ -289,6 +290,10 @@ std::string YamlGenerator::flattened_uniform_type(Type::Enum e) {
 
 std::string YamlGenerator::shader_stage(ShaderStage::Enum e) {
     return ShaderStage::to_str(e);
+}
+
+std::string YamlGenerator::attr_basetype(Type::Enum e) {
+    return Type::type_to_str(e);
 }
 
 std::string YamlGenerator::image_type(ImageType::Enum e) {

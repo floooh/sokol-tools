@@ -54,6 +54,7 @@ struct Type {
     bool equals(const Type& other) const;
     std::string type_as_str() const;
     std::string type_as_glsl() const;
+    Type::Enum basetype() const;    // Invalid, Bool, Float, Int, UInt, Struct
     static std::string type_to_str(Type::Enum e);
     static std::string type_to_glsl(Type::Enum e);
     void dump_debug(const std::string& indent) const;
@@ -105,6 +106,47 @@ inline bool Type::equals(const Type& other) const {
 
 inline std::string Type::type_as_str() const {
     return type_to_str(type);
+}
+
+inline Type::Enum Type::basetype() const {
+    switch (type) {
+        case Bool:
+        case Bool2:
+        case Bool3:
+        case Bool4:
+            return Bool;
+        case Int:
+        case Int2:
+        case Int3:
+        case Int4:
+            return Int;
+        case UInt:
+        case UInt2:
+        case UInt3:
+        case UInt4:
+            return UInt;
+        case Float:
+        case Float2:
+        case Float3:
+        case Float4:
+        case Mat2x1:
+        case Mat2x2:
+        case Mat2x3:
+        case Mat2x4:
+        case Mat3x1:
+        case Mat3x2:
+        case Mat3x3:
+        case Mat3x4:
+        case Mat4x1:
+        case Mat4x2:
+        case Mat4x3:
+        case Mat4x4:
+            return Float;
+        case Struct:
+            return Struct;
+        default:
+            return Invalid;
+    }
 }
 
 inline std::string Type::type_to_str(Type::Enum e) {

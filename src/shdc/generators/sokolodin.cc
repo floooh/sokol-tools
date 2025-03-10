@@ -230,14 +230,15 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 l("{}.entry = \"{}\"\n", dsn, refl.entry_point_by_slang(slang));
             }
             if (Slang::is_msl(slang) && prog.has_cs()) {
-                l("desc.mtl_threads_per_threadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
-                l("desc.mtl_threads_per_threadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
-                l("desc.mtl_threads_per_threadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
+                l("desc.mtl_threads_per_threadgroup.x = {}\n", prog.cs().cs_workgroup_size[0]);
+                l("desc.mtl_threads_per_threadgroup.y = {}\n", prog.cs().cs_workgroup_size[1]);
+                l("desc.mtl_threads_per_threadgroup.z = {}\n", prog.cs().cs_workgroup_size[2]);
             }
             if (prog.has_vs()) {
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                     const StageAttr& attr = prog.vs().inputs[attr_index];
                     if (attr.slot >= 0) {
+                        l("desc.attrs[{}].base_type = {}\n", attr_index, attr_basetype(attr.type_info.basetype()));
                         if (Slang::is_glsl(slang)) {
                             l("desc.attrs[{}].glsl_name = \"{}\"\n", attr_index, attr.name);
                         } else if (Slang::is_hlsl(slang)) {
@@ -509,6 +510,15 @@ std::string SokolOdinGenerator::shader_stage(const ShaderStage::Enum e) {
         case ShaderStage::Vertex: return ".VERTEX";
         case ShaderStage::Fragment: return ".FRAGMENT";
         case ShaderStage::Compute: return ".COMPUTE";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolOdinGenerator::attr_basetype(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return ".FLOAT";
+        case Type::Int:     return ".INT";
+        case Type::UInt:    return ".UINT";
         default: return "INVALID";
     }
 }
