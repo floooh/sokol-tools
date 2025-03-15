@@ -242,6 +242,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                     const StageAttr& attr = prog.vs().inputs[attr_index];
                     if (attr.slot >= 0) {
+                        l("desc.attrs[{}].base_type = {};\n", attr_index, attr_basetype(attr.type_info.basetype()));
                         if (Slang::is_glsl(slang)) {
                             l("desc.attrs[{}].glsl_name = \"{}\";\n", attr_index, attr.name);
                         } else if (Slang::is_hlsl(slang)) {
@@ -398,6 +399,15 @@ std::string SokolZigGenerator::shader_stage(ShaderStage::Enum e) {
         case ShaderStage::Vertex: return ".VERTEX";
         case ShaderStage::Fragment: return ".FRAGMENT";
         case ShaderStage::Compute: return ".COMPUTE";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolZigGenerator::attr_basetype(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return ".FLOAT";
+        case Type::Int:     return ".INT";
+        case Type::UInt:    return ".UINT";
         default: return "INVALID";
     }
 }

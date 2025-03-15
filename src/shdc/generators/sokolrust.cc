@@ -244,6 +244,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                     const StageAttr& attr = prog.vs().inputs[attr_index];
                     if (attr.slot >= 0) {
+                        l("desc.attrs[{}].base_type = {};\n", attr_index, attr_basetype(attr.type_info.basetype()));
                         if (Slang::is_glsl(slang)) {
                             l("desc.attrs[{}].glsl_name = c\"{}\".as_ptr();\n", attr_index, attr.name);
                         } else if (Slang::is_hlsl(slang)) {
@@ -400,6 +401,15 @@ std::string SokolRustGenerator::shader_stage(ShaderStage::Enum e) {
         case ShaderStage::Vertex: return "sg::ShaderStage::Vertex";
         case ShaderStage::Fragment: return "sg::ShaderStage::Fragment";
         case ShaderStage::Compute: return "sg::ShaderStage::Compute";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolRustGenerator::attr_basetype(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return "sg::ShaderAttrBaseType::Float";
+        case Type::Int:     return "sg::ShaderAttrBaseType::Int";
+        case Type::UInt:    return "sg::ShaderAttrBaseType::Uint";
         default: return "INVALID";
     }
 }

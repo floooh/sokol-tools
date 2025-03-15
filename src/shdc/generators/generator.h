@@ -68,6 +68,7 @@ protected:
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
 
     virtual std::string shader_stage(refl::ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
+    virtual std::string attr_basetype(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string flattened_uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string image_type(refl::ImageType::Enum e) { assert(false && "implement me"); return ""; };

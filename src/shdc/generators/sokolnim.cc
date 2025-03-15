@@ -303,14 +303,15 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                 l("{}.entry = \"{}\"\n", dsn, refl.entry_point_by_slang(slang));
             }
             if (Slang::is_msl(slang) && prog.has_cs()) {
-                l("result.mtlThreadsPerThreadgroup.x = {};\n", prog.cs().cs_workgroup_size[0]);
-                l("result.mtlThreadsPerThreadgroup.y = {};\n", prog.cs().cs_workgroup_size[1]);
-                l("result.mtlThreadsPerThreadgroup.z = {};\n", prog.cs().cs_workgroup_size[2]);
+                l("result.mtlThreadsPerThreadgroup.x = {}\n", prog.cs().cs_workgroup_size[0]);
+                l("result.mtlThreadsPerThreadgroup.y = {}\n", prog.cs().cs_workgroup_size[1]);
+                l("result.mtlThreadsPerThreadgroup.z = {}\n", prog.cs().cs_workgroup_size[2]);
             }
             if (prog.has_vs()) {
                 for (int attr_index = 0; attr_index < StageAttr::Num; attr_index++) {
                     const StageAttr& attr = prog.vs().inputs[attr_index];
                     if (attr.slot >= 0) {
+                        l("result.attrs[{}].base_type = {}\n", attr_index, attr_basetype(attr.type_info.basetype()));
                         if (Slang::is_glsl(slang)) {
                             l("result.attrs[{}].glslName = \"{}\"\n", attr_index, attr.name);
                         } else if (Slang::is_hlsl(slang)) {
@@ -466,6 +467,15 @@ std::string SokolNimGenerator::shader_stage(ShaderStage::Enum e) {
         case ShaderStage::Vertex: return "shaderStageVertex";
         case ShaderStage::Fragment: return "shaderStageFragment";
         case ShaderStage::Compute: return "shaderStageCompute";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolNimGenerator::attr_basetype(Type::Enum e) {
+    switch (e) {
+        case Type::Float:   return "shaderAttrBaseTypeFloat";
+        case Type::Int:     return "shaderAttrBaseTypeInt";
+        case Type::UInt:    return "shaderAttrBaseTypeUint";
         default: return "INVALID";
     }
 }

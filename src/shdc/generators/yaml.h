@@ -8,6 +8,7 @@ public:
     virtual ErrMsg generate(const GenInput& gen);
 protected:
     virtual std::string shader_stage(refl::ShaderStage::Enum e);
+    virtual std::string attr_basetype(refl::Type::Enum e);
     virtual std::string uniform_type(refl::Type::Enum e);
     virtual std::string flattened_uniform_type(refl::Type::Enum e);
     virtual std::string image_type(refl::ImageType::Enum e);
