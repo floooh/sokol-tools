@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+#### **15-Mar-2025**
+
+Write the 'vertex attribute base type' as part of the reflection info
+in the code-generated `sg_shader_desc`. Requires the sokol update:
+
+https://github.com/floooh/sokol/pull/1222
+
+Implemented in PR: https://github.com/floooh/sokol-tools/pull/176
+
 #### **05-Mar-2025**
 
 Add support for compute shaders.
