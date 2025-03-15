@@ -517,7 +517,7 @@ std::string SokolOdinGenerator::shader_stage(const ShaderStage::Enum e) {
 std::string SokolOdinGenerator::attr_basetype(Type::Enum e) {
     switch (e) {
         case Type::Float:   return ".FLOAT";
-        case Type::Int:     return ".INT";
+        case Type::Int:     return ".SINT";
         case Type::UInt:    return ".UINT";
         default: return "INVALID";
     }

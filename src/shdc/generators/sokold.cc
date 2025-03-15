@@ -401,7 +401,7 @@ std::string SokolDGenerator::shader_stage(ShaderStage::Enum e) {
 std::string SokolDGenerator::attr_basetype(Type::Enum e) {
     switch (e) {
         case Type::Float:   return "sg.ShaderAttrBaseType.Float";
-        case Type::Int:     return "sg.ShaderAttrBaseType.Int";
+        case Type::Int:     return "sg.ShaderAttrBaseType.Sint";
         case Type::UInt:    return "sg.ShaderAttrBaseType.Uint";
         default: return "INVALID";
     }
