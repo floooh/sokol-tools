@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+#### **23-Mar-2025**
+
+Added a new cmdline arg `--no-log-cmdline`, this is useful when the code-generated
+output files are committed to version control and sokol-shdc is called
+with absolute input/output paths (since those will look different on each machine)
+
 #### **15-Mar-2025**
 
 Write the 'vertex attribute base type' as part of the reflection info
