@@ -16,6 +16,7 @@ fips_begin_lib(fmt)
     fips_dir(fmt/src GPOUP .)
     fips_files(format.cc)
 fips_end_lib()
+target_compile_definitions(fmt PUBLIC FMT_UNICODE=0)
 target_include_directories(fmt PUBLIC fmt/include)
 
 fips_begin_lib(SPIRV-Tools)
