@@ -427,20 +427,20 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     wgsl_patch_bind_slots(compiler_temp, snippet.type, patched_bytecode);
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
-    tint::reader::spirv::Options spirv_options;
+    tint::spirv::reader::Options spirv_options;
     spirv_options.allow_non_uniform_derivatives = true; // FIXME? => this allow texture sample calls inside dynamic if blocks
-    tint::Program program = tint::reader::spirv::Parse(patched_bytecode, spirv_options);
-    if (!program.Diagnostics().contains_errors()) {
-        const tint::writer::wgsl::Options wgsl_options;
-        tint::writer::wgsl::Result result = tint::writer::wgsl::Generate(&program, wgsl_options);
-        if (result.success) {
-            res.source_code = result.wgsl;
+    tint::Program program = tint::spirv::reader::Read(patched_bytecode, spirv_options);
+    if (!program.Diagnostics().ContainsErrors()) {
+        const tint::wgsl::writer::Options wgsl_options;
+        tint::Result result = tint::wgsl::writer::Generate(program, wgsl_options);
+        if (result == tint::Success) {
+            res.source_code = result.Get().wgsl;
             res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
         } else {
-            res.error = inp.error(blob.snippet_index, result.error);
+            res.error = inp.error(blob.snippet_index, result.Failure().reason);
         }
     } else {
-        res.error = inp.error(blob.snippet_index, program.Diagnostics().str());
+        res.error = inp.error(blob.snippet_index, program.Diagnostics().Str());
     }
     res.valid = !res.error.valid();
     return res;
