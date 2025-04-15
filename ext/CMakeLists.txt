@@ -82,7 +82,7 @@ if (FIPS_MSVC)
     target_compile_options(SPIRV-Cross PUBLIC /wd4715)
 endif()
 if (FIPS_CLANG)
-    target_compile_options(SPIRV-Cross PRIVATE -Wno-range-loop-analysis -Wno-deprecated-declarations)
+    target_compile_options(SPIRV-Cross PRIVATE -Wno-range-loop-analysis -Wno-deprecated-declarations -Wno-deprecated-this-capture)
 endif()
 target_include_directories(SPIRV-Cross PUBLIC SPIRV-Cross)
 
