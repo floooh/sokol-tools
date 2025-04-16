@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+#### **16-Apr-2025**
+
+All dependencies have been updated to the latest versions and the Tint
+sources are now pulled from https://github.com/floooh/tint-extract
+
 #### **23-Mar-2025**
 
 Added a new cmdline arg `--no-log-cmdline`, this is useful when the code-generated
