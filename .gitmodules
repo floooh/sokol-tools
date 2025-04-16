@@ -19,6 +19,6 @@
 [submodule "ext/fmt"]
 	path = ext/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "ext/tint"]
-	path = ext/tint
-	url = https://dawn.googlesource.com/tint
+[submodule "ext/tint-extract"]
+	path = ext/tint-extract
+	url = https://github.com/floooh/tint-extract
