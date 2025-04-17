@@ -429,6 +429,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     tint::spirv::reader::Options spirv_options;
     spirv_options.allow_non_uniform_derivatives = true; // FIXME? => this allow texture sample calls inside dynamic if blocks
+    spirv_options.allowed_features.features = { tint::wgsl::LanguageFeature::kReadonlyAndReadwriteStorageTextures };
     tint::Program program = tint::spirv::reader::Read(patched_bytecode, spirv_options);
     if (!program.Diagnostics().ContainsErrors()) {
         const tint::wgsl::writer::Options wgsl_options;
