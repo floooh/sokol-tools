@@ -272,6 +272,14 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
                 out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for textures of same name '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
+        } else if (uniform.getType()->isImage()) {
+            const int slot = inp.find_simg_slot(name);
+            if (slot == -1) {
+                inp.simg_slots[name] = binding;
+            } else if (slot != binding) {
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for images of same name '{}' ({} vs {})", name, slot, binding)));
+                return false;
+            }
         }
     }
 
@@ -421,6 +429,10 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
     }
     fmt::print(stderr, "    storage buffers:\n");
     for (const auto& item: inp.sbuf_slots) {
+        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
+    }
+    fmt::print(stderr, "    storage images:\n");
+    for (const auto& item: inp.simg_slots) {
         fmt::print(stderr, "      {}: {}\n", item.first, item.second);
     }
     fmt::print(stderr, "\n");

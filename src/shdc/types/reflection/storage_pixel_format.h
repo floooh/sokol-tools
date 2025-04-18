@@ -23,7 +23,6 @@ struct StoragePixelFormat {
         RGBA32_UINT,        // => SG_PIXELFORMAT_RGBA32UI
         RGBA32_SINT,        // => SG_PIXELFORMAT_RGBA32SI
         RGBA32_FLOAT,       // => SG_PIXELFORMAT_RGBA32F
-        BGRA8_UNORM,        // => SG_PIXELFORMAT_BGRA8
     };
     static const char* to_str(Enum e);
 };
@@ -46,7 +45,6 @@ inline const char* StoragePixelFormat::to_str(Enum e) {
         case RGBA32_UINT: return "rgba32_uint";
         case RGBA32_SINT: return "rgba32_sint";
         case RGBA32_FLOAT: return "rgba32_float";
-        case BGRA8_UNORM: return "bgra8_unorm";
         default: return "invalid";
     }
 }

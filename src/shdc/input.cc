@@ -40,6 +40,10 @@ int Input::find_sbuf_slot(const std::string& name) const {
     return find_slot(sbuf_slots, name);
 }
 
+int Input::find_simg_slot(const std::string& name) const {
+    return find_slot(simg_slots, name);
+}
+
 const ImageSampleTypeTag* Input::find_image_sample_type_tag(const std::string& tex_name) const {
     auto it = image_sample_type_tags.find(tex_name);
     if (it != image_sample_type_tags.end()) {

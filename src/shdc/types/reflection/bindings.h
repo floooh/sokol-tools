@@ -236,6 +236,10 @@ inline void Bindings::dump_debug(const std::string& indent) const {
     for (const auto& sbuf: storage_buffers) {
         sbuf.dump_debug(indent);
     }
+    fmt::print(stderr, "{}storage_images:\n", indent);
+    for (const auto& simg: storage_images) {
+        simg.dump_debug(indent);
+    }
     fmt::print(stderr, "{}images:\n", indent);
     for (const auto& img: images) {
         img.dump_debug(indent);

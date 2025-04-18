@@ -16,6 +16,7 @@ struct StorageImage {
     int wgsl_group2_binding_n = -1;
     int glsl_binding_n = -1;
     std::string name;   // shortcut for struct_info.name
+    bool writeonly;
     ImageType::Enum type = ImageType::INVALID;
     StoragePixelFormat::Enum access_format = StoragePixelFormat::INVALID;
 

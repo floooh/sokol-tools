@@ -198,6 +198,10 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     // - storage buffers:
     //   - must only have a single flexible array struct item
     //   - must be readonly in vertex/fragment shaders
+    // - storage images:
+    //   - only allowed on compute stage
+    //   - must not be readonly
+    //   - must have specific pixel formats
     // - must use separate image and sampler objects
     //
     // FIXME: disallow vec3 arrays
@@ -238,6 +242,36 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
             if (!readonly) {
                 return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex- and fragment-shaders", sbuf_res.name));
             }
+        }
+    }
+    for (const Resource& simg_res: res.storage_images) {
+        if (compiler.get_execution_model() != spv::ExecutionModelGLCompute) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': storage images are only allowed in compute-shaders", simg_res.name));
+        }
+        const auto& mask = compiler.get_decoration_bitset(simg_res.id);
+        if (mask.get(spv::DecorationNonWritable)) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': storage images cannot be readonly (use regular textures instead)", simg_res.name));
+        }
+        switch (compiler.get_type(simg_res.type_id).image.format) {
+            cash spv::ImageFormatRgba8:
+            case spv::ImageFormatRgba8Snorm:
+            case spv::ImageFormatRgba8ui:
+            case spv::ImageFormatRgba8i:
+            case spv::ImageFormatRgba16ui:
+            case spv::ImageFormatRgba16i:
+            case spv::ImageFormatRgba16f:
+            case spv::ImageFormatR32ui:
+            case spv::ImageFormatR32i:
+            case spv::ImageFormatR32f:
+            case spv::ImageFormatRg32ui:
+            case spv::ImageFormatRg32i:
+            case spv::ImageFormatRg32f:
+            case spv::ImageFormatRgba32ui:
+            case spv::ImageFormatRgba32i:
+            case spv::ImageFormatRgba32f:
+                break;
+            default:
+                return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': access format must be one of rgba8_snorm, rgba8i, rgba8ui, rgba16ui, rgba16i, rgba16f, r32ui, r32i, r32f, rg32ui, rg32i, rg32f, rgba32ui, rgba32i, rgba32f", simg_res.name));
         }
     }
     if (res.sampled_images.size() > 0) {
