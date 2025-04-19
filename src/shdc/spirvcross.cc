@@ -253,7 +253,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
             return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': storage images cannot be readonly (use regular textures instead)", simg_res.name));
         }
         switch (compiler.get_type(simg_res.type_id).image.format) {
-            cash spv::ImageFormatRgba8:
+            case spv::ImageFormatRgba8:
             case spv::ImageFormatRgba8Snorm:
             case spv::ImageFormatRgba8ui:
             case spv::ImageFormatRgba8i:
