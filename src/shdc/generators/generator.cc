@@ -132,6 +132,14 @@ void Generator::gen_bindings_info(const GenInput& gen) {
         cbl("Readonly: {}\n", sbuf.readonly);
         cbl_close();
     }
+    for (const StorageImage& simg: gen.refl.bindings.storage_images) {
+        cbl_open("Storage image '{}':\n", simg.name);
+        cbl("Bind slot: {} => {}\n", storage_image_bind_slot_name(simg), simg.sokol_slot);
+        cbl("Image type: {}\n", image_type(simg.type));
+        cbl("Access format: {}\n", StoragePixelFormat::to_str(simg.access_format));
+        cbl("Writeonly: {}\n", simg.writeonly);
+        cbl_close();
+    }
     for (const Image& img: gen.refl.bindings.images) {
         cbl_open("Image '{}':\n", img.name);
         cbl("Image type: {}\n", image_type(img.type));
@@ -166,6 +174,9 @@ void Generator::gen_bind_slot_consts(const GenInput& gen) {
     }
     for (const StorageBuffer& sbuf: gen.refl.bindings.storage_buffers) {
         l("{}\n", storage_buffer_bind_slot_definition(sbuf));
+    }
+    for (const StorageImage& simg: gen.refl.bindings.storage_images) {
+        l("{}\n", storage_image_bind_slot_definition(simg));
     }
     for (const Image& img: gen.refl.bindings.images) {
         l("{}\n", image_bind_slot_definition(img));
