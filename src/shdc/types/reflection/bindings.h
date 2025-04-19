@@ -22,7 +22,7 @@ struct Bindings {
     inline static const int MaxSamplers = 16;
     inline static const int MaxStorageBuffers = 8;
     inline static const int MaxImageSamplers = 16;
-    inline static const int MaxStorageAttachments = 4;
+    inline static const int MaxStorageImages = 4;
 
     enum Type {
         UNIFORM_BLOCK,

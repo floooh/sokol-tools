@@ -697,6 +697,7 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
     }
     {
         std::array<std::string, Bindings::MaxStorageBuffers> sbuf_slots;
+        std::array<std::string, Bindings::MaxStorageImages> simg_slots;
         for (const auto& sbuf: bindings.storage_buffers) {
             const int slot = sbuf.sokol_slot;
             if ((slot < 0) || (slot >= Bindings::MaxStorageBuffers)) {
@@ -712,6 +713,30 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
                     slot));
             }
             sbuf_slots[slot] = sbuf.name;
+        }
+        for (const auto& simg: bindings.storage_images) {
+            const int slot = simg.sokol_slot;
+            if ((slot < 0) || (slot >= Bindings::MaxStorageImages)) {
+                return ErrMsg::error(fmt::format("bindings {} out of range for storage image '{}' (must be 0..{})",
+                    slot,
+                    simg.name,
+                    Bindings::MaxStorageImages - 1));
+            }
+            if (!simg_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("storage image '{}' and '{}' cannot use the same binding {}",
+                    simg_slots[slot],
+                    simg.name,
+                    slot));
+            }
+            // storage buffers and images use the same bind space, so check that they don't collide
+            assert(Bindings::MaxStorageBuffers >= Bindings::MaxStorageImages);
+            if (!sbuf_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("storage image '{}' and storage buffer '{}' cannot use the same binding {}",
+                    simg.name,
+                    sbuf_slots[slot],
+                    slot));
+            }
+            simg_slots[slot] = simg.name;
         }
     }
     {
