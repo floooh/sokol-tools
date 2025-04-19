@@ -277,7 +277,7 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             if (slot == -1) {
                 inp.simg_slots[name] = binding;
             } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for images of same name '{}' ({} vs {})", name, slot, binding)));
+                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for storage images of same name '{}' ({} vs {})", name, slot, binding)));
                 return false;
             }
         }

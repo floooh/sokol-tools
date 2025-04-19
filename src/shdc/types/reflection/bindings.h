@@ -109,10 +109,12 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             }
             break;
         case Type::STORAGE_IMAGE:
-            // HLSL: UAV bind slots shared with storage buffer, limited to 0..7 (e.g. sokol_slots must not collide)
+            // HLSL: assume D3D11.1, which allows for more than 8 UAV slots
             // MSL: uses texture bindslot, but enough bindslot space available to move behind texture bindings
             // WGSL: dedicated bindgroup(2)
-            if (Slang::is_msl(slang)) {
+            if (Slang::is_hlsl(slang)) {
+                res = MaxStorageBuffers;
+            } else if (Slang::is_msl(slang)) {
                 res = MaxImages;
             }
     }

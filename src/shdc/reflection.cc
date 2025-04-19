@@ -728,14 +728,6 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
                     simg.name,
                     slot));
             }
-            // storage buffers and images use the same bind space, so check that they don't collide
-            assert(Bindings::MaxStorageBuffers >= Bindings::MaxStorageImages);
-            if (!sbuf_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("storage image '{}' and storage buffer '{}' cannot use the same binding {}",
-                    simg.name,
-                    sbuf_slots[slot],
-                    slot));
-            }
             simg_slots[slot] = simg.name;
         }
     }

@@ -79,7 +79,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
             for (const Resource& res: shader_resources.storage_buffers) {
                 compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             }
-        } else if(Slang::is_hlsl(slang)) {
+        } else if (Slang::is_hlsl(slang)) {
             // special case HLSL:
             // - readonly storage buffers are bound as SRV (register(tn))
             // - read/write storage buffers are bound as UAV (register(un))
@@ -103,6 +103,22 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
             }
         }
     }
+
+    // storage images
+    {
+        if (Slang::is_glsl(slang)) {
+            // special case GLSL: keep the original bindings bindings across all shader stages
+            for (const Resource& res: shader_resources.storage_images) {
+                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            }
+        } else {
+            uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_IMAGE);
+            for (const Resource& res: shader_resources.storage_images) {
+                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+                compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
+            }
+        }
+    }
 }
 
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
@@ -114,6 +130,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
     const uint32_t img_smp_sbuf_bindgroup = 1;
+    const uint32_t storage_img_bindgroup = 2;
 
     // uniform buffers
     {
@@ -176,6 +193,24 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                inout_bytecode[out_offset] = binding++;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+
+    // storage images
+    {
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::STORAGE_IMAGE);
+        for (const Resource& res: shader_resources.storage_images) {
+            uint32_t out_offset = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                inout_bytecode[out_offset] = storage_img_bindgroup;
             } else {
                 // FIXME: handle error
             }
