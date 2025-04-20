@@ -366,7 +366,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     l("{}.stage = {};\n", sin, shader_stage(simg->stage));
                     l("{}.image_type = {};\n", sin, image_type(simg->type));
                     l("{}.access_format = {};\n", sin, storage_pixel_format(simg->access_format));
-                    l("{}.write_only = {};\n", sin, simg->writeonly);
+                    l("{}.writeonly = {};\n", sin, simg->writeonly);
                     if (Slang::is_hlsl(slang)) {
                         l("{}.hlsl_register_u_n = {};\n", sin, simg->hlsl_register_u_n);
                     } else if (Slang::is_msl(slang)) {
