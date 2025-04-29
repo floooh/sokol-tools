@@ -717,7 +717,7 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         for (const auto& simg: bindings.storage_images) {
             const int slot = simg.sokol_slot;
             if ((slot < 0) || (slot >= Bindings::MaxStorageImages)) {
-                return ErrMsg::error(fmt::format("bindings {} out of range for storage image '{}' (must be 0..{})",
+                return ErrMsg::error(fmt::format("binding {} out of range for storage image '{}' (must be 0..{})",
                     slot,
                     simg.name,
                     Bindings::MaxStorageImages - 1));
