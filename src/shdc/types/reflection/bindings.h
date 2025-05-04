@@ -67,12 +67,12 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
     switch (type) {
         case Type::UNIFORM_BLOCK:
             if (Slang::is_wgsl(slang)) {
-                res = ShaderStage::is_vs(stage) ? 0 : MaxUniformBlocks;
+                res = ShaderStage::is_fs(stage) ? MaxUniformBlocks: 0;
             }
             break;
         case Type::IMAGE_SAMPLER:
             if (Slang::is_glsl(slang)) {
-                res = ShaderStage::is_vs(stage) ? 0 : MaxImageSamplers;
+                res = ShaderStage::is_fs(stage) ? MaxImageSamplers: 0;
             }
             break;
         case Type::IMAGE:
