@@ -305,6 +305,25 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
+            for (int simg_index = 0; simg_index < Bindings::MaxStorageImages; simg_index++) {
+                const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
+                if (simg) {
+                    const std::string& sin = fmt::format("desc.storage_images[{}]", simg_index);
+                    l("{}.stage = {};\n", sin, shader_stage(simg->stage));
+                    l("{}.image_type = {};\n", sin, image_type(simg->type));
+                    l("{}.access_format = {};\n", sin, storage_pixel_format(simg->access_format));
+                    l("{}.writeonly = {};\n", sin, simg->writeonly);
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_u_n = {};\n", sin, simg->hlsl_register_u_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {};\n", sin, simg->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group2_binding_n = {};\n", sin, simg->wgsl_group2_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
+                    }
+                }
+            }
             for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
                 const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
                 if (img) {
@@ -475,6 +494,28 @@ std::string SokolZigGenerator::sampler_type(SamplerType::Enum e) {
     }
 }
 
+std::string SokolZigGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
+    switch (e) {
+        case StoragePixelFormat::RGBA8:     return ".RGBA8";
+        case StoragePixelFormat::RGBA8SN:   return ".RGBA8SN";
+        case StoragePixelFormat::RGBA8UI:   return ".RGBA8UI";
+        case StoragePixelFormat::RGBA8SI:   return ".RGBS8SI";
+        case StoragePixelFormat::RGBA16UI:  return ".RGBA16UI";
+        case StoragePixelFormat::RGBA16SI:  return ".RGBA16SI";
+        case StoragePixelFormat::RGBA16F:   return ".RGBA16F";
+        case StoragePixelFormat::R32UI:     return ".R32UI";
+        case StoragePixelFormat::R32SI:     return ".R32SI";
+        case StoragePixelFormat::R32F:      return ".R32F";
+        case StoragePixelFormat::RG32UI:    return ".RG32UI";
+        case StoragePixelFormat::RG32SI:    return ".RG32SI";
+        case StoragePixelFormat::RG32F:     return ".RG32F";
+        case StoragePixelFormat::RGBA32UI:  return ".RGBA32UI";
+        case StoragePixelFormat::RGBA32SI:  return ".RGBA32SI";
+        case StoragePixelFormat::RGBA32F:   return ".RGBA32F";
+        default: return "INVALID";
+    }
+}
+
 std::string SokolZigGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
@@ -523,6 +564,10 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_name(const refl::Storage
     return fmt::format("SBUF_{}", sb.name);
 }
 
+std::string SokolZigGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return fmt::format("SIMG_{}", simg.name);
+}
+
 std::string SokolZigGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("pub const {} = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
@@ -543,6 +588,10 @@ std::string SokolZigGenerator::storage_buffer_bind_slot_definition(const Storage
     return fmt::format("pub const {} = {};", storage_buffer_bind_slot_name(sb), sb.sokol_slot);
 }
 
+std::string SokolZigGenerator::storage_image_bind_slot_definition(const StorageImage& simg) {
+    return fmt::format("pub const {} = {};", storage_image_bind_slot_name(simg), simg.sokol_slot);
+}
+
 void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
     l_open("pub fn {}AttrSlot(attr_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_attr_name = false;
@@ -560,7 +609,7 @@ void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Progr
 }
 
 void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}ImageSlot(img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}StorageImageSlot(img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_image = false;
     for (const Image& img: prog.bindings.images) {
         if (img.sokol_slot >= 0) {
@@ -596,7 +645,7 @@ void SokolZigGenerator::gen_sampler_slot_refl_func(const GenInput& gen, const Pr
 }
 
 void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformblockSlot(ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformBlockSlot(ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_ub_name = false;
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
@@ -614,7 +663,7 @@ void SokolZigGenerator::gen_uniform_block_slot_refl_func(const GenInput& gen, co
 }
 
 void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}UniformblockSize(ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}UniformBlockSize(ub_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_ub_name = false;
     for (const UniformBlock& ub: prog.bindings.uniform_blocks) {
         if (ub.sokol_slot >= 0) {
@@ -632,7 +681,7 @@ void SokolZigGenerator::gen_uniform_block_size_refl_func(const GenInput& gen, co
 }
 
 void SokolZigGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}StoragebufferSlot(sbuf_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}StorageBufferSlot(sbuf_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_sbuf_name = false;
     for (const StorageBuffer& sbuf: prog.bindings.storage_buffers) {
         if (sbuf.sokol_slot >= 0) {
@@ -644,6 +693,24 @@ void SokolZigGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, c
     }
     if (!wrote_sbuf_name) {
         l("_ = sbuf_name;\n");
+    }
+    l("return null;\n");
+    l_close("}}\n");
+}
+
+void SokolZigGenerator::gen_storage_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}StorageImageSlot(simg_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    bool wrote_simg_name = false;
+    for (const StorageImage& simg: prog.bindings.storage_images) {
+        if (simg.sokol_slot >= 0) {
+            l_open("if (std.mem.eql(u8, simg_name, \"{}\")) {{\n", simg.name);
+            l("return {};\n", simg.sokol_slot);
+            l_close("}}\n");
+            wrote_simg_name = true;
+        }
+    }
+    if (!wrote_simg_name) {
+        l("_ = simg_name;\n");
     }
     l("return null;\n");
     l_close("}}\n");
