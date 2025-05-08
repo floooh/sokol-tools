@@ -271,6 +271,7 @@ void Generator::gen_reflection_funcs(const GenInput& gen) {
         gen_uniform_offset_refl_func(gen, prog);
         gen_uniform_desc_refl_func(gen, prog);
         gen_storage_buffer_slot_refl_func(gen, prog);
+        gen_storage_image_slot_refl_func(gen, prog);
     }
 }
 
