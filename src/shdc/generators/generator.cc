@@ -136,7 +136,7 @@ void Generator::gen_bindings_info(const GenInput& gen) {
         cbl_open("Storage image '{}':\n", simg.name);
         cbl("Bind slot: {} => {}\n", storage_image_bind_slot_name(simg), simg.sokol_slot);
         cbl("Image type: {}\n", image_type(simg.type));
-        cbl("Access format: {}\n", StoragePixelFormat::to_str(simg.access_format));
+        cbl("Access format: {}\n", storage_pixel_format(simg.access_format));
         cbl("Writeonly: {}\n", simg.writeonly);
         cbl_close();
     }
