@@ -27,6 +27,7 @@ protected:
     virtual std::string image_type(refl::ImageType::Enum e);
     virtual std::string image_sample_type(refl::ImageSampleType::Enum e);
     virtual std::string sampler_type(refl::SamplerType::Enum e);
+    virtual std::string storage_pixel_format(refl::StoragePixelFormat::Enum e);
     virtual std::string backend(Slang::Enum e);
     virtual std::string struct_name(const std::string& name);
     virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr);
@@ -34,11 +35,13 @@ protected:
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf);
+    virtual std::string storage_image_bind_slot_name(const refl::StorageImage& simg);
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr);
     virtual std::string image_bind_slot_definition(const refl::Image& img);
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf);
+    virtual std::string storage_image_bind_slot_definition(const refl::StorageImage& simg);
 private:
     void recurse_unfold_structs(const GenInput& gen, const refl::Type& struc, const std::string& name, int alignment, int pad_to_size);
     virtual void gen_struct_interior_decl_std430(const GenInput& gen, const refl::Type& struc, const std::string& name, int pad_to_size);

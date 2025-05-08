@@ -28,7 +28,8 @@ struct Input {
     std::map<std::string, int> ub_slots;        // uniform block bindslot definitions
     std::map<std::string, int> img_slots;       // image bindslot definitions
     std::map<std::string, int> smp_slots;       // sampler bindslot definitions
-    std::map<std::string, int> sbuf_slots;      // storagebuffer bindslot definitions
+    std::map<std::string, int> sbuf_slots;      // storage buffer bindslot definitions
+    std::map<std::string, int> simg_slots;      // storage image bindslot definitinons
     std::map<std::string, ImageSampleTypeTag> image_sample_type_tags;
     std::map<std::string, SamplerTypeTag> sampler_type_tags;
 
@@ -41,6 +42,7 @@ struct Input {
     int find_img_slot(const std::string& name) const;
     int find_smp_slot(const std::string& name) const;
     int find_sbuf_slot(const std::string& name) const;
+    int find_simg_slot(const std::string& name) const;
     // return nullptr if not found
     const ImageSampleTypeTag* find_image_sample_type_tag(const std::string& tex_name) const;
     const SamplerTypeTag* find_sampler_type_tag(const std::string& smp_name) const;
