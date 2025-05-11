@@ -14,11 +14,13 @@ protected:
     virtual std::string image_type(refl::ImageType::Enum e);
     virtual std::string image_sample_type(refl::ImageSampleType::Enum e);
     virtual std::string sampler_type(refl::SamplerType::Enum e);
+    virtual std::string storage_pixel_format(refl::StoragePixelFormat::Enum e);
 private:
     void gen_attr(const refl::StageAttr& attr, Slang::Enum slang);
     void gen_uniform_block(const GenInput& gen, const refl::UniformBlock& ub, Slang::Enum slang);
     void gen_uniform_block_refl(const refl::UniformBlock& ub);
     void gen_storage_buffer(const refl::StorageBuffer& sbuf, Slang::Enum slang);
+    void gen_storage_image(const refl::StorageImage& simg, Slang::Enum slang);
     void gen_image(const refl::Image& img, Slang::Enum slang);
     void gen_sampler(const refl::Sampler& smp, Slang::Enum slang);
     void gen_image_sampler(const refl::ImageSampler& img_smp, Slang::Enum slang);

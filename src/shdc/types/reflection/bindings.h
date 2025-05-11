@@ -4,6 +4,7 @@
 #include "sampler.h"
 #include "image_sampler.h"
 #include "storage_buffer.h"
+#include "storage_image.h"
 
 namespace shdc::refl {
 
@@ -14,23 +15,27 @@ struct Bindings {
     //  - SG_MAX_SAMPLER_BINDSLOTS
     //  - SG_MAX_STORAGEBUFFER_BINDSLOTS
     //  - SG_MAX_IMAGE_SAMPLERS_PAIRS
+    //  - SG_MAX_STORAGE_ATTACHMENTS
     //
     inline static const int MaxUniformBlocks = 8;
     inline static const int MaxImages = 16;
     inline static const int MaxSamplers = 16;
     inline static const int MaxStorageBuffers = 8;
     inline static const int MaxImageSamplers = 16;
+    inline static const int MaxStorageImages = 4;
 
     enum Type {
         UNIFORM_BLOCK,
         IMAGE,
         SAMPLER,
         STORAGE_BUFFER,
+        STORAGE_IMAGE,
         IMAGE_SAMPLER,
     };
 
     std::vector<UniformBlock> uniform_blocks;
     std::vector<StorageBuffer> storage_buffers;
+    std::vector<StorageImage> storage_images;
     std::vector<Image> images;
     std::vector<Sampler> samplers;
     std::vector<ImageSampler> image_samplers;
@@ -39,12 +44,14 @@ struct Bindings {
 
     const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
     const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
+    const StorageImage* find_storage_image_by_sokol_slot(int slot) const;
     const Image* find_image_by_sokol_slot(int slot) const;
     const Sampler* find_sampler_by_sokol_slot(int slot) const;
     const ImageSampler* find_image_sampler_by_sokol_slot(int slot) const;
 
     const UniformBlock* find_uniform_block_by_name(const std::string& name) const;
     const StorageBuffer* find_storage_buffer_by_name(const std::string& name) const;
+    const StorageImage* find_storage_image_by_name(const std::string& name) const;
     const Image* find_image_by_name(const std::string& name) const;
     const Sampler* find_sampler_by_name(const std::string& name) const;
     const ImageSampler* find_image_sampler_by_name(const std::string& name) const;
@@ -60,12 +67,12 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
     switch (type) {
         case Type::UNIFORM_BLOCK:
             if (Slang::is_wgsl(slang)) {
-                res = ShaderStage::is_vs(stage) ? 0 : MaxUniformBlocks;
+                res = ShaderStage::is_fs(stage) ? MaxUniformBlocks: 0;
             }
             break;
         case Type::IMAGE_SAMPLER:
             if (Slang::is_glsl(slang)) {
-                res = ShaderStage::is_vs(stage) ? 0 : MaxImageSamplers;
+                res = ShaderStage::is_fs(stage) ? MaxImageSamplers: 0;
             }
             break;
         case Type::IMAGE:
@@ -101,6 +108,15 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
                 }
             }
             break;
+        case Type::STORAGE_IMAGE:
+            // HLSL: assume D3D11.1, which allows for more than 8 UAV slots
+            // MSL: uses texture bindslot, but enough bindslot space available to move behind texture bindings
+            // WGSL: dedicated bindgroup(2)
+            if (Slang::is_hlsl(slang)) {
+                res = MaxStorageBuffers;
+            } else if (Slang::is_msl(slang)) {
+                res = MaxImages;
+            }
     }
     return res;
 }
@@ -118,6 +134,15 @@ inline const StorageBuffer* Bindings::find_storage_buffer_by_sokol_slot(int slot
     for (const StorageBuffer& sbuf: storage_buffers) {
         if (sbuf.sokol_slot == slot) {
             return &sbuf;
+        }
+    }
+    return nullptr;
+}
+
+inline const StorageImage* Bindings::find_storage_image_by_sokol_slot(int slot) const {
+    for (const StorageImage& simg: storage_images) {
+        if (simg.sokol_slot == slot) {
+            return &simg;
         }
     }
     return nullptr;
@@ -168,6 +193,15 @@ inline const StorageBuffer* Bindings::find_storage_buffer_by_name(const std::str
     return nullptr;
 }
 
+inline const StorageImage* Bindings::find_storage_image_by_name(const std::string& name) const {
+    for (const StorageImage& simg: storage_images) {
+        if (simg.name == name) {
+            return &simg;
+        }
+    }
+    return nullptr;
+}
+
 inline const Image* Bindings::find_image_by_name(const std::string& name) const {
     for (const Image& img: images) {
         if (img.name == name) {
@@ -203,6 +237,10 @@ inline void Bindings::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}storage_buffers:\n", indent);
     for (const auto& sbuf: storage_buffers) {
         sbuf.dump_debug(indent);
+    }
+    fmt::print(stderr, "{}storage_images:\n", indent);
+    for (const auto& simg: storage_images) {
+        simg.dump_debug(indent);
     }
     fmt::print(stderr, "{}images:\n", indent);
     for (const auto& img: images) {

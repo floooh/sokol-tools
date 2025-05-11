@@ -76,7 +76,7 @@ static const char* slang_file_extension(Slang::Enum c, bool binary) {
     if (Slang::is_msl(c)) {
         return binary ? ".metallib" : ".metal";
     }
-    if (Slang::is_msl(c)) {
+    if (Slang::is_wgsl(c)) {
         return ".wgsl";
     }
     return "";
