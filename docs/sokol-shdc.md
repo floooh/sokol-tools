@@ -20,10 +20,10 @@ output formats) for use with sokol-gfx.
 Shaders are written in 'Vulkan-style GLSL' (version 450 with separate texture and sampler
 uniforms) and translated into the following shader dialects:
 
-- GLSL v300es (for GLES3 and WebGL2)
-- GLSL v310es (for GLES3.1, note that this currently isn't supported by sokol_gfx.h)
-- GLSL v410 (for desktop GL without compute shader support)
-- GLSL v430 (for desktop GL with compute shader support)
+- GLSL v300es (for GLES3.0 and WebGL2 without compute shader support)
+- GLSL v310es (for GLES3.1 with compute shader support)
+- GLSL v410 (for desktop GL 4.1 without compute shader support)
+- GLSL v430 (for desktop GL 4.3+ with compute shader support)
 - HLSL4 or HLSL5 (for D3D11), optionally as bytecode
 - Metal (for macOS and iOS), optionally as bytecode
 - WGSL (for WebGPU)
@@ -35,7 +35,7 @@ This cross-compilation happens via existing Khronos and Google open source proje
 to run optimization passes on the intermediate SPIRV (mainly for dead-code elimination)
 - [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross): for translating the SPIRV
 bytecode to GLSL dialects, HLSL and Metal
-- [Tint](https://dawn.googlesource.com/tint): for translating SPIR-V to WGSL
+- [Tint](https://github.com/floooh/tint-extract): for translating SPIR-V to WGSL
 
 sokol-shdc supports the following output formats:
 
@@ -43,6 +43,7 @@ sokol-shdc supports the following output formats:
 - Zig for integration with [sokol-zig](https://github.com/floooh/sokol-zig)
 - Rust for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
+- C3 for integration with [sokol-c3](https://github.com/floooh/sokol-c3)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
 - D for integration with [sokol-d](https://github.com/kassane/sokol-d)
 - Jai for integration with [sokol-jai](https://github.com/colinbellino/sokol-jai)
@@ -295,8 +296,8 @@ void main() {
 ### Command Line Reference
 
 - **-h --help**: Print usage information and exit
-- **-i --input=[GLSL file]**: The path to the input shader file in 'annotated
-  GLSL' format, this must be either relative to the current working directory,
+- **-i --input=[GLSL file]**: The path to the input shader file in sokol-shdc's "annotated
+  GLSL" format, this must be either relative to the current working directory,
   or an absolute path.
 - **-o --output=[path]**: The path to the generated output source file, either
   relative to the current working directory, or as absolute path. The target
@@ -322,7 +323,7 @@ void main() {
     - **metal_sim**: Metal on iOS simulator
     - **wgsl**: WebGPU
 
-  For instance, to generate header with support for Metal on macOS and desktop GL:
+  For instance, to generate a header with support for Metal on macOS and desktop GL:
 
   ```
   --slang glsl430:metal_macos
@@ -354,10 +355,7 @@ follows:
       the ```SOKOL_SHDC_DECL``` is *not* defined
     - **bare**: compiled shader code is written as plain text or
       binary files. For each combination of shader program and target language,
-      a file name based on *--output* is constructed as follows:
-        - **glsl**: *.frag.glsl and *.vert.glsl
-        - **hlsl**: *.frag.hlsl and *.vert.hlsl, or *.fxc for bytecode
-        - **metal**: *.frag.metal and *.vert.metal, or *.metallib for bytecode
+      a file name based on *--output* is written.
     - **bare_yaml**: like bare, but also creates a YAML file with shader reflection information.
     - **sokol_zig**: generates output for the [sokol-zig bindings](https://github.com/floooh/sokol-zig/)
     - **sokol_odin**: generates output for the [sokol-odin bindings](https://github.com/floooh/sokol-odin)
@@ -574,7 +572,7 @@ quotes. The ```@include``` tag can appear inside or outside a code block:
 
 ### @ctype [glsl_type] [c_type]
 
-The `@ctype` tag defines a type-mapping from GLSL to C or C++ in uniform blocks
+The `@ctype` tag defines a type-mapping from GLSL to the output language in uniform blocks
 for the GLSL types `float`, `vec2`, `vec3`, `vec4`, `int`, `int2`, `int3`,
 `int4`, and `mat4` (these are the currently valid types for use in GLSL uniform
 blocks).
@@ -705,6 +703,8 @@ typedef struct bla_shape_uniforms_t {
     hmm_vec4 eye_pos;
 } bla_shape_uniforms_t;
 ```
+
+Note that some output languages ignore the module tag.
 
 ### @glsl_options, @hlsl_options, @msl_options
 
@@ -907,18 +907,21 @@ All GLSL resource types (uniform blocks, textures, samplers and storage buffers)
 must be annotated with explicit bind slots via `layout(binding=N)`. Each resource
 type has its own binding space which directly maps to sokol_gfx.h bindslots:
 
-- uniform blocks:
+- uniform blocks (all shader stages):
     - `layout(binding=N) uniform { ... }` where `(N >= 0) && (N < 8)`
     - N maps to to the ub_slot params in `sg_apply_uniforms(N, ...)`
-- textures:
+- textures (all shader stages):
     - `layout(binding=N) texture2D tex;` where `(N >= 0) && (N < 16)`
     - N maps to the image index in `sg_bindings.images[N]`
-- samplers:
+- samplers (all shader stages):
     - `layout(binding=N) sampler smp;` where `(N >= 0) && (N < 16)`
     - N maps to the sampler index in `sg_bindings.samplers[N]`
-- storage buffers:
+- storage buffers (all shader stages):
     - `layout(binding=N) readonly buffer ssbo { ... }` where `(N >= 0) && (N < 8)`
     - N maps to the storage buffer index in `sg_bindings.storage_buffers[N]`
+- storage images (only allowed compute shaders):
+    - `layout(binding=N, rgba8) uniform writeonly image2D img` where `(N >=0) && (N < 4)`
+    - N maps to the storage attachment index in `sg_attachments_desc.storages[N]`
 
 Bindings must be unique per resource type within a shader `@program` across
 shader stages, and all resources of the same type and name across all programs
@@ -998,7 +1001,7 @@ sg_apply_uniforms(0, &SG_RANGE(vs_params));
 sg_apply_uniforms(1, &SG_RANGE(fs_params));
 ```
 
-### Binding images and samplers
+### Binding textures and samplers
 
 Textures and samplers must be defined separately in the input GLSL (this is
 also known as 'Vulkan-style GLSL'). Just as with uniform blocks, you must
@@ -1117,6 +1120,47 @@ On the C side, `sokol-shdc` will create a C struct `sb_vertex_t` with the requir
 alignment and padding (according to `std430` layout) and a `SLOT_ssbo` define
 which can be used in the `sg_bindings` struct to index into the `vs.storage_buffers` or
 `fs.storage_buffers` arrays.
+
+### Binding storage images
+
+Note that storage image bindings are only allowed in compute shaders and only
+in `writeonly` and `readwrite` access mode. For `readonly` access, bind the
+sokol-gfx image object as a regular texture/sampler pair.
+
+In a compute shader, first define a storage image bindings as `writeonly`
+or `readwrite` and then access it via the `imageLoad()` or `imageStore()`
+GLSL builtins:
+
+```glsl
+@cs cs
+layout(binding=0, rgba8) uniform writeonly image2D cs_outp_tex;
+
+void main() {
+    //...
+    imageStore(cs_outp_tex, coord, value);
+    //...
+}
+@end
+```
+
+On the CPU side, storage images are currently bound as compute pass
+attachments (in a later update this planned to move into a regular
+binding via `sg_apply_bindings()`):
+
+```c
+sg_image img = sg_make_image(&(sg_image_desc){
+    .usage = { .storage_attachment = true },
+    // ...
+});
+
+sg_attachments atts = sg_make_attachments(&(sg_attachments_desc){
+    .storages[SIMG_cs_outp_tex].image = img,
+});
+
+sg_begin_pass(&(sg_pass){ .compute = true, .attachemnts = atts });
+// ...
+sg_end_pass();
+```
 
 ### GLSL uniform blocks and C structs
 
@@ -1327,8 +1371,11 @@ provides additional type information with the following function:
 
 `sg_glsl_shader_uniform [mod]_[prog]_uniform_desc(const char* ub_name, const char* u_name)`
 
-### Storage buffer inspection
+### Storage buffer and storage image inspection
 
-Currently, only the bind slot can be inspected for storage buffers:
+Currently, only the bind slot can be inspected for storage resources:
 
-`int [mod]_[prog]_storagebuffer_slot(const char* sbuf_name)`
+```c
+int [mod]_[prog]_storagebuffer_slot(const char* sbuf_name);
+int [mod]_[prog]_storageimage_slot(const char* sbuf_name);
+```
