@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+#### **20-May-2025**
+
+This is the update for the sokol-gfx `compute-ms2` update which adds storage
+image support in compute shaders (if not using compute shaders the
+code generator output is compatible with older sokol-gfx versions).
+
+Other then that a minor bugfix: when using the `bare` or `bare_yaml` targets,
+the output WGSL files didn't have a the .wgsl file extension (in fact: no
+file extension at all).
+
 #### **16-Apr-2025**
 
 All dependencies have been updated to the latest versions and the Tint
