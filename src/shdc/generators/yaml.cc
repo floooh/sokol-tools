@@ -84,6 +84,13 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
+                if (prog.bindings.storage_images.size() > 0) {
+                    l_open("storage_images:\n");
+                    for (const auto& simg: prog.bindings.storage_images) {
+                        gen_storage_image(simg, slang);
+                    }
+                    l_close();
+                }
                 if (prog.bindings.images.size() > 0) {
                     l_open("images:\n");
                     for (const auto& image: prog.bindings.images) {
@@ -219,6 +226,26 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum sl
     l_close();
 }
 
+void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slang) {
+    l_open("-\n");
+    l("slot: {}\n", simg.sokol_slot);
+    l("stage: {}\n", shader_stage(simg.stage));
+    l("name: {}\n", simg.name);
+    l("type: {}\n", image_type(simg.type));
+    l("access_format: {}\n", storage_pixel_format(simg.access_format));
+    l("writeonly: {}\n", simg.writeonly);
+    if (Slang::is_hlsl(slang)) {
+        l("hlsl_register_u_n: {}\n", simg.hlsl_register_u_n);
+    } else if (Slang::is_msl(slang)) {
+        l("msl_texture_n: {}\n", simg.msl_texture_n);
+    } else if (Slang::is_wgsl(slang)) {
+        l("wgsl_group2_binding_n: {}\n", simg.wgsl_group2_binding_n);
+    } else if (Slang::is_glsl(slang)) {
+        l("glsl_binding_n: {}\n", simg.glsl_binding_n);
+    }
+    l_close();
+}
+
 void YamlGenerator::gen_image(const Image& img, Slang::Enum slang) {
     l_open("-\n");
     l("slot: {}\n", img.sokol_slot);
@@ -306,6 +333,10 @@ std::string YamlGenerator::image_sample_type(ImageSampleType::Enum e) {
 
 std::string YamlGenerator::sampler_type(SamplerType::Enum e) {
     return SamplerType::to_str(e);
+}
+
+std::string YamlGenerator::storage_pixel_format(StoragePixelFormat::Enum e) {
+    return StoragePixelFormat::to_str(e);
 }
 
 } // namespace

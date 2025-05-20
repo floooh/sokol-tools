@@ -166,6 +166,28 @@ static ImageType::Enum spirtype_to_image_type(const SPIRType& type) {
     return ImageType::INVALID;
 }
 
+static StoragePixelFormat::Enum spirtype_to_storage_pixel_format(const SPIRType& type) {
+    switch (type.image.format) {
+        case spv::ImageFormatRgba8: return StoragePixelFormat::RGBA8;
+        case spv::ImageFormatRgba8Snorm: return StoragePixelFormat::RGBA8SN;
+        case spv::ImageFormatRgba8ui: return StoragePixelFormat::RGBA8UI;
+        case spv::ImageFormatRgba8i: return StoragePixelFormat::RGBA8SI;
+        case spv::ImageFormatRgba16ui: return StoragePixelFormat::RGBA16UI;
+        case spv::ImageFormatRgba16i: return StoragePixelFormat::RGBA16SI;
+        case spv::ImageFormatRgba16f: return StoragePixelFormat::RGBA16F;
+        case spv::ImageFormatR32ui: return StoragePixelFormat::R32UI;
+        case spv::ImageFormatR32i: return StoragePixelFormat::R32SI;
+        case spv::ImageFormatR32f: return StoragePixelFormat::R32F;
+        case spv::ImageFormatRg32ui: return StoragePixelFormat::RG32UI;
+        case spv::ImageFormatRg32i: return StoragePixelFormat::RG32SI;
+        case spv::ImageFormatRg32f: return StoragePixelFormat::RG32F;
+        case spv::ImageFormatRgba32ui: return StoragePixelFormat::RGBA32UI;
+        case spv::ImageFormatRgba32i: return StoragePixelFormat::RGBA32SI;
+        case spv::ImageFormatRgba32f: return StoragePixelFormat::RGBA32F;
+        default: return StoragePixelFormat::INVALID;
+    }
+}
+
 static ImageSampleType::Enum spirtype_to_image_sample_type(const SPIRType& type) {
     if (type.image.depth) {
         return ImageSampleType::DEPTH;
@@ -346,6 +368,26 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
+    // storage images
+    for (const Resource& simg_res: shd_resources.storage_images) {
+        const int slot = compiler.get_decoration(simg_res.id, spv::DecorationBinding);
+        const auto& spir_type = compiler.get_type(simg_res.type_id);
+        const auto& mask = compiler.get_decoration_bitset(simg_res.id);
+        const Bindings::Type res_type = Bindings::Type::STORAGE_IMAGE;
+        StorageImage refl_simg;
+        refl_simg.stage = refl.stage;
+        refl_simg.name = simg_res.name;
+        refl_simg.sokol_slot = inp.find_simg_slot(refl_simg.name);
+        refl_simg.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_simg.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_simg.wgsl_group2_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_simg.glsl_binding_n = refl_simg.sokol_slot;
+        refl_simg.writeonly = mask.get(spv::DecorationNonReadable);
+        refl_simg.type = spirtype_to_image_type(spir_type);
+        refl_simg.access_format = spirtype_to_storage_pixel_format(spir_type);
+        refl.bindings.storage_images.push_back(refl_simg);
+    }
+
     // (separate) images
     for (const Resource& img_res: shd_resources.separate_images) {
         const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
@@ -452,6 +494,20 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
                 }
             } else {
                 out_bindings.storage_buffers.push_back(sbuf);
+            }
+        }
+
+        // merge identical storage images
+        for (const StorageImage& simg: src_bindings.storage_images) {
+            const StorageImage* other_simg = out_bindings.find_storage_image_by_name(simg.name);
+            if (other_simg) {
+                // another storage image of the same name exists, make sure it's identical
+                if (!simg.equals(*other_simg)) {
+                    out_error = ErrMsg::error(fmt::format("conflicting storage image definitions found for '{}'", simg.name));
+                    return Bindings();
+                }
+            } else {
+                out_bindings.storage_images.push_back(simg);
             }
         }
 
@@ -641,6 +697,7 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
     }
     {
         std::array<std::string, Bindings::MaxStorageBuffers> sbuf_slots;
+        std::array<std::string, Bindings::MaxStorageImages> simg_slots;
         for (const auto& sbuf: bindings.storage_buffers) {
             const int slot = sbuf.sokol_slot;
             if ((slot < 0) || (slot >= Bindings::MaxStorageBuffers)) {
@@ -656,6 +713,22 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
                     slot));
             }
             sbuf_slots[slot] = sbuf.name;
+        }
+        for (const auto& simg: bindings.storage_images) {
+            const int slot = simg.sokol_slot;
+            if ((slot < 0) || (slot >= Bindings::MaxStorageImages)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for storage image '{}' (must be 0..{})",
+                    slot,
+                    simg.name,
+                    Bindings::MaxStorageImages - 1));
+            }
+            if (!simg_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("storage image '{}' and '{}' cannot use the same binding {}",
+                    simg_slots[slot],
+                    simg.name,
+                    slot));
+            }
+            simg_slots[slot] = simg.name;
         }
     }
     {

@@ -374,6 +374,25 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
+            for (int simg_index = 0; simg_index < Bindings::MaxStorageImages; simg_index++) {
+                const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
+                if (simg) {
+                    const std::string& sin = fmt::format("result.storageImages[{}]", simg_index);
+                    l("{}.stage = {}\n", sin, shader_stage(simg->stage));
+                    l("{}.imageType = {}\n", sin, image_type(simg->type));
+                    l("{}.accessFormat = {}\n", sin, storage_pixel_format(simg->access_format));
+                    l("{}.writeonly = {}\n", sin, simg->writeonly);
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlslRegisterUN = {}\n", sin, simg->hlsl_register_u_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.mslTextureN = {}\n", sin, simg->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgslGroup2BindingN = {}\n", sin, simg->wgsl_group2_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glslBindingN = {}\n", sin, simg->glsl_binding_n);
+                    }
+                }
+            }
             for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
                 const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
                 if (img) {
@@ -543,6 +562,28 @@ std::string SokolNimGenerator::sampler_type(SamplerType::Enum e) {
     }
 }
 
+std::string SokolNimGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
+    switch (e) {
+        case StoragePixelFormat::RGBA8:     return "pixelFormatRgba8";
+        case StoragePixelFormat::RGBA8SN:   return "pixelFormatRgba8sn";
+        case StoragePixelFormat::RGBA8UI:   return "pixelFormatRgba8ui";
+        case StoragePixelFormat::RGBA8SI:   return "pixelFormatRgbs8si";
+        case StoragePixelFormat::RGBA16UI:  return "pixelFormatRgba16ui";
+        case StoragePixelFormat::RGBA16SI:  return "pixelFormatRgba16si";
+        case StoragePixelFormat::RGBA16F:   return "pixelFormatRgba16f";
+        case StoragePixelFormat::R32UI:     return "pixelFormatR32ui";
+        case StoragePixelFormat::R32SI:     return "pixelFormatR32si";
+        case StoragePixelFormat::R32F:      return "pixelFormatR32f";
+        case StoragePixelFormat::RG32UI:    return "pixelFormatRg32ui";
+        case StoragePixelFormat::RG32SI:    return "pixelFormatRg32si";
+        case StoragePixelFormat::RG32F:     return "pixelFormatRg32f";
+        case StoragePixelFormat::RGBA32UI:  return "pixelFormatRgba32ui";
+        case StoragePixelFormat::RGBA32SI:  return "pixelFormatRgba32si";
+        case StoragePixelFormat::RGBA32F:   return "pixelFormatRgba32f";
+        default: return "INVALID";
+    }
+}
+
 std::string SokolNimGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
@@ -591,6 +632,10 @@ std::string SokolNimGenerator::storage_buffer_bind_slot_name(const StorageBuffer
     return to_camel_case(fmt::format("SBUF_{}", sbuf.name));
 }
 
+std::string SokolNimGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return to_camel_case(fmt::format("SIMG_{}", simg.name));
+}
+
 std::string SokolNimGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("const {}* = {}", vertex_attr_name(prog_name, attr), attr.slot);
 }
@@ -609,6 +654,10 @@ std::string SokolNimGenerator::uniform_block_bind_slot_definition(const UniformB
 
 std::string SokolNimGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
     return fmt::format("const {}* = {}", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
+}
+
+std::string SokolNimGenerator::storage_image_bind_slot_definition(const StorageImage& simg) {
+    return fmt::format("const {}* = {}", storage_image_bind_slot_name(simg), simg.sokol_slot);
 }
 
 } // namespace

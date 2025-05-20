@@ -75,6 +75,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
                 l("int {}{}_uniformblock_slot(const char* ub_name);\n", mod_prefix, prog.name);
                 l("size_t {}{}_uniformblock_size(const char* ub_name);\n", mod_prefix, prog.name);
                 l("int {}{}_storagebuffer_slot(const char* sbuf_name);\n", mod_prefix, prog.name);
+                l("int {}{}_storageimage_slot(const char* simg_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniform_offset(const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
                 l("sg_glsl_shader_uniform {}{}_uniform_desc(const char* ub_name, const char* u_name);\n", mod_prefix, prog.name);
             }
@@ -358,6 +359,25 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
+            for (int simg_index = 0; simg_index < Bindings::MaxStorageImages; simg_index++) {
+                const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
+                if (simg) {
+                    const std::string& sin = fmt::format("desc.storage_images[{}]", simg_index);
+                    l("{}.stage = {};\n", sin, shader_stage(simg->stage));
+                    l("{}.image_type = {};\n", sin, image_type(simg->type));
+                    l("{}.access_format = {};\n", sin, storage_pixel_format(simg->access_format));
+                    l("{}.writeonly = {};\n", sin, simg->writeonly);
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_u_n = {};\n", sin, simg->hlsl_register_u_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {};\n", sin, simg->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group2_binding_n = {};\n", sin, simg->wgsl_group2_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
+                    }
+                }
+            }
             for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
                 const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
                 if (img) {
@@ -492,6 +512,20 @@ void SokolCGenerator::gen_storage_buffer_slot_refl_func(const GenInput& gen, con
         if (sbuf.sokol_slot >= 0) {
             l_open("if (0 == strcmp(sbuf_name, \"{}\")) {{\n", sbuf.name);
             l("return {};\n", sbuf.sokol_slot);
+            l_close("}}\n");
+        }
+    }
+    l("return -1;\n");
+    l_close("}}\n");
+}
+
+void SokolCGenerator::gen_storage_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("{}int {}{}_storageimage_slot(const char* simg_name) {{\n", func_prefix, mod_prefix, prog.name);
+    l("(void)simg_name;\n");
+    for (const StorageImage& simg: prog.bindings.storage_images) {
+        if (simg.sokol_slot >= 0) {
+            l_open("if (0 == strcmp(simg_name, \"{}\")) {{\n", simg.name);
+            l("return {};\n", simg.sokol_slot);
             l_close("}}\n");
         }
     }
@@ -678,6 +712,28 @@ std::string SokolCGenerator::sampler_type(SamplerType::Enum e) {
     }
 }
 
+std::string SokolCGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
+    switch (e) {
+        case StoragePixelFormat::RGBA8:     return "SG_PIXELFORMAT_RGBA8";
+        case StoragePixelFormat::RGBA8SN:   return "SG_PIXELFORMAT_RGBA8SN";
+        case StoragePixelFormat::RGBA8UI:   return "SG_PIXELFORMAT_RGBA8UI";
+        case StoragePixelFormat::RGBA8SI:   return "SG_PIXELFORMAT_RGBS8SI";
+        case StoragePixelFormat::RGBA16UI:  return "SG_PIXELFORMAT_RGBA16UI";
+        case StoragePixelFormat::RGBA16SI:  return "SG_PIXELFORMAT_RGBA16SI";
+        case StoragePixelFormat::RGBA16F:   return "SG_PIXELFORMAT_RGBA16F";
+        case StoragePixelFormat::R32UI:     return "SG_PIXELFORMAT_R32UI";
+        case StoragePixelFormat::R32SI:     return "SG_PIXELFORMAT_R32SI";
+        case StoragePixelFormat::R32F:      return "SG_PIXELFORMAT_R32F";
+        case StoragePixelFormat::RG32UI:    return "SG_PIXELFORMAT_RG32UI";
+        case StoragePixelFormat::RG32SI:    return "SG_PIXELFORMAT_RG32SI";
+        case StoragePixelFormat::RG32F:     return "SG_PIXELFORMAT_RG32F";
+        case StoragePixelFormat::RGBA32UI:  return "SG_PIXELFORMAT_RGBA32UI";
+        case StoragePixelFormat::RGBA32SI:  return "SG_PIXELFORMAT_RGBA32SI";
+        case StoragePixelFormat::RGBA32F:   return "SG_PIXELFORMAT_RGBA32F";
+        default: return "INVALID";
+    }
+}
+
 std::string SokolCGenerator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
@@ -726,6 +782,10 @@ std::string SokolCGenerator::storage_buffer_bind_slot_name(const StorageBuffer& 
     return fmt::format("SBUF_{}{}", mod_prefix, sbuf.name);
 }
 
+std::string SokolCGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return fmt::format("SIMG_{}{}", mod_prefix, simg.name);
+}
+
 std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("#define {} ({})", vertex_attr_name(prog_name, attr), attr.slot);
 }
@@ -744,6 +804,10 @@ std::string SokolCGenerator::uniform_block_bind_slot_definition(const UniformBlo
 
 std::string SokolCGenerator::storage_buffer_bind_slot_definition(const StorageBuffer& sbuf) {
     return fmt::format("#define {} ({})", storage_buffer_bind_slot_name(sbuf), sbuf.sokol_slot);
+}
+
+std::string SokolCGenerator::storage_image_bind_slot_definition(const StorageImage& simg) {
+    return fmt::format("#define {} ({})", storage_image_bind_slot_name(simg), simg.sokol_slot);
 }
 
 } // namespace
