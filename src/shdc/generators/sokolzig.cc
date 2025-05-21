@@ -609,7 +609,7 @@ void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Progr
 }
 
 void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}StorageImageSlot(img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+    l_open("pub fn {}ImageSlot(img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_image = false;
     for (const Image& img: prog.bindings.images) {
         if (img.sokol_slot >= 0) {
