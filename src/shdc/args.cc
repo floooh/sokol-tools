@@ -29,6 +29,7 @@ enum {
     OPTION_REFLECTION,
     OPTION_SAVE_INTERMEDIATE_SPIRV,
     OPTION_NO_LOG_CMDLINE,
+    OPTION_DEPENDENCY_FILE,
 };
 
 static const getopt_option_t option_list[] = {
@@ -49,6 +50,7 @@ static const getopt_option_t option_list[] = {
     { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
     { "save-intermediate-spirv", 0, GETOPT_OPTION_TYPE_NO_ARG,  0, OPTION_SAVE_INTERMEDIATE_SPIRV, "save intermediate SPIRV bytecode (for debug inspection)"},
     { "no-log-cmdline",     0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NO_LOG_CMDLINE, "don't log the cmdline to the code-generated output file"},
+    { "dependency-file",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEPENDENCY_FILE, "generate a makefile-style dependency file at the given path", "[deps file]" },
     GETOPT_OPTIONS_END
 };
 
@@ -260,6 +262,9 @@ Args Args::parse(int argc, const char** argv) {
                 case OPTION_NOIFDEF:
                     // obsolete, but keep for backwards compatibility
                     args.ifdef = false;
+                    break;
+                case OPTION_DEPENDENCY_FILE:
+                    args.dependency_file = ctx.current_opt_arg;
                     break;
                 case OPTION_HELP:
                     print_help_string(ctx);

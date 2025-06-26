@@ -34,6 +34,24 @@ int main(int argc, const char** argv) {
         inp.out_error.print(args.error_format);
         return 10;
     }
+    
+    // output source file dependencies
+    if (args.dependency_file.length() > 0) {
+        std::string content;
+        content.append(fmt::format("{}: ", inp.filenames[0].data()));
+        for (size_t i = 1; i < inp.filenames.size(); i++) {
+            content.append(fmt::format(" \\\n  {}", inp.filenames[i].data()));
+        }
+        content.append("\n");
+        FILE* f = fopen(args.dependency_file.c_str(), "w");
+        if (!f) {
+            ErrMsg err = ErrMsg::error(inp.base_path, 0, fmt::format("failed to open dependency output file '{}'", args.dependency_file));
+            err.print(args.error_format);
+            return 10;
+        }
+        fwrite(content.c_str(), content.length(), 1, f);
+        fclose(f);
+    }
 
     // compile source snippets to SPIRV blobs (multiple compilations is necessary
     // because of conditional compilation by target language)

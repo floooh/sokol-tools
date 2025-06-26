@@ -15,6 +15,7 @@ struct Args {
     std::string input;                  // input file path
     std::string output;                 // output file path
     std::string tmpdir;                 // directory for temporary files
+    std::string dependency_file;        // optional dependency file to generate
     std::string module;                 // optional @module name override
     std::vector<std::string> defines;   // additional preprocessor defines
     uint32_t slang = 0;                 // combined Slang bits
