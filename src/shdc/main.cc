@@ -7,6 +7,7 @@
 #include "spirvcross.h"
 #include "bytecode.h"
 #include "reflection.h"
+#include "util.h"
 #include "generators/generate.h"
 
 using namespace shdc;
@@ -33,6 +34,15 @@ int main(int argc, const char** argv) {
     if (inp.out_error.valid()) {
         inp.out_error.print(args.error_format);
         return 10;
+    }
+
+    // output source file dependencies
+    if (!args.dependency_file.empty()) {
+        const ErrMsg err = util::write_dep_file(args.dependency_file, inp);
+        if (err.valid()) {
+            err.print(args.error_format);
+            return 10;
+        }
     }
 
     // compile source snippets to SPIRV blobs (multiple compilations is necessary

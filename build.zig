@@ -33,6 +33,7 @@ pub fn buildExe(
         "reflection.cc",
         "spirv.cc",
         "spirvcross.cc",
+        "util.cc",
         "generators/bare.cc",
         "generators/generate.cc",
         "generators/generator.cc",

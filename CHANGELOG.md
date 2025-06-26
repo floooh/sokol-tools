@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+### **26-Jun-2025**
+
+sokol-shdc can now write a Clang/GCC style dep-file via the new command line
+options `--dependency-file [path]`. Many thanks to @Seb-degraff for the PR
+(https://github.com/floooh/sokol-tools/pull/185).
+
 #### **20-May-2025**
 
 This is the update for the sokol-gfx `compute-ms2` update which adds storage
