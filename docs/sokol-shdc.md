@@ -392,6 +392,7 @@ preprocessor defines for the initial GLSL-to-SPIRV compilation pass
 - **--save-intermediate-spirv**: debug feature to save out the intermediate SPIRV blob, useful for debug inspection
 - **--no-log-cmdline**: don't log the command line to the output file (useful when the output is committed to
   version control and sokol-shdc is called with absolute input/output paths)
+- **--dependency-file=[path]**: generate a Clang/GCC style dep-file for use with build systems
 
 ## Shader Tags Reference
 
