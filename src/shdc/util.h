@@ -4,6 +4,6 @@
 
 namespace shdc::util {
 
-ErrMsg write_dep_file(const std::string& dep_file_path, const Input& inp);
+ErrMsg write_dep_file(const Args& args, const Input& inp);
 
 } // namespace shdc::util
