@@ -50,7 +50,7 @@ static const getopt_option_t option_list[] = {
     { "noifdef",            'n', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NOIFDEF,      "obsolete, superseded by --ifdef"},
     { "save-intermediate-spirv", 0, GETOPT_OPTION_TYPE_NO_ARG,  0, OPTION_SAVE_INTERMEDIATE_SPIRV, "save intermediate SPIRV bytecode (for debug inspection)"},
     { "no-log-cmdline",     0,   GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_NO_LOG_CMDLINE, "don't log the cmdline to the code-generated output file"},
-    { "dependency-file",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEPENDENCY_FILE, "generate a makefile-style dependency file at the given path", "[deps file]" },
+    { "dependency-file",    0,   GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_DEPENDENCY_FILE, "generate a Clang/GCC style dep-file for use with build systems", "[deps file]" },
     GETOPT_OPTIONS_END
 };
 

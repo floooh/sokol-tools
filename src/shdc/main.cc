@@ -38,7 +38,7 @@ int main(int argc, const char** argv) {
 
     // output source file dependencies
     if (!args.dependency_file.empty()) {
-        const ErrMsg err = util::write_dep_file(args.dependency_file, inp);
+        const ErrMsg err = util::write_dep_file(args, inp);
         if (err.valid()) {
             err.print(args.error_format);
             return 10;
