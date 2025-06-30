@@ -91,10 +91,10 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
-                if (prog.bindings.images.size() > 0) {
-                    l_open("images:\n");
-                    for (const auto& image: prog.bindings.images) {
-                        gen_image(image, slang);
+                if (prog.bindings.textures.size() > 0) {
+                    l_open("textures:\n");
+                    for (const auto& texture: prog.bindings.textures) {
+                        gen_texture(texture, slang);
                     }
                     l_close();
                 }
@@ -105,10 +105,10 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
-                if (prog.bindings.image_samplers.size() > 0) {
-                    l_open("image_sampler_pairs:\n");
-                    for (const auto& image_sampler: prog.bindings.image_samplers) {
-                        gen_image_sampler(image_sampler, slang);
+                if (prog.bindings.texture_samplers.size() > 0) {
+                    l_open("texture_sampler_pairs:\n");
+                    for (const auto& texture_sampler: prog.bindings.texture_samplers) {
+                        gen_texture_sampler(texture_sampler, slang);
                     }
                     l_close();
                 }
@@ -246,20 +246,20 @@ void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slan
     l_close();
 }
 
-void YamlGenerator::gen_image(const Image& img, Slang::Enum slang) {
+void YamlGenerator::gen_texture(const Texture& tex, Slang::Enum slang) {
     l_open("-\n");
-    l("slot: {}\n", img.sokol_slot);
-    l("stage: {}\n", shader_stage(img.stage));
-    l("name: {}\n", img.name);
-    l("multisampled: {}\n", img.multisampled);
-    l("type: {}\n", image_type(img.type));
-    l("sample_type: {}\n", image_sample_type(img.sample_type));
+    l("slot: {}\n", tex.sokol_slot);
+    l("stage: {}\n", shader_stage(tex.stage));
+    l("name: {}\n", tex.name);
+    l("multisampled: {}\n", tex.multisampled);
+    l("type: {}\n", image_type(tex.type));
+    l("sample_type: {}\n", image_sample_type(tex.sample_type));
     if (Slang::is_hlsl(slang)) {
-        l("hlsl_register_t_n: {}\n", img.hlsl_register_t_n);
+        l("hlsl_register_t_n: {}\n", tex.hlsl_register_t_n);
     } else if (Slang::is_msl(slang)) {
-        l("msl_texture_n: {}\n", img.msl_texture_n);
+        l("msl_texture_n: {}\n", tex.msl_texture_n);
     } else if (Slang::is_wgsl(slang)) {
-        l("wgsl_group1_binding_n: {}\n", img.wgsl_group1_binding_n);
+        l("wgsl_group1_binding_n: {}\n", tex.wgsl_group1_binding_n);
     }
     l_close();
 }
@@ -280,15 +280,15 @@ void YamlGenerator::gen_sampler(const Sampler& smp, Slang::Enum slang) {
     l_close();
 }
 
-void YamlGenerator::gen_image_sampler(const ImageSampler& img_smp, Slang::Enum slang) {
+void YamlGenerator::gen_texture_sampler(const TextureSampler& tex_smp, Slang::Enum slang) {
     l_open("-\n");
-    l("slot: {}\n", img_smp.sokol_slot);
-    l("stage: {}\n", shader_stage(img_smp.stage));
-    l("name: {}\n", img_smp.name);
-    l("image_name: {}\n", img_smp.image_name);
-    l("sampler_name: {}\n", img_smp.sampler_name);
+    l("slot: {}\n", tex_smp.sokol_slot);
+    l("stage: {}\n", shader_stage(tex_smp.stage));
+    l("name: {}\n", tex_smp.name);
+    l("texture_name: {}\n", tex_smp.texture_name);
+    l("sampler_name: {}\n", tex_smp.sampler_name);
     if (Slang::is_glsl(slang)) {
-        l("glsl_name: {}\n", img_smp.name);
+        l("glsl_name: {}\n", tex_smp.name);
     }
     l_close();
 }

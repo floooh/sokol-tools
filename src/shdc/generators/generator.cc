@@ -140,12 +140,12 @@ void Generator::gen_bindings_info(const GenInput& gen) {
         cbl("Writeonly: {}\n", simg.writeonly);
         cbl_close();
     }
-    for (const Image& img: gen.refl.bindings.images) {
-        cbl_open("Image '{}':\n", img.name);
-        cbl("Image type: {}\n", image_type(img.type));
-        cbl("Sample type: {}\n", image_sample_type(img.sample_type));
-        cbl("Multisampled: {}\n", img.multisampled);
-        cbl("Bind slot: {} => {}\n", image_bind_slot_name(img), img.sokol_slot);
+    for (const Texture& tex: gen.refl.bindings.textures) {
+        cbl_open("Texture '{}':\n", tex.name);
+        cbl("Image type: {}\n", image_type(tex.type));
+        cbl("Sample type: {}\n", image_sample_type(tex.sample_type));
+        cbl("Multisampled: {}\n", tex.multisampled);
+        cbl("Bind slot: {} => {}\n", texture_bind_slot_name(tex), tex.sokol_slot);
         cbl_close();
     }
     for (const Sampler& smp: gen.refl.bindings.samplers) {
@@ -178,8 +178,8 @@ void Generator::gen_bind_slot_consts(const GenInput& gen) {
     for (const StorageImage& simg: gen.refl.bindings.storage_images) {
         l("{}\n", storage_image_bind_slot_definition(simg));
     }
-    for (const Image& img: gen.refl.bindings.images) {
-        l("{}\n", image_bind_slot_definition(img));
+    for (const Texture& tex: gen.refl.bindings.textures) {
+        l("{}\n", texture_bind_slot_definition(tex));
     }
     for (const Sampler& smp: gen.refl.bindings.samplers) {
         l("{}\n", sampler_bind_slot_definition(smp));
@@ -264,7 +264,7 @@ void Generator::gen_shader_desc_funcs(const GenInput& gen) {
 void Generator::gen_reflection_funcs(const GenInput& gen) {
     for (const auto& prog: gen.refl.progs) {
         gen_attr_slot_refl_func(gen, prog);
-        gen_image_slot_refl_func(gen, prog);
+        gen_texture_slot_refl_func(gen, prog);
         gen_sampler_slot_refl_func(gen, prog);
         gen_uniform_block_slot_refl_func(gen, prog);
         gen_uniform_block_size_refl_func(gen, prog);

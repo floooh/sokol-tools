@@ -388,30 +388,30 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl.bindings.storage_images.push_back(refl_simg);
     }
 
-    // (separate) images
+    // (separate) texture images
     for (const Resource& img_res: shd_resources.separate_images) {
         const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::IMAGE;
-        Image refl_img;
-        refl_img.stage = refl.stage;
-        refl_img.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_img.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_img.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        refl_img.name = img_res.name;
+        const Bindings::Type res_type = Bindings::Type::TEXTURE;
+        Texture refl_tex;
+        refl_tex.stage = refl.stage;
+        refl_tex.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
+        refl_tex.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
+        refl_tex.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_tex.name = img_res.name;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
-        refl_img.type = spirtype_to_image_type(img_type);
+        refl_tex.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
-            refl_img.sample_type = ImageSampleType::DEPTH;
+            refl_tex.sample_type = ImageSampleType::DEPTH;
         } else {
-            refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
+            refl_tex.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
-        refl_img.multisampled = spirtype_to_image_multisampled(img_type);
-        refl_img.sokol_slot = inp.find_img_slot(refl_img.name);
-        if (refl_img.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for image '{}' (might be unused in shader code?)\n", refl_img.name));
+        refl_tex.multisampled = spirtype_to_image_multisampled(img_type);
+        refl_tex.sokol_slot = inp.find_img_slot(refl_tex.name);
+        if (refl_tex.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for texture '{}' (might be unused in shader code?)\n", refl_tex.name));
             return refl;
         }
-        refl.bindings.images.push_back(refl_img);
+        refl.bindings.textures.push_back(refl_tex);
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
@@ -437,21 +437,21 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         refl.bindings.samplers.push_back(refl_smp);
     }
-    // combined image samplers
-    for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
-        ImageSampler refl_img_smp;
-        refl_img_smp.stage = refl.stage;
-        refl_img_smp.sokol_slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
-        refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
-        refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
-        refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);
-        refl.bindings.image_samplers.push_back(refl_img_smp);
+    // combined texture-samplers
+    for (auto& tex_smp_res: compiler.get_combined_image_samplers()) {
+        TextureSampler refl_tex_smp;
+        refl_tex_smp.stage = refl.stage;
+        refl_tex_smp.sokol_slot = compiler.get_decoration(tex_smp_res.combined_id, spv::DecorationBinding);
+        refl_tex_smp.name = compiler.get_name(tex_smp_res.combined_id);
+        refl_tex_smp.texture_name = compiler.get_name(tex_smp_res.image_id);
+        refl_tex_smp.sampler_name = compiler.get_name(tex_smp_res.sampler_id);
+        refl.bindings.texture_samplers.push_back(refl_tex_smp);
     }
-    // patch textures with overridden image-sample-types
-    for (auto& img: refl.bindings.images) {
-        const auto* tag = inp.find_image_sample_type_tag(img.name);
+    // patch textures with overridden texture-sample-types
+    for (auto& tex: refl.bindings.textures) {
+        const auto* tag = inp.find_image_sample_type_tag(tex.name);
         if (tag) {
-            img.sample_type = tag->type;
+            tex.sample_type = tag->type;
         }
     }
     // patch samplers with overridden sampler-types
@@ -511,17 +511,17 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
             }
         }
 
-        // merge identical images
-        for (const Image& img: src_bindings.images) {
-            const Image* other_img = out_bindings.find_image_by_name(img.name);
-            if (other_img) {
+        // merge identical textures
+        for (const Texture& tex: src_bindings.textures) {
+            const Texture* other_tex = out_bindings.find_texture_by_name(tex.name);
+            if (other_tex) {
                 // another image of the same name exists, make sure it's identical
-                if (!img.equals(*other_img)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting texture definitions found for '{}'", img.name));
+                if (!tex.equals(*other_tex)) {
+                    out_error = ErrMsg::error(fmt::format("conflicting texture definitions found for '{}'", tex.name));
                     return Bindings();
                 }
             } else {
-                out_bindings.images.push_back(img);
+                out_bindings.textures.push_back(tex);
             }
         }
 
@@ -539,32 +539,32 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
             }
         }
 
-        // merge image samplers (only for prog bindings)
-        // since image-samplers will have their bindings auto-assigned their slots won't
-        // match across programs, but common image-sampler bindings across programs are also not required
+        // merge texture samplers (only for prog bindings)
+        // since texture samplers will have their bindings auto-assigned their slots won't
+        // match across programs, but common texture-sampler bindings across programs are also not required
         // anywhere (such bindings are only needed for generating the common slot constants)
         if (to_prog_bindings) {
-            for (const ImageSampler& img_smp: src_bindings.image_samplers) {
-                const ImageSampler* other_img_smp = out_bindings.find_image_sampler_by_name(img_smp.name);
-                if (other_img_smp) {
-                    // another image sampler of the same name exists, make sure it's identical
-                    if (!img_smp.equals(*other_img_smp)) {
-                        out_error = ErrMsg::error(fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
+            for (const TextureSampler& tex_smp: src_bindings.texture_samplers) {
+                const TextureSampler* other_tex_smp = out_bindings.find_texture_sampler_by_name(tex_smp.name);
+                if (other_tex_smp) {
+                    // another texture sampler of the same name exists, make sure it's identical
+                    if (!tex_smp.equals(*other_tex_smp)) {
+                        out_error = ErrMsg::error(fmt::format("conflicting texture-sampler definition found for '{}'", tex_smp.name));
                         return Bindings();
                     }
                 } else {
-                    out_bindings.image_samplers.push_back(img_smp);
+                    out_bindings.texture_samplers.push_back(tex_smp);
                 }
             }
         }
     }
 
-    // if requested, assign new image-sampler slots which are unique across shader stages, this
+    // if requested, assign new texture-sampler slots which are unique across shader stages, this
     // is needed when merging the per-shader-stage bindings into per-program-bindings
     if (to_prog_bindings) {
         int sokol_slot = 0;
-        for (ImageSampler& img_smp: out_bindings.image_samplers) {
-            img_smp.sokol_slot = sokol_slot++;
+        for (TextureSampler& tex_smp: out_bindings.texture_samplers) {
+            tex_smp.sokol_slot = sokol_slot++;
         }
     }
 
@@ -732,22 +732,22 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
     }
     {
-        std::array<std::string, Bindings::MaxImages> img_slots;
-        for (const auto& img: bindings.images) {
-            const int slot = img.sokol_slot;
-            if ((slot < 0) || (slot > Bindings::MaxImages)) {
-                return ErrMsg::error(fmt::format("binding {} out of range for image '{}' (must be 0..{})",
+        std::array<std::string, Bindings::MaxTextures> tex_slots;
+        for (const auto& tex: bindings.textures) {
+            const int slot = tex.sokol_slot;
+            if ((slot < 0) || (slot > Bindings::MaxTextures)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for texture '{}' (must be 0..{})",
                     slot,
-                    img.name,
-                    Bindings::MaxImages - 1));
+                    tex.name,
+                    Bindings::MaxTextures - 1));
             }
-            if (!img_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("images '{}' and '{}' cannot use the same binding {}",
-                    img_slots[slot],
-                    img.name,
+            if (!tex_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("textures '{}' and '{}' cannot use the same binding {}",
+                    tex_slots[slot],
+                    tex.name,
                     slot));
             }
-            img_slots[slot] = img.name;
+            tex_slots[slot] = tex.name;
         }
     }
     {

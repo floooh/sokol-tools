@@ -7,7 +7,7 @@
 
 namespace shdc::refl {
 
-struct Image {
+struct Texture {
     ShaderStage::Enum stage = ShaderStage::Invalid;
     int sokol_slot = -1;
     int hlsl_register_t_n = -1;
@@ -18,11 +18,11 @@ struct Image {
     ImageSampleType::Enum sample_type = ImageSampleType::INVALID;
     bool multisampled = false;
 
-    bool equals(const Image& other) const;
+    bool equals(const Texture& other) const;
     void dump_debug(const std::string& indent) const;
 };
 
-inline bool Image::equals(const Image& other) const {
+inline bool Texture::equals(const Texture& other) const {
     return (stage == other.stage)
         && (sokol_slot == other.sokol_slot)
         && (name == other.name)
@@ -31,7 +31,7 @@ inline bool Image::equals(const Image& other) const {
         && (multisampled == other.multisampled);
 }
 
-inline void Image::dump_debug(const std::string& indent) const {
+inline void Texture::dump_debug(const std::string& indent) const {
     const std::string indent2 = indent + "  ";
     fmt::print(stderr, "{}-\n", indent);
     fmt::print(stderr, "{}stage: {}\n", indent2, ShaderStage::to_str(stage));

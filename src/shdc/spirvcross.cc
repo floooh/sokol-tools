@@ -45,18 +45,18 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
         }
     }
 
-    // combined image samplers
+    // combined texture samplers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE_SAMPLER);
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE_SAMPLER);
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
         }
     }
 
-    // separate images
+    // separate textures
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
         for (const Resource& res: shader_resources.separate_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -150,9 +150,9 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
         }
     }
 
-    // separate images
+    // separate textures
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::IMAGE);
+        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {

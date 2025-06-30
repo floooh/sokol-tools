@@ -16,7 +16,7 @@ protected:
     virtual void gen_shader_array_end(const GenInput& gen);
     virtual void gen_shader_desc_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
-    virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
+    virtual void gen_texture_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm);
     virtual void gen_uniform_block_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
     virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog);
@@ -42,13 +42,13 @@ protected:
     virtual std::string backend(Slang::Enum e);
     virtual std::string struct_name(const std::string& name);
     virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr);
-    virtual std::string image_bind_slot_name(const refl::Image& img);
+    virtual std::string texture_bind_slot_name(const refl::Texture& tex);
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf);
     virtual std::string storage_image_bind_slot_name(const refl::StorageImage& simg);
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr);
-    virtual std::string image_bind_slot_definition(const refl::Image& img);
+    virtual std::string texture_bind_slot_definition(const refl::Texture& tex);
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp);
     virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf);

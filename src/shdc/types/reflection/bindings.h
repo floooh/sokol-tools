@@ -1,8 +1,8 @@
 #pragma once
 #include "uniform_block.h"
-#include "image.h"
+#include "texture.h"
 #include "sampler.h"
-#include "image_sampler.h"
+#include "texture_sampler.h"
 #include "storage_buffer.h"
 #include "storage_image.h"
 
@@ -11,50 +11,50 @@ namespace shdc::refl {
 struct Bindings {
     // keep these in sync with:
     //  - SG_MAX_UNIFORMBLOCK_BINDSLOTS
-    //  - SG_MAX_IMAGE_BINDSLOTS
+    //  - SG_MAX_TEXTURE_BINDSLOTS
     //  - SG_MAX_SAMPLER_BINDSLOTS
     //  - SG_MAX_STORAGEBUFFER_BINDSLOTS
-    //  - SG_MAX_IMAGE_SAMPLERS_PAIRS
-    //  - SG_MAX_STORAGE_ATTACHMENTS
+    //  - SG_MAX_STORAGEIMAGE_BINDSLOTS
+    //  - SG_MAX_TEXTURE_SAMPLERS_PAIRS
     //
     inline static const int MaxUniformBlocks = 8;
-    inline static const int MaxImages = 16;
+    inline static const int MaxTextures = 16;
     inline static const int MaxSamplers = 16;
     inline static const int MaxStorageBuffers = 8;
-    inline static const int MaxImageSamplers = 16;
     inline static const int MaxStorageImages = 4;
+    inline static const int MaxTextureSamplers = 16;
 
     enum Type {
         UNIFORM_BLOCK,
-        IMAGE,
+        TEXTURE,
         SAMPLER,
         STORAGE_BUFFER,
         STORAGE_IMAGE,
-        IMAGE_SAMPLER,
+        TEXTURE_SAMPLER,
     };
 
     std::vector<UniformBlock> uniform_blocks;
     std::vector<StorageBuffer> storage_buffers;
     std::vector<StorageImage> storage_images;
-    std::vector<Image> images;
+    std::vector<Texture> textures;
     std::vector<Sampler> samplers;
-    std::vector<ImageSampler> image_samplers;
+    std::vector<TextureSampler> texture_samplers;
 
     static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type, bool readonly=true);
 
     const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
     const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
     const StorageImage* find_storage_image_by_sokol_slot(int slot) const;
-    const Image* find_image_by_sokol_slot(int slot) const;
+    const Texture* find_texture_by_sokol_slot(int slot) const;
     const Sampler* find_sampler_by_sokol_slot(int slot) const;
-    const ImageSampler* find_image_sampler_by_sokol_slot(int slot) const;
+    const TextureSampler* find_texture_sampler_by_sokol_slot(int slot) const;
 
     const UniformBlock* find_uniform_block_by_name(const std::string& name) const;
     const StorageBuffer* find_storage_buffer_by_name(const std::string& name) const;
     const StorageImage* find_storage_image_by_name(const std::string& name) const;
-    const Image* find_image_by_name(const std::string& name) const;
+    const Texture* find_texture_by_name(const std::string& name) const;
     const Sampler* find_sampler_by_name(const std::string& name) const;
-    const ImageSampler* find_image_sampler_by_name(const std::string& name) const;
+    const TextureSampler* find_texture_sampler_by_name(const std::string& name) const;
 
     void dump_debug(const std::string& indent) const;
 };
@@ -70,12 +70,12 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
                 res = ShaderStage::is_fs(stage) ? MaxUniformBlocks: 0;
             }
             break;
-        case Type::IMAGE_SAMPLER:
+        case Type::TEXTURE_SAMPLER:
             if (Slang::is_glsl(slang)) {
-                res = ShaderStage::is_fs(stage) ? MaxImageSamplers: 0;
+                res = ShaderStage::is_fs(stage) ? MaxTextureSamplers: 0;
             }
             break;
-        case Type::IMAGE:
+        case Type::TEXTURE:
             if (Slang::is_wgsl(slang)) {
                 if (ShaderStage::is_fs(stage)) {
                     res += 64;
@@ -84,7 +84,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             break;
         case Type::SAMPLER:
             if (Slang::is_wgsl(slang)) {
-                res = MaxImages;
+                res = MaxTextures;
                 if (ShaderStage::is_fs(stage)) {
                     res += 64;
                 }
@@ -96,13 +96,13 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             } else if (Slang::is_hlsl(slang)) {
                 if (readonly) {
                     // read-only storage buffers are bound as SRV
-                    res = MaxImages;
+                    res = MaxTextures;
                 } else {
                     // read/write storage buffers are bound as UAV
                     res = 0;
                 }
             } else if (Slang::is_wgsl(slang)) {
-                res = MaxImages + MaxSamplers;
+                res = MaxTextures + MaxSamplers;
                 if (ShaderStage::is_fs(stage)) {
                     res += 64;
                 }
@@ -115,7 +115,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             if (Slang::is_hlsl(slang)) {
                 res = MaxStorageBuffers;
             } else if (Slang::is_msl(slang)) {
-                res = MaxImages;
+                res = MaxTextures;
             }
     }
     return res;
@@ -148,10 +148,10 @@ inline const StorageImage* Bindings::find_storage_image_by_sokol_slot(int slot) 
     return nullptr;
 }
 
-inline const Image* Bindings::find_image_by_sokol_slot(int slot) const {
-    for (const Image& img: images) {
-        if (img.sokol_slot == slot) {
-            return &img;
+inline const Texture* Bindings::find_texture_by_sokol_slot(int slot) const {
+    for (const Texture& tex: textures) {
+        if (tex.sokol_slot == slot) {
+            return &tex;
         }
     }
     return nullptr;
@@ -166,10 +166,10 @@ inline const Sampler* Bindings::find_sampler_by_sokol_slot(int slot) const {
     return nullptr;
 }
 
-inline const ImageSampler* Bindings::find_image_sampler_by_sokol_slot(int slot) const {
-    for (const ImageSampler& img_smp: image_samplers) {
-        if (img_smp.sokol_slot == slot) {
-            return &img_smp;
+inline const TextureSampler* Bindings::find_texture_sampler_by_sokol_slot(int slot) const {
+    for (const TextureSampler& tex_smp: texture_samplers) {
+        if (tex_smp.sokol_slot == slot) {
+            return &tex_smp;
         }
     }
     return nullptr;
@@ -202,10 +202,10 @@ inline const StorageImage* Bindings::find_storage_image_by_name(const std::strin
     return nullptr;
 }
 
-inline const Image* Bindings::find_image_by_name(const std::string& name) const {
-    for (const Image& img: images) {
-        if (img.name == name) {
-            return &img;
+inline const Texture* Bindings::find_texture_by_name(const std::string& name) const {
+    for (const Texture& tex: textures) {
+        if (tex.name == name) {
+            return &tex;
         }
     }
     return nullptr;
@@ -220,10 +220,10 @@ inline const Sampler* Bindings::find_sampler_by_name(const std::string& name) co
     return nullptr;
 }
 
-inline const ImageSampler* Bindings::find_image_sampler_by_name(const std::string& name) const {
-    for (const ImageSampler& img_smp: image_samplers) {
-        if (img_smp.name == name) {
-            return &img_smp;
+inline const TextureSampler* Bindings::find_texture_sampler_by_name(const std::string& name) const {
+    for (const TextureSampler& tex_smp: texture_samplers) {
+        if (tex_smp.name == name) {
+            return &tex_smp;
         }
     }
     return nullptr;
@@ -242,17 +242,17 @@ inline void Bindings::dump_debug(const std::string& indent) const {
     for (const auto& simg: storage_images) {
         simg.dump_debug(indent);
     }
-    fmt::print(stderr, "{}images:\n", indent);
-    for (const auto& img: images) {
-        img.dump_debug(indent);
+    fmt::print(stderr, "{}textures:\n", indent);
+    for (const auto& tex: textures) {
+        tex.dump_debug(indent);
     }
     fmt::print(stderr, "{}samplers:\n", indent);
     for (const auto& smp: samplers) {
         smp.dump_debug(indent);
     }
-    fmt::print(stderr, "{}image_samplers:\n", indent);
-    for (const auto& img_smp: image_samplers) {
-        img_smp.dump_debug(indent);
+    fmt::print(stderr, "{}texture_samplers:\n", indent);
+    for (const auto& tex_smp: texture_samplers) {
+        tex_smp.dump_debug(indent);
     }
 }
 

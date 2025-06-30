@@ -324,20 +324,20 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
-                const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
-                if (img) {
-                    const std::string in = fmt::format("desc.images[{}]", img_index);
-                    l("{}.stage = {};\n", in, shader_stage(img->stage));
-                    l("{}.multisampled = {};\n", in, img->multisampled ? "true" : "false");
-                    l("{}.image_type = {};\n", in, image_type(img->type));
-                    l("{}.sample_type = {};\n", in, image_sample_type(img->sample_type));
+            for (int tex_index = 0; tex_index < Bindings::MaxTextures; tex_index++) {
+                const Texture* tex = prog.bindings.find_texture_by_sokol_slot(tex_index);
+                if (tex) {
+                    const std::string tn = fmt::format("desc.textures[{}]", tex_index);
+                    l("{}.stage = {};\n", tn, shader_stage(tex->stage));
+                    l("{}.multisampled = {};\n", tn, tex->multisampled ? "true" : "false");
+                    l("{}.image_type = {};\n", tn, image_type(tex->type));
+                    l("{}.sample_type = {};\n", tn, image_sample_type(tex->sample_type));
                     if (Slang::is_hlsl(slang)) {
-                        l("{}.hlsl_register_t_n = {};\n", in, img->hlsl_register_t_n);
+                        l("{}.hlsl_register_t_n = {};\n", tn, tex->hlsl_register_t_n);
                     } else if (Slang::is_msl(slang)) {
-                        l("{}.msl_texture_n = {};\n", in, img->msl_texture_n);
+                        l("{}.msl_texture_n = {};\n", tn, tex->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgsl_group1_binding_n = {};\n", in, img->wgsl_group1_binding_n);
+                        l("{}.wgsl_group1_binding_n = {};\n", tn, tex->wgsl_group1_binding_n);
                     }
                 }
             }
@@ -356,15 +356,15 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
-                const ImageSampler* img_smp = prog.bindings.find_image_sampler_by_sokol_slot(img_smp_index);
-                if (img_smp) {
-                    const std::string isn = fmt::format("desc.image_sampler_pairs[{}]", img_smp_index);
-                    l("{}.stage = {};\n", isn, shader_stage(img_smp->stage));
-                    l("{}.image_slot = {};\n", isn, prog.bindings.find_image_by_name(img_smp->image_name)->sokol_slot);
-                    l("{}.sampler_slot = {};\n", isn, prog.bindings.find_sampler_by_name(img_smp->sampler_name)->sokol_slot);
+            for (int tex_smp_index = 0; tex_smp_index < Bindings::MaxTextureSamplers; tex_smp_index++) {
+                const TextureSampler* tex_smp = prog.bindings.find_texture_sampler_by_sokol_slot(tex_smp_index);
+                if (tex_smp) {
+                    const std::string tsn = fmt::format("desc.texture_sampler_pairs[{}]",tex_smp_index);
+                    l("{}.stage = {};\n", tsn, shader_stage(tex_smp->stage));
+                    l("{}.texture_slot = {};\n", tsn, prog.bindings.find_texture_by_name(tex_smp->texture_name)->sokol_slot);
+                    l("{}.sampler_slot = {};\n", tsn, prog.bindings.find_sampler_by_name(tex_smp->sampler_name)->sokol_slot);
                     if (Slang::is_glsl(slang)) {
-                        l("{}.glsl_name = \"{}\";\n", isn, img_smp->name);
+                        l("{}.glsl_name = \"{}\";\n", tsn, tex_smp->name);
                     }
                 }
             }
@@ -548,8 +548,8 @@ std::string SokolZigGenerator::vertex_attr_name(const std::string& prog_name, co
     return fmt::format("ATTR_{}_{}", prog_name, attr.name);
 }
 
-std::string SokolZigGenerator::image_bind_slot_name(const Image& img) {
-    return fmt::format("IMG_{}", img.name);
+std::string SokolZigGenerator::texture_bind_slot_name(const Texture& tex) {
+    return fmt::format("TEX_{}", tex.name);
 }
 
 std::string SokolZigGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -572,8 +572,8 @@ std::string SokolZigGenerator::vertex_attr_definition(const std::string& prog_na
     return fmt::format("pub const {} = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolZigGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("pub const {} = {};", image_bind_slot_name(img), img.sokol_slot);
+std::string SokolZigGenerator::texture_bind_slot_definition(const Texture& tex) {
+    return fmt::format("pub const {} = {};", texture_bind_slot_name(tex), tex.sokol_slot);
 }
 
 std::string SokolZigGenerator::sampler_bind_slot_definition(const Sampler& smp) {
@@ -608,19 +608,19 @@ void SokolZigGenerator::gen_attr_slot_refl_func(const GenInput& gen, const Progr
     l_close("}}\n");
 }
 
-void SokolZigGenerator::gen_image_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("pub fn {}ImageSlot(img_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
+void SokolZigGenerator::gen_texture_slot_refl_func(const GenInput& gen, const ProgramReflection& prog) {
+    l_open("pub fn {}TextureSlot(tex_name: []const u8) ?usize {{\n", to_camel_case(prog.name));
     bool wrote_image = false;
-    for (const Image& img: prog.bindings.images) {
-        if (img.sokol_slot >= 0) {
-            l_open("if (std.mem.eql(u8, img_name, \"{}\")) {{\n", img.name);
-            l("return {};\n", img.sokol_slot);
+    for (const Texture& tex: prog.bindings.textures) {
+        if (tex.sokol_slot >= 0) {
+            l_open("if (std.mem.eql(u8, tex_name, \"{}\")) {{\n", tex.name);
+            l("return {};\n", tex.sokol_slot);
             l_close("}}\n");
             wrote_image = true;
         }
     }
     if (!wrote_image) {
-        l("_ = img_name;\n");
+        l("_ = tex_name;\n");
     }
     l("return null;\n");
     l_close("}}\n");

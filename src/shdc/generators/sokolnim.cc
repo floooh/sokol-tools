@@ -393,20 +393,20 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int img_index = 0; img_index < Bindings::MaxImages; img_index++) {
-                const Image* img = prog.bindings.find_image_by_sokol_slot(img_index);
-                if (img) {
-                    const std::string in = fmt::format("result.images[{}]", img_index);
-                    l("{}.stage = {}\n", in, shader_stage(img->stage));
-                    l("{}.multisampled = {}\n", in, img->multisampled ? "true" : "false");
-                    l("{}.imageType = {}\n", in, image_type(img->type));
-                    l("{}.sampleType = {}\n", in, image_sample_type(img->sample_type));
+            for (int tex_index = 0; tex_index < Bindings::MaxTextures; tex_index++) {
+                const Texture* tex = prog.bindings.find_texture_by_sokol_slot(tex_index);
+                if (tex) {
+                    const std::string tn = fmt::format("result.textures[{}]", tex_index);
+                    l("{}.stage = {}\n", tn, shader_stage(tex->stage));
+                    l("{}.multisampled = {}\n", tn, tex->multisampled ? "true" : "false");
+                    l("{}.imageType = {}\n", tn, image_type(tex->type));
+                    l("{}.sampleType = {}\n", tn, image_sample_type(tex->sample_type));
                     if (Slang::is_hlsl(slang)) {
-                        l("{}.hlslRegisterTN = {}\n", in, img->hlsl_register_t_n);
+                        l("{}.hlslRegisterTN = {}\n", tn, tex->hlsl_register_t_n);
                     } else if (Slang::is_msl(slang)) {
-                        l("{}.mslTextureN = {}\n", in, img->msl_texture_n);
+                        l("{}.mslTextureN = {}\n", tn, tex->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgslGroup1BindingN = {}\n", in, img->wgsl_group1_binding_n);
+                        l("{}.wgslGroup1BindingN = {}\n", tn, tex->wgsl_group1_binding_n);
                     }
                 }
             }
@@ -425,15 +425,15 @@ void SokolNimGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int img_smp_index = 0; img_smp_index < Bindings::MaxImageSamplers; img_smp_index++) {
-                const ImageSampler* img_smp = prog.bindings.find_image_sampler_by_sokol_slot(img_smp_index);
-                if (img_smp) {
-                    const std::string isn = fmt::format("result.imageSamplerPairs[{}]", img_smp_index);
-                    l("{}.stage = {}\n", isn, shader_stage(img_smp->stage));
-                    l("{}.imageSlot = {}\n", isn, prog.bindings.find_image_by_name(img_smp->image_name)->sokol_slot);
-                    l("{}.samplerSlot = {}\n", isn, prog.bindings.find_sampler_by_name(img_smp->sampler_name)->sokol_slot);
+            for (int tex_smp_index = 0; tex_smp_index < Bindings::MaxTextureSamplers; tex_smp_index++) {
+                const TextureSampler* tex_smp = prog.bindings.find_texture_sampler_by_sokol_slot(tex_smp_index);
+                if (tex_smp) {
+                    const std::string tsn = fmt::format("result.textureSamplerPairs[{}]", tex_smp_index);
+                    l("{}.stage = {}\n", tsn, shader_stage(tex_smp->stage));
+                    l("{}.textureSlot = {}\n", tsn, prog.bindings.find_texture_by_name(tex_smp->texture_name)->sokol_slot);
+                    l("{}.samplerSlot = {}\n", tsn, prog.bindings.find_sampler_by_name(tex_smp->sampler_name)->sokol_slot);
                     if (Slang::is_glsl(slang)) {
-                        l("{}.glslName = \"{}\"\n", isn, img_smp->name);
+                        l("{}.glslName = \"{}\"\n", tsn, tex_smp->name);
                     }
                 }
             }
@@ -616,8 +616,8 @@ std::string SokolNimGenerator::vertex_attr_name(const std::string& prog_name, co
     return to_camel_case(fmt::format("ATTR_{}_{}", prog_name, attr.name));
 }
 
-std::string SokolNimGenerator::image_bind_slot_name(const Image& img) {
-    return to_camel_case(fmt::format("IMG_{}", img.name));
+std::string SokolNimGenerator::texture_bind_slot_name(const Texture& tex) {
+    return to_camel_case(fmt::format("TEX_{}", tex.name));
 }
 
 std::string SokolNimGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -640,8 +640,8 @@ std::string SokolNimGenerator::vertex_attr_definition(const std::string& prog_na
     return fmt::format("const {}* = {}", vertex_attr_name(prog_name, attr), attr.slot);
 }
 
-std::string SokolNimGenerator::image_bind_slot_definition(const Image& img) {
-    return fmt::format("const {}* = {}", image_bind_slot_name(img), img.sokol_slot);
+std::string SokolNimGenerator::texture_bind_slot_definition(const Texture& tex) {
+    return fmt::format("const {}* = {}", texture_bind_slot_name(tex), tex.sokol_slot);
 }
 
 std::string SokolNimGenerator::sampler_bind_slot_definition(const Sampler& smp) {

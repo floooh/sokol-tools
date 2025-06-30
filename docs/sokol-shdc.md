@@ -137,7 +137,7 @@ pip = sg_make_pipeline(&(sg_pipeline_desc){
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .images[IMG_tex] = img,
+    .textures[TEX_tex] = img,
     .samplers[SMP_smp] = smp,
 });
 const vs_params_t vs_params = {
@@ -1018,7 +1018,7 @@ The resource binding slot for texture and sampler uniforms is available
 as code-generated constant:
 
 ```C
-#define IMG_tex (0)
+#define TEX_tex (0)
 #define SMP_smp (0)
 ```
 
@@ -1028,7 +1028,7 @@ and `.samplers[]` arrays:
 ```c
 sg_apply_bindings(&(sg_bindings){
     .vertex_buffers[0] = vbuf,
-    .images[IMG_tex] = img,
+    .textures[TEX_tex] = img,
     .samplers[SMP_smp] = smp,
 });
 ```

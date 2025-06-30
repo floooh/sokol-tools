@@ -21,9 +21,9 @@ private:
     void gen_uniform_block_refl(const refl::UniformBlock& ub);
     void gen_storage_buffer(const refl::StorageBuffer& sbuf, Slang::Enum slang);
     void gen_storage_image(const refl::StorageImage& simg, Slang::Enum slang);
-    void gen_image(const refl::Image& img, Slang::Enum slang);
+    void gen_texture(const refl::Texture& tex, Slang::Enum slang);
     void gen_sampler(const refl::Sampler& smp, Slang::Enum slang);
-    void gen_image_sampler(const refl::ImageSampler& img_smp, Slang::Enum slang);
+    void gen_texture_sampler(const refl::TextureSampler& tex_smp, Slang::Enum slang);
 };
 
 } // namespace
