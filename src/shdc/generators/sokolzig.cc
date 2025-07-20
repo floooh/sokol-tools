@@ -283,7 +283,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBuffers; sbuf_index++) {
+            for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBufferBindingsPerStage; sbuf_index++) {
                 const StorageBuffer* sbuf = prog.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
                 if (sbuf) {
                     const std::string& sbn = fmt::format("desc.storage_buffers[{}]", sbuf_index);
@@ -305,7 +305,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int simg_index = 0; simg_index < Bindings::MaxStorageImages; simg_index++) {
+            for (int simg_index = 0; simg_index < Bindings::MaxStorageImageBindingsPerStage; simg_index++) {
                 const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
                 if (simg) {
                     const std::string& sin = fmt::format("desc.storage_images[{}]", simg_index);
@@ -324,7 +324,7 @@ void SokolZigGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                     }
                 }
             }
-            for (int tex_index = 0; tex_index < Bindings::MaxTextures; tex_index++) {
+            for (int tex_index = 0; tex_index < Bindings::MaxTextureBindingsPerStage; tex_index++) {
                 const Texture* tex = prog.bindings.find_texture_by_sokol_slot(tex_index);
                 if (tex) {
                     const std::string tn = fmt::format("desc.textures[{}]", tex_index);

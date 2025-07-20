@@ -10,19 +10,22 @@ namespace shdc::refl {
 
 struct Bindings {
     // keep these in sync with:
-    //  - SG_MAX_UNIFORMBLOCK_BINDSLOTS
     //  - SG_MAX_VIEW_BINDSLOTS
+    //  - SG_MAX_UNIFORMBLOCKS
+    //  - SG_MAX_TEXTURE_BINDINGS_PER_STAGE
+    //  - SG_MAX_STORAGEBUFFER_BINDINGS_PER_STAGE
+    //  - SG_MAX_STORAGEIMAGE_BINDINGS_PER_STAGE
     //  - SG_MAX_SAMPLER_BINDSLOTS
     //  - SG_MAX_TEXTURE_SAMPLERS_PAIRS
     //
     inline static const int MaxUniformBlocks = 8;
     inline static const int MaxSamplers = 16;
-    inline static const int MaxTextures = 16;
-    inline static const int MaxStorageBuffers = 8;
-    inline static const int MaxStorageImages = 4;
+    inline static const int MaxTextureBindingsPerStage = 16;
+    inline static const int MaxStorageBufferBindingsPerStage = 8;
+    inline static const int MaxStorageImageBindingsPerStage = 4;
     inline static const int MaxViews = 28;
     inline static const int MaxTextureSamplers = 16;
-    static_assert(MaxViews == MaxTextures + MaxStorageBuffers + MaxStorageImages);
+    static_assert(MaxViews == MaxTextureBindingsPerStage + MaxStorageBufferBindingsPerStage + MaxStorageImageBindingsPerStage);
 
     enum Type {
         INVALID,
@@ -106,7 +109,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             } else if (Slang::is_hlsl(slang)) {
                 if (readonly) {
                     // read-only storage buffers are bound as SRV
-                    res = MaxTextures;
+                    res = MaxTextureBindingsPerStage;
                 } else {
                     // read/write storage buffers are bound as UAV
                     res = 0;
@@ -121,9 +124,9 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             // HLSL: assume D3D11.1, which allows for more than 8 UAV slots
             // MSL: uses texture bindslot, but enough bindslot space available to move behind texture bindings
             if (Slang::is_hlsl(slang)) {
-                res = MaxStorageBuffers;
+                res = MaxStorageBufferBindingsPerStage;
             } else if (Slang::is_msl(slang)) {
-                res = MaxTextures;
+                res = MaxTextureBindingsPerStage;
             }
             break;
         default:
