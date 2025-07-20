@@ -239,7 +239,7 @@ void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slan
     } else if (Slang::is_msl(slang)) {
         l("msl_texture_n: {}\n", simg.msl_texture_n);
     } else if (Slang::is_wgsl(slang)) {
-        l("wgsl_group2_binding_n: {}\n", simg.wgsl_group2_binding_n);
+        l("wgsl_group1_binding_n: {}\n", simg.wgsl_group1_binding_n);
     } else if (Slang::is_glsl(slang)) {
         l("glsl_binding_n: {}\n", simg.glsl_binding_n);
     }

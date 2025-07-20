@@ -320,7 +320,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     } else if (Slang::is_msl(slang)) {
                         l("{}.msl_texture_n = {};\n", sin, simg->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgsl_group2_binding_n = {};\n", sin, simg->wgsl_group2_binding_n);
+                        l("{}.wgsl_group1_binding_n = {};\n", sin, simg->wgsl_group1_binding_n);
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
                     }
