@@ -551,7 +551,15 @@ std::string SokolRustGenerator::vertex_attr_name(const std::string& prog_name, c
 }
 
 std::string SokolRustGenerator::texture_bind_slot_name(const Texture& tex) {
-    return pystring::upper(fmt::format("TEX_{}", tex.name));
+    return pystring::upper(fmt::format("VIEW_{}", tex.name));
+}
+
+std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return pystring::upper(fmt::format("VIEW_{}", sbuf.name));
+}
+
+std::string SokolRustGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return pystring::upper(fmt::format("VIEW_{}", simg.name));
 }
 
 std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -560,14 +568,6 @@ std::string SokolRustGenerator::sampler_bind_slot_name(const Sampler& smp) {
 
 std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return pystring::upper(fmt::format("UB_{}", ub.name));
-}
-
-std::string SokolRustGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return pystring::upper(fmt::format("SBUF_{}", sbuf.name));
-}
-
-std::string SokolRustGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
-    return pystring::upper(fmt::format("SIMG_{}", simg.name));
 }
 
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

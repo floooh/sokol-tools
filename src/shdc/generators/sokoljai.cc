@@ -535,7 +535,15 @@ std::string SokolJaiGenerator::vertex_attr_name(const std::string& prog_name, co
 }
 
 std::string SokolJaiGenerator::texture_bind_slot_name(const Texture& tex) {
-    return fmt::format("TEX_{}", tex.name);
+    return fmt::format("VIEW_{}", tex.name);
+}
+
+std::string SokolJaiGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return fmt::format("VIEW_{}", sbuf.name);
+}
+
+std::string SokolJaiGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return fmt::format("VIEW_{}", simg.name);
 }
 
 std::string SokolJaiGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -544,14 +552,6 @@ std::string SokolJaiGenerator::sampler_bind_slot_name(const Sampler& smp) {
 
 std::string SokolJaiGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("UB_{}", ub.name);
-}
-
-std::string SokolJaiGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}", sbuf.name);
-}
-
-std::string SokolJaiGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
-    return fmt::format("SIMG_{}", simg.name);
 }
 
 std::string SokolJaiGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

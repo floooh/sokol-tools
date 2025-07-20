@@ -549,7 +549,15 @@ std::string SokolZigGenerator::vertex_attr_name(const std::string& prog_name, co
 }
 
 std::string SokolZigGenerator::texture_bind_slot_name(const Texture& tex) {
-    return fmt::format("TEX_{}", tex.name);
+    return fmt::format("VIEW_{}", tex.name);
+}
+
+std::string SokolZigGenerator::storage_buffer_bind_slot_name(const refl::StorageBuffer& sb) {
+    return fmt::format("VIEW_{}", sb.name);
+}
+
+std::string SokolZigGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return fmt::format("VIEW_{}", simg.name);
 }
 
 std::string SokolZigGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -558,14 +566,6 @@ std::string SokolZigGenerator::sampler_bind_slot_name(const Sampler& smp) {
 
 std::string SokolZigGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("UB_{}", ub.name);
-}
-
-std::string SokolZigGenerator::storage_buffer_bind_slot_name(const refl::StorageBuffer& sb) {
-    return fmt::format("SBUF_{}", sb.name);
-}
-
-std::string SokolZigGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
-    return fmt::format("SIMG_{}", simg.name);
 }
 
 std::string SokolZigGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

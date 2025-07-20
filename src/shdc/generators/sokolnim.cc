@@ -617,7 +617,15 @@ std::string SokolNimGenerator::vertex_attr_name(const std::string& prog_name, co
 }
 
 std::string SokolNimGenerator::texture_bind_slot_name(const Texture& tex) {
-    return to_camel_case(fmt::format("TEX_{}", tex.name));
+    return to_camel_case(fmt::format("VIEW_{}", tex.name));
+}
+
+std::string SokolNimGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return to_camel_case(fmt::format("VIEW_{}", sbuf.name));
+}
+
+std::string SokolNimGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return to_camel_case(fmt::format("VIEW_{}", simg.name));
 }
 
 std::string SokolNimGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -626,14 +634,6 @@ std::string SokolNimGenerator::sampler_bind_slot_name(const Sampler& smp) {
 
 std::string SokolNimGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return to_camel_case(fmt::format("UB_{}", ub.name));
-}
-
-std::string SokolNimGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return to_camel_case(fmt::format("SBUF_{}", sbuf.name));
-}
-
-std::string SokolNimGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
-    return to_camel_case(fmt::format("SIMG_{}", simg.name));
 }
 
 std::string SokolNimGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {

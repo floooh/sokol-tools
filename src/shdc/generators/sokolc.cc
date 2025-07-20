@@ -762,7 +762,15 @@ std::string SokolCGenerator::vertex_attr_name(const std::string& prog_name, cons
 }
 
 std::string SokolCGenerator::texture_bind_slot_name(const Texture& tex) {
-    return fmt::format("TEX_{}{}", mod_prefix, tex.name);
+    return fmt::format("VIEW_{}{}", mod_prefix, tex.name);
+}
+
+std::string SokolCGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
+    return fmt::format("VIEW_{}{}", mod_prefix, sbuf.name);
+}
+
+std::string SokolCGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
+    return fmt::format("VIEW_{}{}", mod_prefix, simg.name);
 }
 
 std::string SokolCGenerator::sampler_bind_slot_name(const Sampler& smp) {
@@ -771,14 +779,6 @@ std::string SokolCGenerator::sampler_bind_slot_name(const Sampler& smp) {
 
 std::string SokolCGenerator::uniform_block_bind_slot_name(const UniformBlock& ub) {
     return fmt::format("UB_{}{}", mod_prefix, ub.name);
-}
-
-std::string SokolCGenerator::storage_buffer_bind_slot_name(const StorageBuffer& sbuf) {
-    return fmt::format("SBUF_{}{}", mod_prefix, sbuf.name);
-}
-
-std::string SokolCGenerator::storage_image_bind_slot_name(const StorageImage& simg) {
-    return fmt::format("SIMG_{}{}", mod_prefix, simg.name);
 }
 
 std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
