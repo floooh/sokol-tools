@@ -130,10 +130,12 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
     const uint32_t view_smp_bindgroup = 1;
+    uint32_t view_smp_binding = 0;
 
     // uniform buffers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
+        uint32_t ub_binding = 0;
         for (const Resource& res: shader_resources.uniform_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -142,7 +144,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = binding++;
+                inout_bytecode[out_offset] = base_slot + ub_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -151,7 +153,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // separate textures
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -160,25 +162,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = binding++;
-            } else {
-                // FIXME: handle error
-            }
-        }
-    }
-
-    // separate samplers
-    {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
-        for (const Resource& res: shader_resources.separate_samplers) {
-            uint32_t out_offset = 0;
-            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = view_smp_bindgroup;
-            } else {
-                // FIXME: handle error
-            }
-            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = binding++;
+                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -187,7 +171,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage buffers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
         for (const Resource& res: shader_resources.storage_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -196,7 +180,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = binding++;
+                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -205,7 +189,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage images
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::STORAGE_IMAGE);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::STORAGE_IMAGE);
         for (const Resource& res: shader_resources.storage_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -214,7 +198,25 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = binding++;
+                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
+            } else {
+                // FIXME: handle error
+            }
+        }
+    }
+
+    // separate samplers
+    {
+        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
+        for (const Resource& res: shader_resources.separate_samplers) {
+            uint32_t out_offset = 0;
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
+                inout_bytecode[out_offset] = view_smp_bindgroup;
+            } else {
+                // FIXME: handle error
+            }
+            if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
+                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
             } else {
                 // FIXME: handle error
             }
