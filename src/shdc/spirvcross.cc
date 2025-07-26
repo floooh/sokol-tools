@@ -129,8 +129,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
     const ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
-    const uint32_t img_smp_sbuf_bindgroup = 1;
-    const uint32_t storage_img_bindgroup = 2;
+    const uint32_t view_smp_bindgroup = 1;
 
     // uniform buffers
     {
@@ -156,7 +155,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
+                inout_bytecode[out_offset] = view_smp_bindgroup;
             } else {
                 // FIXME: handle error
             }
@@ -174,7 +173,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
+                inout_bytecode[out_offset] = view_smp_bindgroup;
             } else {
                 // FIXME: handle error
             }
@@ -192,7 +191,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
         for (const Resource& res: shader_resources.storage_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = img_smp_sbuf_bindgroup;
+                inout_bytecode[out_offset] = view_smp_bindgroup;
             } else {
                 // FIXME: handle error
             }
@@ -210,7 +209,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
         for (const Resource& res: shader_resources.storage_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
-                inout_bytecode[out_offset] = storage_img_bindgroup;
+                inout_bytecode[out_offset] = view_smp_bindgroup;
             } else {
                 // FIXME: handle error
             }
