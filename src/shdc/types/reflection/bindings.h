@@ -97,6 +97,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
             break;
         case Type::SAMPLER:
             if (Slang::is_wgsl(slang)) {
+                res = 32;
                 if (ShaderStage::is_fs(stage)) {
                     res += 64;
                 }

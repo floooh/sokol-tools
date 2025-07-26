@@ -130,7 +130,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
     const uint32_t view_smp_bindgroup = 1;
-    uint32_t view_smp_binding = 0;
+    uint32_t view_binding = 0;
 
     // uniform buffers
     {
@@ -162,7 +162,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
+                inout_bytecode[out_offset] = base_slot + view_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -180,7 +180,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
+                inout_bytecode[out_offset] = base_slot + view_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -198,7 +198,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
+                inout_bytecode[out_offset] = base_slot + view_binding++;
             } else {
                 // FIXME: handle error
             }
@@ -208,6 +208,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
     // separate samplers
     {
         uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
+        uint32_t smp_binding = 0;
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -216,7 +217,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_smp_binding++;
+                inout_bytecode[out_offset] = base_slot + smp_binding++;
             } else {
                 // FIXME: handle error
             }
