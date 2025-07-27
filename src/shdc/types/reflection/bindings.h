@@ -1,5 +1,5 @@
 #pragma once
-#include "bindslot.h"
+#include "types/bindslot.h"
 #include "uniform_block.h"
 #include "texture.h"
 #include "sampler.h"

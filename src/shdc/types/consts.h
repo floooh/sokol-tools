@@ -1,6 +1,6 @@
 #pragma once
 
-namespace shdc::refl {
+namespace shdc {
 
 // keep these in sync with:
 //  - SG_MAX_VIEW_BINDSLOTS
@@ -20,4 +20,4 @@ inline static const int MaxViews = 28;
 inline static const int MaxTextureSamplers = 16;
 static_assert(MaxViews == MaxTextureBindingsPerStage + MaxStorageBufferBindingsPerStage + MaxStorageImageBindingsPerStage);
 
-} // namespace shdc::refl
+} // namespace shdc

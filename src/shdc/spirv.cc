@@ -14,6 +14,8 @@
 
 namespace shdc {
 
+using namespace refl;
+
 void Spirv::initialize_spirv_tools() {
     glslang::InitializeProcess();
 }
@@ -183,7 +185,120 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
     optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 }
 
-/* compile a shader to SPIRV */
+// add a new slot to a BindSlotMap
+static bool add_bind_slot(Input& inp, BindSlotMap& map, int slot, BindSlot::Type type, const std::string& name, bool readonly, Spirv& out_spirv) {
+    BindSlot bind_slot;
+    bind_slot.type = type;
+    bind_slot.name = name;
+    bind_slot.readonly = readonly;
+    if (type == BindSlot::Type::UniformBlock) {
+        if ((slot < 0) || (slot >= MaxUniformBlocks)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Uniform block {} binding {} out of range (must be 0..{})",
+                name, slot, MaxUniformBlocks - 1)));
+            return false;
+        }
+        if (map.uniform_blocks[slot].empty()) {
+            map.uniform_blocks[slot] = bind_slot;
+        } else if (!map.uniform_blocks[slot].equals(bind_slot)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Conflicting uniform-blocks at binding {} (names {} vs {})",
+                slot,
+                name, map.uniform_blocks[slot].name)));
+            return false;
+        }
+    } else if (type == BindSlot::Type::Sampler) {
+        if ((slot < 0) || (slot >= MaxSamplers)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Sampler {} binding {} out of range (must be 0..{})",
+                name, slot, MaxSamplers - 1)));
+            return false;
+        }
+        if (map.samplers[slot].empty()) {
+            map.samplers[slot] = bind_slot;
+        } else if (!map.samplers[slot].equals(bind_slot)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Conflicting sampler at binding {} (name {} vs {})",
+                slot,
+                name, map.samplers[slot].name)));
+            return false;
+        }
+    } else {
+        if ((slot < 0) || (slot >= MaxViews)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Resource {} binding {} out of range (must be 0..{})",
+                name, slot, MaxViews - 1)));
+            return false;
+        }
+        if (map.views[slot].empty()) {
+            map.views[slot] = bind_slot;
+        } else if (!map.views[slot].equals(bind_slot)) {
+            out_spirv.errors.push_back(inp.error(0,
+                fmt::format("Conflicting resource at binding {} (name: {} vs {})",
+                slot,
+                name, map.views[slot].name)));
+            return false;
+        }
+    }
+    return true;
+}
+
+static void allocate_backend_bindslots(EShLanguage stage, BindSlotMap& map) {
+    for (int i = 0; i < MaxUniformBlocks; i++) {
+        auto& slot = map.uniform_blocks[i];
+        if (slot.type != BindSlot::Type::Invalid) {
+            slot.hlsl.register_b_n = i;
+            slot.msl.buffer_n = i;
+            slot.wgsl.group0_binding_n = (stage == EShLangFragment) ? MaxUniformBlocks + i : i;
+        }
+    }
+    int hlsl_register_t_n = 0;
+    int hlsl_register_u_n = 0;
+    int msl_buffer_n = MaxUniformBlocks;
+    int msl_texture_n = 0;
+    int wgsl_group1_binding_n = (stage == EShLangFragment) ? 64 : 0;
+    int glsl_storage_image_binding_n = 0;
+    for (int i = 0; i < MaxViews; i++) {
+        auto& slot = map.views[i];
+        if (slot.type != BindSlot::Type::Invalid) {
+            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
+        }
+        switch (slot.type) {
+            case BindSlot::Type::Texture:
+                slot.hlsl.register_t_n = hlsl_register_t_n++;
+                slot.msl.texture_n = msl_texture_n++;
+                break;
+            case BindSlot::Type::StorageBuffer:
+                if (slot.readonly) {
+                    slot.hlsl.register_t_n = hlsl_register_t_n++;
+                } else {
+                    slot.hlsl.register_u_n = hlsl_register_u_n++;
+                }
+                slot.msl.buffer_n = msl_buffer_n++;
+                // FIXME: must be < MaxStorageBufferBindingsPerStage!
+                // FIXME: this is a problem on min-spec GL drivers with only 8 storage buffer bindslots!
+                slot.glsl.binding_n = i;
+                break;
+            case BindSlot::Type::StorageImage:
+                slot.hlsl.register_u_n = hlsl_register_u_n++;
+                slot.msl.texture_n = msl_texture_n++;
+                // this is fine since storage images are only allowed on compute stage
+                slot.glsl.binding_n = glsl_storage_image_binding_n++;
+                break;
+            default: break;
+        }
+    }
+    for (int i = 0; i < MaxSamplers; i++) {
+        auto& slot = map.samplers[i];
+        if (slot.type != BindSlot::Type::Invalid) {
+            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
+            slot.hlsl.register_s_n = i;
+            slot.msl.sampler_n = i;
+        }
+    }
+}
+
+// compile a shader to SPIRV
 static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const MergedSource& source, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { source.src.c_str() };
     const int sourcesLen[1] = { (int) source.src.length() };
@@ -230,58 +345,37 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
     }
     for (int i = 0; i < program.getNumUniformBlocks(); i++) {
         const auto& ub = program.getUniformBlock(i);
-        const std::string& name = ub.name;
-        const int slot = inp.find_ub_slot(name);
-        const int binding = ub.getBinding();
-        if (slot == -1) {
-            inp.ub_slots[name] = binding;
-        } else if (slot != binding) {
-            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for uniform blocks of same name '{}' ({} vs {})", name, slot, binding)));
+        if (!add_bind_slot(inp, spirv_blob.bindings, ub.getBinding(), BindSlot::Type::UniformBlock, ub.name, out_spirv)) {
             return false;
         }
     }
     for (int i = 0; i < program.getNumBufferBlocks(); i++) {
         const auto& sbuf = program.getBufferBlock(i);
-        const std::string& name = sbuf.name;
-        const int slot = inp.find_sbuf_slot(name);
-        const int binding = sbuf.getBinding();
-        if (slot == -1) {
-            inp.sbuf_slots[name] = binding;
-        } else if (slot != binding) {
-            out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for buffer blocks of same name '{}' ({} vs {})", name, slot, binding)));
+        if (!add_bind_slot(inp, spirv_blob.bindings, sbuf.getBinding(), BindSlot::Type::StorageBuffer, sbuf.name, out_spirv)) {
             return false;
         }
     }
     for (int i = 0; i < program.getNumUniformVariables(); i++) {
         const auto& uniform = program.getUniform(i);
+        const bool readonly = uniform.getType()->getQualifier().readonly;
         const std::string& name = uniform.name;
         const int binding = uniform.getBinding();
+        BindSlot::Type type = BindSlot::Type::Invalid;
         if (uniform.getType()->getSampler().sampler) {
-            const int slot = inp.find_smp_slot(name);
-            if (slot == -1) {
-                inp.smp_slots[name] = binding;
-            } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for samplers of same name '{}' ({} vs {})", name, slot, binding)));
-                return false;
-            }
+            type = BindSlot::Type::Sampler;
         } else if (uniform.getType()->isTexture()) {
-            const int slot = inp.find_img_slot(name);
-            if (slot == -1) {
-                inp.img_slots[name] = binding;
-            } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for textures of same name '{}' ({} vs {})", name, slot, binding)));
-                return false;
-            }
+            type = BindSlot::Type::Texture;
         } else if (uniform.getType()->isImage()) {
-            const int slot = inp.find_simg_slot(name);
-            if (slot == -1) {
-                inp.simg_slots[name] = binding;
-            } else if (slot != binding) {
-                out_spirv.errors.push_back(inp.error(0, fmt::format("different bindings for storage images of same name '{}' ({} vs {})", name, slot, binding)));
+            type = BindSlot::Type::StorageImage;
+        }
+        if (type != BindSlot::Type::Invalid) {
+            if (!add_bind_slot(inp, spirv_blob.bindings, binding, type, name, readonly, out_spirv)) {
                 return false;
             }
         }
     }
+
+    // FIXME: allocate backend-specific bind slots
 
     // translate intermediate representation to SPIRV
     const glslang::TIntermediate* im = program.getIntermediate(stage);
@@ -416,25 +510,6 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
     }
     fmt::print(stderr, "  bindings:\n");
     fmt::print(stderr, "    uniform blocks:\n");
-    for (const auto& item: inp.ub_slots) {
-        fmt::print(stderr, "      {} => {}\n", item.first, item.second);
-    }
-    fmt::print(stderr, "    images:\n");
-    for (const auto& item: inp.img_slots) {
-        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
-    }
-    fmt::print(stderr, "    samplers:\n");
-    for (const auto& item: inp.smp_slots) {
-        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
-    }
-    fmt::print(stderr, "    storage buffers:\n");
-    for (const auto& item: inp.sbuf_slots) {
-        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
-    }
-    fmt::print(stderr, "    storage images:\n");
-    for (const auto& item: inp.simg_slots) {
-        fmt::print(stderr, "      {}: {}\n", item.first, item.second);
-    }
     fmt::print(stderr, "\n");
 }
 

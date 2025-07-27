@@ -1,9 +1,8 @@
 #pragma once
 #include <string>
 #include "consts.h"
-#include "shader_stage.h"
 
-namespace shdc::refl {
+namespace shdc {
 
 struct BindSlot {
     enum Type {
@@ -16,8 +15,8 @@ struct BindSlot {
         TextureSampler,
     };
     std::string name;
-    ShaderStage::Enum stage = ShaderStage::Invalid;
     Type type = Invalid;
+    bool readonly = false;
     struct {
         int binding_n = -1; // storage buffer/image
     } glsl;
@@ -36,7 +35,29 @@ struct BindSlot {
         int group0_binding_n = -1;  // uniform block
         int group1_binding_n = -1;  // texture, storage buffer/image, sampler
     } wgsl;
+
+    bool empty() const;
+    bool equals(const BindSlot& other) const;
 };
 
-} // namespace shdc::refl
+inline bool BindSlot::empty() const {
+    return type == Invalid;
+}
+
+inline bool BindSlot::equals(const BindSlot& other) const {
+    return (name == other.name)
+        && (type == other.type)
+        && (readonly == other.readonly)
+        && (hlsl.register_b_n == other.hlsl.register_b_n)
+        && (hlsl.register_t_n == other.hlsl.register_t_n)
+        && (hlsl.register_u_n == other.hlsl.register_u_n)
+        && (hlsl.register_s_n == other.hlsl.register_s_n)
+        && (msl.buffer_n == other.msl.buffer_n)
+        && (msl.texture_n == other.msl.texture_n)
+        && (msl.sampler_n == other.msl.sampler_n)
+        && (wgsl.group0_binding_n == other.wgsl.group0_binding_n)
+        && (wgsl.group1_binding_n == other.wgsl.group1_binding_n);
+}
+
+} // namespace shdc
 
