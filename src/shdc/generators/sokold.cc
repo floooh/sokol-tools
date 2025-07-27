@@ -254,7 +254,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int ub_index = 0; ub_index < Bindings::MaxUniformBlocks; ub_index++) {
+            for (int ub_index = 0; ub_index < MaxUniformBlocks; ub_index++) {
                 const UniformBlock* ub = prog.bindings.find_uniform_block_by_sokol_slot(ub_index);
                 if (ub) {
                     const std::string ubn = fmt::format("desc.uniform_blocks[{}]", ub_index);
@@ -285,7 +285,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int sbuf_index = 0; sbuf_index < Bindings::MaxStorageBufferBindingsPerStage; sbuf_index++) {
+            for (int sbuf_index = 0; sbuf_index < MaxStorageBufferBindingsPerStage; sbuf_index++) {
                 const StorageBuffer* sbuf = prog.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
                 if (sbuf) {
                     const std::string& sbn = fmt::format("desc.storage_buffers[{}]", sbuf_index);
@@ -307,7 +307,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int simg_index = 0; simg_index < Bindings::MaxStorageImageBindingsPerStage; simg_index++) {
+            for (int simg_index = 0; simg_index < MaxStorageImageBindingsPerStage; simg_index++) {
                 const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
                 if (simg) {
                     const std::string& sin = fmt::format("desc.storage_images[{}]", simg_index);
@@ -326,7 +326,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int tex_index = 0; tex_index < Bindings::MaxTextureBindingsPerStage; tex_index++) {
+            for (int tex_index = 0; tex_index < MaxTextureBindingsPerStage; tex_index++) {
                 const Texture* tex = prog.bindings.find_texture_by_sokol_slot(tex_index);
                 if (tex) {
                     const std::string tn = fmt::format("desc.textures[{}]", tex_index);
@@ -343,7 +343,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int smp_index = 0; smp_index < Bindings::MaxSamplers; smp_index++) {
+            for (int smp_index = 0; smp_index < MaxSamplers; smp_index++) {
                 const Sampler* smp = prog.bindings.find_sampler_by_sokol_slot(smp_index);
                 if (smp) {
                     const std::string sn = fmt::format("desc.samplers[{}]", smp_index);
@@ -358,7 +358,7 @@ void SokolDGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
                     }
                 }
             }
-            for (int tex_smp_index = 0; tex_smp_index < Bindings::MaxTextureSamplers; tex_smp_index++) {
+            for (int tex_smp_index = 0; tex_smp_index < MaxTextureSamplers; tex_smp_index++) {
                 const TextureSampler* tex_smp = prog.bindings.find_texture_sampler_by_sokol_slot(tex_smp_index);
                 if (tex_smp) {
                     const std::string tsn = fmt::format("desc.texture_sampler_pairs[{}]", tex_smp_index);

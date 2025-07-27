@@ -299,7 +299,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
         const int slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::UNIFORM_BLOCK;
+        const BindSlot::Type res_type = BindSlot::Type::UniformBlock;
         UniformBlock refl_ub;
         refl_ub.stage = refl.stage;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
@@ -327,7 +327,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     // storage buffers
     for (const Resource& sbuf_res: shd_resources.storage_buffers) {
         const int slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
+        const BindSlot::Type res_type = BindSlot::Type::StorageBuffer;
         StorageBuffer refl_sbuf;
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
         if (refl_sbuf.inst_name.empty()) {
@@ -373,7 +373,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         const int slot = compiler.get_decoration(simg_res.id, spv::DecorationBinding);
         const auto& spir_type = compiler.get_type(simg_res.type_id);
         const auto& mask = compiler.get_decoration_bitset(simg_res.id);
-        const Bindings::Type res_type = Bindings::Type::STORAGE_IMAGE;
+        const BindSlot::Type res_type = BindSlot::Type::StorageImage;
         StorageImage refl_simg;
         refl_simg.stage = refl.stage;
         refl_simg.name = simg_res.name;
@@ -391,7 +391,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     // (separate) texture images
     for (const Resource& img_res: shd_resources.separate_images) {
         const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::TEXTURE;
+        const BindSlot::Type res_type = BindSlot::Type::Texture;
         Texture refl_tex;
         refl_tex.stage = refl.stage;
         refl_tex.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
@@ -416,7 +416,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
         const int slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::SAMPLER;
+        const BindSlot::Type res_type = BindSlot::Type::Sampler;
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         Sampler refl_smp;
         refl_smp.stage = refl.stage;
@@ -677,14 +677,14 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
 
 ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
     {
-        std::array<std::string, Bindings::MaxUniformBlocks> ub_slots;
+        std::array<std::string, MaxUniformBlocks> ub_slots;
         for (const auto& ub: bindings.uniform_blocks) {
             const int slot = ub.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxUniformBlocks)) {
+            if ((slot < 0) || (slot >= MaxUniformBlocks)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for uniform block '{}' (must be 0..{})",
                     slot,
                     ub.name,
-                    Bindings::MaxUniformBlocks - 1));
+                    MaxUniformBlocks - 1));
             }
             if (!ub_slots[slot].empty()) {
                 return ErrMsg::error(fmt::format("uniform blocks {} and {} cannot use the same binding {}",
@@ -696,14 +696,14 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
     }
     {
-        std::array<std::string, Bindings::MaxViews> view_slots;
+        std::array<std::string, MaxViews> view_slots;
         for (const auto& sbuf: bindings.storage_buffers) {
             const int slot = sbuf.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxViews)) {
+            if ((slot < 0) || (slot >= MaxViews)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     sbuf.name,
-                    Bindings::MaxViews - 1));
+                    MaxViews - 1));
             }
             if (!view_slots[slot].empty()) {
                 return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
@@ -715,11 +715,11 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
         for (const auto& simg: bindings.storage_images) {
             const int slot = simg.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxViews)) {
+            if ((slot < 0) || (slot >= MaxViews)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     simg.name,
-                    Bindings::MaxViews - 1));
+                    MaxViews - 1));
             }
             if (!view_slots[slot].empty()) {
                 return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
@@ -731,11 +731,11 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
         for (const auto& tex: bindings.textures) {
             const int slot = tex.sokol_slot;
-            if ((slot < 0) || (slot > Bindings::MaxViews)) {
+            if ((slot < 0) || (slot > MaxViews)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     tex.name,
-                    Bindings::MaxViews - 1));
+                    MaxViews - 1));
             }
             if (!view_slots[slot].empty()) {
                 return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
@@ -747,14 +747,14 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
     }
     {
-        std::array<std::string, Bindings::MaxSamplers> smp_slots;
+        std::array<std::string, MaxSamplers> smp_slots;
         for (const auto& smp: bindings.samplers) {
             const int slot = smp.sokol_slot;
-            if ((slot < 0) || (slot > Bindings::MaxSamplers)) {
+            if ((slot < 0) || (slot > MaxSamplers)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for sampler '{}' (must be 0..{})",
                     slot,
                     smp.name,
-                    Bindings::MaxSamplers - 1));
+                    MaxSamplers - 1));
             }
             if (!smp_slots[slot].empty()) {
                     return ErrMsg::error(fmt::format("samplers '{}' and '{}' cannot use the same binding {}",

@@ -38,7 +38,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
 
     // uniform buffers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
+        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::UniformBlock);
         for (const Resource& res: shader_resources.uniform_buffers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -47,7 +47,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
 
     // combined texture samplers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE_SAMPLER);
+        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::TextureSampler);
         for (const Resource& res: shader_resources.sampled_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -56,7 +56,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
 
     // separate textures
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
+        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::Texture);
         for (const Resource& res: shader_resources.separate_images) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -65,7 +65,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
 
     // separate samplers
     {
-        uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
+        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::Sampler);
         for (const Resource& res: shader_resources.separate_samplers) {
             compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -83,8 +83,8 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
             // special case HLSL:
             // - readonly storage buffers are bound as SRV (register(tn))
             // - read/write storage buffers are bound as UAV (register(un))
-            const uint32_t t_base = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER, true);
-            const uint32_t u_base = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER, false);
+            const uint32_t t_base = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer, true);
+            const uint32_t u_base = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer, false);
             uint32_t bind_idx = 0;
             for (const Resource& res: shader_resources.storage_buffers) {
                 compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
@@ -96,7 +96,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
                 }
             }
         } else {
-            uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
+            uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer);
             for (const Resource& res: shader_resources.storage_buffers) {
                 compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
                 compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -112,7 +112,7 @@ static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang
                 compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
             }
         } else {
-            uint32_t binding = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_IMAGE);
+            uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::StorageImage);
             for (const Resource& res: shader_resources.storage_images) {
                 compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
                 compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
@@ -134,7 +134,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // uniform buffers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::UNIFORM_BLOCK);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::UniformBlock);
         uint32_t ub_binding = 0;
         for (const Resource& res: shader_resources.uniform_buffers) {
             uint32_t out_offset = 0;
@@ -153,7 +153,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // separate textures
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::TEXTURE);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::Texture);
         for (const Resource& res: shader_resources.separate_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -171,7 +171,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage buffers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::STORAGE_BUFFER);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer);
         for (const Resource& res: shader_resources.storage_buffers) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -189,7 +189,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage images
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::STORAGE_IMAGE);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::StorageImage);
         for (const Resource& res: shader_resources.storage_images) {
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
@@ -207,7 +207,7 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // separate samplers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, Bindings::Type::SAMPLER);
+        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::Sampler);
         uint32_t smp_binding = 0;
         for (const Resource& res: shader_resources.separate_samplers) {
             uint32_t out_offset = 0;

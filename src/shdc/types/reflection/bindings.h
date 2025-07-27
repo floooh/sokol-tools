@@ -1,4 +1,5 @@
 #pragma once
+#include "bindslot.h"
 #include "uniform_block.h"
 #include "texture.h"
 #include "sampler.h"
@@ -9,36 +10,8 @@
 namespace shdc::refl {
 
 struct Bindings {
-    // keep these in sync with:
-    //  - SG_MAX_VIEW_BINDSLOTS
-    //  - SG_MAX_UNIFORMBLOCKS
-    //  - SG_MAX_TEXTURE_BINDINGS_PER_STAGE
-    //  - SG_MAX_STORAGEBUFFER_BINDINGS_PER_STAGE
-    //  - SG_MAX_STORAGEIMAGE_BINDINGS_PER_STAGE
-    //  - SG_MAX_SAMPLER_BINDSLOTS
-    //  - SG_MAX_TEXTURE_SAMPLERS_PAIRS
-    //
-    inline static const int MaxUniformBlocks = 8;
-    inline static const int MaxSamplers = 16;
-    inline static const int MaxTextureBindingsPerStage = 16;
-    inline static const int MaxStorageBufferBindingsPerStage = 8;
-    inline static const int MaxStorageImageBindingsPerStage = 4;
-    inline static const int MaxViews = 28;
-    inline static const int MaxTextureSamplers = 16;
-    static_assert(MaxViews == MaxTextureBindingsPerStage + MaxStorageBufferBindingsPerStage + MaxStorageImageBindingsPerStage);
-
-    enum Type {
-        INVALID,
-        UNIFORM_BLOCK,
-        TEXTURE,
-        SAMPLER,
-        STORAGE_BUFFER,
-        STORAGE_IMAGE,
-        TEXTURE_SAMPLER,
-    };
-
     struct View {
-        Type type = INVALID;
+        BindSlot::Type type = BindSlot::Invalid;
         struct Texture texture;
         struct StorageBuffer storage_buffer;
         struct StorageImage storage_image;
@@ -51,7 +24,7 @@ struct Bindings {
     std::vector<Sampler> samplers;
     std::vector<TextureSampler> texture_samplers;
 
-    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type, bool readonly=true);
+    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, BindSlot::Type type, bool readonly=true);
 
     View get_view_by_sokol_slot(int slot) const;
 
@@ -75,27 +48,27 @@ struct Bindings {
 // returns the 3D API specific base-binding slot for a shader dialect, stage and resource type
 // NOTE: the special Slang::REFLECTION always returns zero, this can be used
 // to figure out the sokol-gfx bindslots
-inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, Type type, bool readonly) {
+inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, BindSlot::Type type, bool readonly) {
     int res = 0;
     switch (type) {
-        case Type::UNIFORM_BLOCK:
+        case BindSlot::Type::UniformBlock:
             if (Slang::is_wgsl(slang)) {
                 res = ShaderStage::is_fs(stage) ? MaxUniformBlocks: 0;
             }
             break;
-        case Type::TEXTURE_SAMPLER:
+        case BindSlot::Type::TextureSampler:
             if (Slang::is_glsl(slang)) {
                 res = ShaderStage::is_fs(stage) ? MaxTextureSamplers: 0;
             }
             break;
-        case Type::TEXTURE:
+        case BindSlot::Type::Texture:
             if (Slang::is_wgsl(slang)) {
                 if (ShaderStage::is_fs(stage)) {
                     res += 64;
                 }
             }
             break;
-        case Type::SAMPLER:
+        case BindSlot::Type::Sampler:
             if (Slang::is_wgsl(slang)) {
                 res = 32;
                 if (ShaderStage::is_fs(stage)) {
@@ -103,7 +76,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
                 }
             }
             break;
-        case Type::STORAGE_BUFFER:
+        case BindSlot::Type::StorageBuffer:
             if (Slang::is_msl(slang)) {
                 res = MaxUniformBlocks;
             } else if (Slang::is_hlsl(slang)) {
@@ -120,7 +93,7 @@ inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, 
                 }
             }
             break;
-        case Type::STORAGE_IMAGE:
+        case BindSlot::Type::StorageImage:
             // HLSL: assume D3D11.1, which allows for more than 8 UAV slots
             // MSL: uses texture bindslot, but enough bindslot space available to move behind texture bindings
             if (Slang::is_hlsl(slang)) {
@@ -143,15 +116,15 @@ inline Bindings::View Bindings::get_view_by_sokol_slot(int slot) const {
     const StorageImage* simg = find_storage_image_by_sokol_slot(slot);
     if (tex) {
         assert((sbuf == nullptr) && (simg == nullptr));
-        view.type = TEXTURE;
+        view.type = BindSlot::Type::Texture;
         view.texture = *tex;
     } else if (sbuf) {
         assert((tex == nullptr) && (simg == nullptr));
-        view.type = STORAGE_BUFFER;
+        view.type = BindSlot::Type::StorageBuffer;
         view.storage_buffer = *sbuf;
     } else if (simg) {
         assert((tex == nullptr) && (sbuf == nullptr));
-        view.type = STORAGE_IMAGE;
+        view.type = BindSlot::Type::StorageImage;
         view.storage_image = *simg;
     }
     return view;
