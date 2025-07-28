@@ -30,113 +30,71 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
     return nullptr;
 }
 
-static void fix_bind_slots(Compiler& compiler, Snippet::Type snippet_type, Slang::Enum slang) {
-    // NOTE: this function can be called with the special Slang::REFLECTION
-    // which guarantees zero-based bindings for each resource type
+static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
-    ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
 
     // uniform buffers
-    {
-        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::UniformBlock);
-        for (const Resource& res: shader_resources.uniform_buffers) {
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-        }
+    for (const Resource& res: shader_resources.uniform_buffers) {
+        assert(!res.name.empty());
+        const int binding = bindslot_map.find_uniformblock_slang_slot(res.name, slang); assert(binding != -1);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 
-    // combined texture samplers
-    {
-        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::TextureSampler);
-        for (const Resource& res: shader_resources.sampled_images) {
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-        }
+    // NOTE: combined texture samplers are looked up by name, so the binding doesn't matter
+    /*
+    for (const Resource& res: shader_resources.sampled_images) {
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, binding);
     }
+    */
 
     // separate textures
-    {
-        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::Texture);
-        for (const Resource& res: shader_resources.separate_images) {
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-        }
-    }
-
-    // separate samplers
-    {
-        uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::Sampler);
-        for (const Resource& res: shader_resources.separate_samplers) {
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-        }
+    for (const Resource& res: shader_resources.separate_images) {
+        assert(!res.name.empty());
+        const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 
     // storage buffers
-    {
-        if (Slang::is_glsl(slang)) {
-            // special case GLSL: keep the original bindings across all shader stages
-            for (const Resource& res: shader_resources.storage_buffers) {
-                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            }
-        } else if (Slang::is_hlsl(slang)) {
-            // special case HLSL:
-            // - readonly storage buffers are bound as SRV (register(tn))
-            // - read/write storage buffers are bound as UAV (register(un))
-            const uint32_t t_base = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer, true);
-            const uint32_t u_base = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer, false);
-            uint32_t bind_idx = 0;
-            for (const Resource& res: shader_resources.storage_buffers) {
-                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-                const bool readonly = compiler.get_buffer_block_flags(res.id).get(spv::DecorationNonWritable);
-                if (readonly) {
-                    compiler.set_decoration(res.id, spv::DecorationBinding, t_base + bind_idx++);
-                } else {
-                    compiler.set_decoration(res.id, spv::DecorationBinding, u_base + bind_idx++);
-                }
-            }
-        } else {
-            uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer);
-            for (const Resource& res: shader_resources.storage_buffers) {
-                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-                compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-            }
-        }
+    for (const Resource& res: shader_resources.storage_buffers) {
+        assert(!res.name.empty());
+        const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 
     // storage images
-    {
-        if (Slang::is_glsl(slang)) {
-            // special case GLSL: keep the original bindings bindings across all shader stages
-            for (const Resource& res: shader_resources.storage_images) {
-                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-            }
-        } else {
-            uint32_t binding = Bindings::base_slot(slang, stage, BindSlot::Type::StorageImage);
-            for (const Resource& res: shader_resources.storage_images) {
-                compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-                compiler.set_decoration(res.id, spv::DecorationBinding, binding++);
-            }
-        }
+    for (const Resource& res: shader_resources.storage_images) {
+        assert(!res.name.empty());
+        const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+    }
+
+    // separate samplers
+    for (const Resource& res: shader_resources.separate_samplers) {
+        assert(!res.name.empty());
+        const int binding = bindslot_map.find_sampler_slang_slot(res.name, slang); assert(binding != -1);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 }
 
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
 // for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type, std::vector<uint32_t>& inout_bytecode) {
+static void wgsl_patch_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
-    const ShaderStage::Enum stage = ShaderStage::from_snippet_type(snippet_type);
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
     const uint32_t view_smp_bindgroup = 1;
-    uint32_t view_binding = 0;
 
     // uniform buffers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::UniformBlock);
-        uint32_t ub_binding = 0;
         for (const Resource& res: shader_resources.uniform_buffers) {
+            assert(!res.name.empty());
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = ub_bindgroup;
@@ -144,7 +102,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + ub_binding++;
+                const int binding = bindslot_map.find_uniformblock_slang_slot(res.name, slang); assert(binding != -1);
+                inout_bytecode[out_offset] = (uint32_t)binding;
             } else {
                 // FIXME: handle error
             }
@@ -153,8 +112,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // separate textures
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::Texture);
         for (const Resource& res: shader_resources.separate_images) {
+            assert(!res.name.empty());
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = view_smp_bindgroup;
@@ -162,7 +121,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_binding++;
+                const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+                inout_bytecode[out_offset] = (uint32_t)binding;
             } else {
                 // FIXME: handle error
             }
@@ -171,8 +131,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage buffers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::StorageBuffer);
         for (const Resource& res: shader_resources.storage_buffers) {
+            assert(!res.name.empty());
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = view_smp_bindgroup;
@@ -180,7 +140,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_binding++;
+                const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+                inout_bytecode[out_offset] = (uint32_t)binding;
             } else {
                 // FIXME: handle error
             }
@@ -189,8 +150,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // storage images
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::StorageImage);
         for (const Resource& res: shader_resources.storage_images) {
+            assert(!res.name.empty());
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = view_smp_bindgroup;
@@ -198,7 +159,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + view_binding++;
+                const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+                inout_bytecode[out_offset] = (uint32_t)binding;
             } else {
                 // FIXME: handle error
             }
@@ -207,9 +169,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
 
     // separate samplers
     {
-        uint32_t base_slot = Bindings::base_slot(slang, stage, BindSlot::Type::Sampler);
-        uint32_t smp_binding = 0;
         for (const Resource& res: shader_resources.separate_samplers) {
+            assert(!res.name.empty());
             uint32_t out_offset = 0;
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationDescriptorSet, out_offset)) {
                 inout_bytecode[out_offset] = view_smp_bindgroup;
@@ -217,7 +178,8 @@ static void wgsl_patch_bind_slots(Compiler& compiler, Snippet::Type snippet_type
                 // FIXME: handle error
             }
             if (compiler.get_binary_offset_for_decoration(res.id, spv::DecorationBinding, out_offset)) {
-                inout_bytecode[out_offset] = base_slot + smp_binding++;
+                const int binding = bindslot_map.find_sampler_slang_slot(res.name, slang); assert(binding != -1);
+                inout_bytecode[out_offset] = (uint32_t)binding;
             } else {
                 // FIXME: handle error
             }
@@ -372,10 +334,13 @@ static StageReflection parse_reflection(const Input& inp, const std::vector<uint
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
+
     // passing Slang::REFLECTION here makes sure that the bind slots
     // are zero-based per stage and resource type (otherwise 3D API
     // specific bind slot allocations would apply)
-    fix_bind_slots(compiler, snippet.type, Slang::REFLECTION);
+// NOTE: DO NOT FIX BINDSLOTS HERE!!! THEY ARE NOT RELEVANT FOR parse_snippet_reflection!
+// fix_bind_slots(compiler, snippet.type, Slang::REFLECTION);
+
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
@@ -417,7 +382,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     compiler.set_common_options(options);
     flatten_uniform_blocks(compiler);
     to_combined_image_samplers(compiler);
-    fix_bind_slots(compiler, snippet.type, slang);
+    fix_bind_slots(compiler, blob.bindings, slang);
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
@@ -449,14 +414,16 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     hlslOptions.point_size_compat = true;
     hlslOptions.support_nonzero_base_vertex_base_instance = false;
     compiler.set_hlsl_options(hlslOptions);
-    fix_bind_slots(compiler, snippet.type, slang);
+    fix_bind_slots(compiler, blob.bindings, slang);
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
+/*
     if (!src.empty()) {
         res.source_code = std::move(src);
         res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
     }
+*/
     res.valid = !res.error.valid();
     return res;
 }
@@ -479,7 +446,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     }
     mslOptions.enable_decoration_binding = true;
     compiler.set_msl_options(mslOptions);
-    fix_bind_slots(compiler, snippet.type, slang);
+    fix_bind_slots(compiler, blob.bindings, slang);
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
@@ -494,8 +461,8 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
 static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
-    fix_bind_slots(compiler_temp, snippet.type, slang);
-    wgsl_patch_bind_slots(compiler_temp, snippet.type, patched_bytecode);
+    fix_bind_slots(compiler_temp, blob.bindings, slang);
+    wgsl_patch_bind_slots(compiler_temp, blob.bindings, patched_bytecode);
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
     tint::spirv::reader::Options spirv_options;

@@ -2,6 +2,7 @@
 #include <string>
 #include "consts.h"
 #include "fmt/format.h"
+#include "slang.h"
 
 namespace shdc {
 
@@ -50,6 +51,7 @@ struct BindSlot {
     bool readonly() const;
     bool writeonly() const;
     void dump_debug() const;
+    int get_slot_by_slang(Slang::Enum slang) const;
 };
 
 inline BindSlot::BindSlot(int _binding, const std::string& _name, Type _type, int _qualifiers):
@@ -137,6 +139,49 @@ inline void BindSlot::dump_debug() const {
     }
     if (wgsl.group1_binding_n!= -1) {
         fmt::print("      wgsl.group1_binding_b: {}\n", wgsl.group1_binding_n);
+    }
+}
+
+inline int BindSlot::get_slot_by_slang(Slang::Enum slang) const {
+    if (Slang::is_hlsl(slang)) {
+        switch (type) {
+            case BindSlot::Type::UniformBlock:
+                return hlsl.register_b_n;
+            case BindSlot::Type::Texture:
+                return hlsl.register_t_n;
+            case BindSlot::Type::StorageBuffer:
+                return readonly() ? hlsl.register_t_n : hlsl.register_u_n;
+            case BindSlot::Type::StorageImage:
+                return hlsl.register_u_n;
+            case BindSlot::Type::Sampler:
+                return hlsl.register_s_n;
+            default:
+                return -1;
+        }
+    } else if (Slang::is_msl(slang)) {
+        switch (type) {
+            case BindSlot::Type::UniformBlock:
+            case BindSlot::Type::StorageBuffer:
+                return msl.buffer_n;
+            case BindSlot::Type::Texture:
+            case BindSlot::Type::StorageImage:
+                return msl.texture_n;
+            case BindSlot::Type::Sampler:
+                return msl.sampler_n;
+            default:
+                return -1;
+        }
+    } else if (Slang::is_wgsl(slang)) {
+        switch (type) {
+            case BindSlot::Type::UniformBlock:
+                return wgsl.group0_binding_n;
+            default:
+                return wgsl.group1_binding_n;
+        }
+    } else if (Slang::is_glsl(slang)) {
+        return glsl.binding_n;
+    } else {
+        return -1;
     }
 }
 

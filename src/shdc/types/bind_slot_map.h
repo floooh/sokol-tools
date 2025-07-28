@@ -5,6 +5,7 @@
 #include "consts.h"
 #include "bindslot.h"
 #include "shader_stage.h"
+#include "slang.h"
 
 namespace shdc {
 
@@ -16,16 +17,69 @@ struct BindSlotMap {
 
     bool add(const BindSlot& bindslot, std::string& out_error_msg);
     void allocate_backend_slots(ShaderStage::Enum stage);
-
-    // return -1 if not found
-    int find_ub_slot(const std::string& name) const;
-    int find_img_slot(const std::string& name) const;
-    int find_smp_slot(const std::string& name) const;
-    int find_sbuf_slot(const std::string& name) const;
-    int find_simg_slot(const std::string& name) const;
+    int find_uniformblock_slang_slot(const std::string& name, Slang::Enum slang) const;
+    int find_view_slang_slot(const std::string& name, Slang::Enum slang) const;
+    int find_sampler_slang_slot(const std::string& name, Slang::Enum slang) const;
+    const BindSlot* find_uniformblock_bindslot(const std::string& name) const;
+    const BindSlot* find_view_bindslot(const std::string& name) const;
+    const BindSlot* find_sampler_bindslot(const std::string& name) const;
 
     void dump_debug() const;
 };
+
+inline const BindSlot* BindSlotMap::find_uniformblock_bindslot(const std::string& name) const {
+    for (const auto& bs: uniform_blocks) {
+        if (!bs.empty() && (bs.name == name)) {
+            return &bs;
+        }
+    }
+    return nullptr;
+}
+
+inline const BindSlot* BindSlotMap::find_view_bindslot(const std::string& name) const {
+    for (const auto& bs: views) {
+        if (!bs.empty() && (bs.name == name)) {
+            return &bs;
+        }
+    }
+    return nullptr;
+}
+
+inline const BindSlot* BindSlotMap::find_sampler_bindslot(const std::string& name) const {
+    for (const auto& bs: samplers) {
+        if (!bs.empty() && (bs.name == name)) {
+            return &bs;
+        }
+    }
+    return nullptr;
+}
+
+inline int BindSlotMap::find_uniformblock_slang_slot(const std::string& name, Slang::Enum slang) const {
+    const BindSlot* bs = find_uniformblock_bindslot(name);
+    if (bs) {
+        return bs->get_slot_by_slang(slang);
+    } else {
+        return -1;
+    }
+}
+
+inline int BindSlotMap::find_view_slang_slot(const std::string& name, Slang::Enum slang) const {
+    const BindSlot* bs = find_view_bindslot(name);
+    if (bs) {
+        return bs->get_slot_by_slang(slang);
+    } else {
+        return -1;
+    }
+}
+
+inline int BindSlotMap::find_sampler_slang_slot(const std::string& name, Slang::Enum slang) const {
+    const BindSlot* bs = find_sampler_bindslot(name);
+    if (bs) {
+        return bs->get_slot_by_slang(slang);
+    } else {
+        return -1;
+    }
+}
 
 inline bool BindSlotMap::add(const BindSlot& bindslot, std::string& out_error_msg) {
     const int binding = bindslot.binding;
@@ -46,7 +100,10 @@ inline bool BindSlotMap::add(const BindSlot& bindslot, std::string& out_error_ms
             return false;
         }
         if (samplers[binding].empty()) {
+            samplers[binding] = bindslot;
+        } else {
             out_error_msg = fmt::format("Samplers {} and {} can't have the same binding {}", bindslot.name, samplers[binding].name, binding);
+            return false;
         }
     } else {
         if ((binding < 0) || (binding >= MaxViews)) {
