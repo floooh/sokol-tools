@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "fmt/format.h"
-#include "shader_stage.h"
+#include "../shader_stage.h"
 #include "image_type.h"
 #include "storage_pixel_format.h"
 #include "type.h"

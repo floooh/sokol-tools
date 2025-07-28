@@ -1,7 +1,8 @@
 #pragma once
 #include "types/snippet.h"
+#include "glslang/Public/ShaderLang.h"
 
-namespace shdc::refl {
+namespace shdc {
 
 // a shader stage
 struct ShaderStage {
@@ -15,6 +16,7 @@ struct ShaderStage {
     static const char* to_str(Enum e);
     static Enum from_index(int idx);
     static Enum from_snippet_type(Snippet::Type t);
+    static Enum from_glsang_eshlangauge(EShLanguage esh_lang);
     static bool is_vs(Enum e);
     static bool is_fs(Enum e);
     static bool is_cs(Enum e);
@@ -41,6 +43,15 @@ inline ShaderStage::Enum ShaderStage::from_snippet_type(Snippet::Type t) {
 inline ShaderStage::Enum ShaderStage::from_index(int idx) {
     assert((idx >= 0) && (idx < Num));
     return (ShaderStage::Enum)idx;
+}
+
+inline ShaderStage::Enum ShaderStage::from_glsang_eshlangauge(EShLanguage esh_lang) {
+    switch (esh_lang) {
+        case EShLangVertex: return Vertex;
+        case EShLangFragment: return Fragment;
+        case EShLangCompute: return Compute;
+        default: return Invalid;
+    }
 }
 
 inline bool ShaderStage::is_vs(ShaderStage::Enum e) {

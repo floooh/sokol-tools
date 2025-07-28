@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "fmt/format.h"
-#include "shader_stage.h"
+#include "../shader_stage.h"
 
 namespace shdc::refl {
 

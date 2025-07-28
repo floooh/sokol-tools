@@ -47,7 +47,6 @@ int main(int argc, const char** argv) {
 
     // compile source snippets to SPIRV blobs (multiple compilations is necessary
     // because of conditional compilation by target language)
-    BindSlotMap bindings;
     std::array<Spirv,Slang::Num> spirv;
     for (int i = 0; i < Slang::Num; i++) {
         Slang::Enum slang = Slang::from_index(i);

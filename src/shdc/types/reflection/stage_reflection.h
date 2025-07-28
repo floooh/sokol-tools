@@ -2,7 +2,7 @@
 #include <string>
 #include <array>
 #include "fmt/format.h"
-#include "shader_stage.h"
+#include "../shader_stage.h"
 #include "stage_attr.h"
 #include "bindings.h"
 

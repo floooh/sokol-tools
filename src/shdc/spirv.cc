@@ -185,119 +185,6 @@ static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
     optimizer.Run(spirv.data(), spirv.size(), &spirv, spvOptOptions);
 }
 
-// add a new slot to a BindSlotMap
-static bool add_bind_slot(Input& inp, BindSlotMap& map, int slot, BindSlot::Type type, const std::string& name, bool readonly, Spirv& out_spirv) {
-    BindSlot bind_slot;
-    bind_slot.type = type;
-    bind_slot.name = name;
-    bind_slot.readonly = readonly;
-    if (type == BindSlot::Type::UniformBlock) {
-        if ((slot < 0) || (slot >= MaxUniformBlocks)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Uniform block {} binding {} out of range (must be 0..{})",
-                name, slot, MaxUniformBlocks - 1)));
-            return false;
-        }
-        if (map.uniform_blocks[slot].empty()) {
-            map.uniform_blocks[slot] = bind_slot;
-        } else if (!map.uniform_blocks[slot].equals(bind_slot)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Conflicting uniform-blocks at binding {} (names {} vs {})",
-                slot,
-                name, map.uniform_blocks[slot].name)));
-            return false;
-        }
-    } else if (type == BindSlot::Type::Sampler) {
-        if ((slot < 0) || (slot >= MaxSamplers)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Sampler {} binding {} out of range (must be 0..{})",
-                name, slot, MaxSamplers - 1)));
-            return false;
-        }
-        if (map.samplers[slot].empty()) {
-            map.samplers[slot] = bind_slot;
-        } else if (!map.samplers[slot].equals(bind_slot)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Conflicting sampler at binding {} (name {} vs {})",
-                slot,
-                name, map.samplers[slot].name)));
-            return false;
-        }
-    } else {
-        if ((slot < 0) || (slot >= MaxViews)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Resource {} binding {} out of range (must be 0..{})",
-                name, slot, MaxViews - 1)));
-            return false;
-        }
-        if (map.views[slot].empty()) {
-            map.views[slot] = bind_slot;
-        } else if (!map.views[slot].equals(bind_slot)) {
-            out_spirv.errors.push_back(inp.error(0,
-                fmt::format("Conflicting resource at binding {} (name: {} vs {})",
-                slot,
-                name, map.views[slot].name)));
-            return false;
-        }
-    }
-    return true;
-}
-
-static void allocate_backend_bindslots(EShLanguage stage, BindSlotMap& map) {
-    for (int i = 0; i < MaxUniformBlocks; i++) {
-        auto& slot = map.uniform_blocks[i];
-        if (slot.type != BindSlot::Type::Invalid) {
-            slot.hlsl.register_b_n = i;
-            slot.msl.buffer_n = i;
-            slot.wgsl.group0_binding_n = (stage == EShLangFragment) ? MaxUniformBlocks + i : i;
-        }
-    }
-    int hlsl_register_t_n = 0;
-    int hlsl_register_u_n = 0;
-    int msl_buffer_n = MaxUniformBlocks;
-    int msl_texture_n = 0;
-    int wgsl_group1_binding_n = (stage == EShLangFragment) ? 64 : 0;
-    int glsl_storage_image_binding_n = 0;
-    for (int i = 0; i < MaxViews; i++) {
-        auto& slot = map.views[i];
-        if (slot.type != BindSlot::Type::Invalid) {
-            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
-        }
-        switch (slot.type) {
-            case BindSlot::Type::Texture:
-                slot.hlsl.register_t_n = hlsl_register_t_n++;
-                slot.msl.texture_n = msl_texture_n++;
-                break;
-            case BindSlot::Type::StorageBuffer:
-                if (slot.readonly) {
-                    slot.hlsl.register_t_n = hlsl_register_t_n++;
-                } else {
-                    slot.hlsl.register_u_n = hlsl_register_u_n++;
-                }
-                slot.msl.buffer_n = msl_buffer_n++;
-                // FIXME: must be < MaxStorageBufferBindingsPerStage!
-                // FIXME: this is a problem on min-spec GL drivers with only 8 storage buffer bindslots!
-                slot.glsl.binding_n = i;
-                break;
-            case BindSlot::Type::StorageImage:
-                slot.hlsl.register_u_n = hlsl_register_u_n++;
-                slot.msl.texture_n = msl_texture_n++;
-                // this is fine since storage images are only allowed on compute stage
-                slot.glsl.binding_n = glsl_storage_image_binding_n++;
-                break;
-            default: break;
-        }
-    }
-    for (int i = 0; i < MaxSamplers; i++) {
-        auto& slot = map.samplers[i];
-        if (slot.type != BindSlot::Type::Invalid) {
-            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
-            slot.hlsl.register_s_n = i;
-            slot.msl.sampler_n = i;
-        }
-    }
-}
-
 // compile a shader to SPIRV
 static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const MergedSource& source, int snippet_index, Spirv& out_spirv) {
     const char* sources[1] = { source.src.c_str() };
@@ -338,28 +225,31 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
         return false;
     }
 
-    // extract binding information into Input
+    // extract binding information and allocate backend-specific slots
+    std::string errmsg;
     bool refl_res = program.buildReflection(EShReflectionSeparateBuffers);
     if (!refl_res) {
         out_spirv.errors.push_back(inp.error(0, "program.buildReflection() failed!"));
     }
     for (int i = 0; i < program.getNumUniformBlocks(); i++) {
         const auto& ub = program.getUniformBlock(i);
-        if (!add_bind_slot(inp, spirv_blob.bindings, ub.getBinding(), BindSlot::Type::UniformBlock, ub.name, out_spirv)) {
+        const BindSlot bindslot = BindSlot(ub.getBinding(), ub.name, BindSlot::Type::UniformBlock);
+        if (!spirv_blob.bindings.add(bindslot, errmsg)) {
+            out_spirv.errors.push_back(inp.error(0, errmsg));
             return false;
         }
     }
     for (int i = 0; i < program.getNumBufferBlocks(); i++) {
         const auto& sbuf = program.getBufferBlock(i);
-        if (!add_bind_slot(inp, spirv_blob.bindings, sbuf.getBinding(), BindSlot::Type::StorageBuffer, sbuf.name, out_spirv)) {
+        const int qual = sbuf.getType()->getQualifier().readonly ? BindSlot::Qualifier::ReadOnly : 0;
+        const BindSlot bindslot = BindSlot(sbuf.getBinding(), sbuf.name, BindSlot::Type::StorageBuffer, qual);
+        if (!spirv_blob.bindings.add(bindslot, errmsg)) {
+            out_spirv.errors.push_back(inp.error(0, errmsg));
             return false;
         }
     }
     for (int i = 0; i < program.getNumUniformVariables(); i++) {
         const auto& uniform = program.getUniform(i);
-        const bool readonly = uniform.getType()->getQualifier().readonly;
-        const std::string& name = uniform.name;
-        const int binding = uniform.getBinding();
         BindSlot::Type type = BindSlot::Type::Invalid;
         if (uniform.getType()->getSampler().sampler) {
             type = BindSlot::Type::Sampler;
@@ -369,13 +259,15 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             type = BindSlot::Type::StorageImage;
         }
         if (type != BindSlot::Type::Invalid) {
-            if (!add_bind_slot(inp, spirv_blob.bindings, binding, type, name, readonly, out_spirv)) {
+            const int qual = uniform.getType()->getQualifier().writeonly ? BindSlot::Qualifier::WriteOnly : 0;
+            const BindSlot bindslot = BindSlot(uniform.getBinding(), uniform.name, type, qual);
+            if (!spirv_blob.bindings.add(bindslot, errmsg)) {
+                out_spirv.errors.push_back(inp.error(0, errmsg));
                 return false;
             }
         }
     }
-
-    // FIXME: allocate backend-specific bind slots
+    spirv_blob.bindings.allocate_backend_slots(ShaderStage::from_glsang_eshlangauge(stage));
 
     // translate intermediate representation to SPIRV
     const glslang::TIntermediate* im = program.getIntermediate(stage);
@@ -489,6 +381,8 @@ void Spirv::dump_debug(const Input& inp, ErrMsg::Format err_fmt) const {
     }
     for (const SpirvBlob& blob : blobs) {
         fmt::print(stderr, "  snippet: {}\n", inp.snippets[blob.snippet_index].name);
+        fmt::print(stderr, "  bindings:\n");
+        blob.bindings.dump_debug();
         fmt::print(stderr, "  source:\n", inp.snippets[blob.snippet_index].name);
         std::vector<std::string> src_lines;
         pystring::splitlines(blob.source, src_lines);

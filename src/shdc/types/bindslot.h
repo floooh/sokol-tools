@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "consts.h"
+#include "fmt/format.h"
 
 namespace shdc {
 
@@ -14,9 +15,14 @@ struct BindSlot {
         Sampler,
         TextureSampler,
     };
+    enum Qualifier {
+        ReadOnly = (1<<0),
+        WriteOnly = (1<<1),
+    };
+    int binding = 0;
     std::string name;
     Type type = Invalid;
-    bool readonly = false;
+    int qualifiers = 0;
     struct {
         int binding_n = -1; // storage buffer/image
     } glsl;
@@ -36,18 +42,52 @@ struct BindSlot {
         int group1_binding_n = -1;  // texture, storage buffer/image, sampler
     } wgsl;
 
+    BindSlot() {};
+    BindSlot(int binding, const std::string& name, Type type, int qualifiers = 0);
+    static const char* type_to_str(Type t);
     bool empty() const;
     bool equals(const BindSlot& other) const;
+    bool readonly() const;
+    bool writeonly() const;
+    void dump_debug() const;
 };
+
+inline BindSlot::BindSlot(int _binding, const std::string& _name, Type _type, int _qualifiers):
+    binding(_binding),
+    name(_name),
+    type(_type),
+    qualifiers(_qualifiers)
+{ }
+
+inline const char* BindSlot::type_to_str(Type t) {
+    switch (t) {
+        case UniformBlock: return "UniformBlock";
+        case Texture: return "Texture";
+        case StorageBuffer: return "StorageBuffer";
+        case StorageImage: return "StorageImage";
+        case Sampler: return "Sampler";
+        case TextureSampler: return "TextureSampler";
+        default: return "Invalid";
+    }
+}
 
 inline bool BindSlot::empty() const {
     return type == Invalid;
 }
 
+inline bool BindSlot::readonly() const {
+    return 0 != (qualifiers & ReadOnly);
+}
+
+inline bool BindSlot::writeonly() const {
+    return 0 != (qualifiers & WriteOnly);
+}
+
 inline bool BindSlot::equals(const BindSlot& other) const {
-    return (name == other.name)
+    return (binding == other.binding)
+        && (name == other.name)
         && (type == other.type)
-        && (readonly == other.readonly)
+        && (qualifiers == other.qualifiers)
         && (hlsl.register_b_n == other.hlsl.register_b_n)
         && (hlsl.register_t_n == other.hlsl.register_t_n)
         && (hlsl.register_u_n == other.hlsl.register_u_n)
@@ -57,6 +97,47 @@ inline bool BindSlot::equals(const BindSlot& other) const {
         && (msl.sampler_n == other.msl.sampler_n)
         && (wgsl.group0_binding_n == other.wgsl.group0_binding_n)
         && (wgsl.group1_binding_n == other.wgsl.group1_binding_n);
+}
+
+inline void BindSlot::dump_debug() const {
+    if (empty()) {
+        return;
+    }
+    fmt::print("    - name: {}\n", name);
+    fmt::print("      type: {}\n", type_to_str(type));
+    fmt::print("      binding: {}\n", binding);
+    fmt::print("      readonly: {}\n", readonly());
+    fmt::print("      writeonly: {}\n", writeonly());
+    if (glsl.binding_n != -1) {
+        fmt::print("      glsl.binding_n: {}\n", glsl.binding_n);
+    }
+    if (hlsl.register_b_n != -1) {
+        fmt::print("      hlsl.register_b_n: {}\n", hlsl.register_b_n);
+    }
+    if (hlsl.register_t_n != -1) {
+        fmt::print("      hlsl.register_t_n: {}\n", hlsl.register_t_n);
+    }
+    if (hlsl.register_u_n != -1) {
+        fmt::print("      hlsl.register_u_n: {}\n", hlsl.register_u_n);
+    }
+    if (hlsl.register_s_n != -1) {
+        fmt::print("      hlsl.register_s_n: {}\n", hlsl.register_s_n);
+    }
+    if (msl.buffer_n != -1) {
+        fmt::print("      msl.buffer_n: {}\n", msl.buffer_n);
+    }
+    if (msl.texture_n != -1) {
+        fmt::print("      msl.texture_n: {}\n", msl.texture_n);
+    }
+    if (msl.sampler_n != -1) {
+        fmt::print("      msl.sampler_n: {}\n", msl.sampler_n);
+    }
+    if (wgsl.group0_binding_n != -1) {
+        fmt::print("      wgsl.group0_binding_n: {}\n", wgsl.group0_binding_n);
+    }
+    if (wgsl.group1_binding_n!= -1) {
+        fmt::print("      wgsl.group1_binding_b: {}\n", wgsl.group1_binding_n);
+    }
 }
 
 } // namespace shdc

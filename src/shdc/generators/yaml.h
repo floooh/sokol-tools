@@ -7,7 +7,7 @@ class YamlGenerator: public BareGenerator {
 public:
     virtual ErrMsg generate(const GenInput& gen);
 protected:
-    virtual std::string shader_stage(refl::ShaderStage::Enum e);
+    virtual std::string shader_stage(ShaderStage::Enum e);
     virtual std::string attr_basetype(refl::Type::Enum e);
     virtual std::string uniform_type(refl::Type::Enum e);
     virtual std::string flattened_uniform_type(refl::Type::Enum e);

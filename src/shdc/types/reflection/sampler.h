@@ -2,7 +2,7 @@
 #include <string>
 #include "fmt/format.h"
 #include "sampler_type.h"
-#include "shader_stage.h"
+#include "../shader_stage.h"
 
 namespace shdc::refl {
 

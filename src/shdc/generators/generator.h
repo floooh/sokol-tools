@@ -68,7 +68,7 @@ protected:
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
 
-    virtual std::string shader_stage(refl::ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
+    virtual std::string shader_stage(ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string attr_basetype(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string flattened_uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
@@ -95,13 +95,13 @@ protected:
 
     struct ShaderStageArrayInfo {
     public:
-        refl::ShaderStage::Enum stage = refl::ShaderStage::Enum::Invalid;
+        ShaderStage::Enum stage = ShaderStage::Enum::Invalid;
         bool has_bytecode = false;
         size_t bytecode_array_size = 0;
         std::string bytecode_array_name;
         std::string source_array_name;
     };
-    ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
+    ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang);
 
     // line output
     template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
@@ -154,7 +154,7 @@ protected:
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
-    static const char* hlsl_target(Slang::Enum slang, refl::ShaderStage::Enum stage);
+    static const char* hlsl_target(Slang::Enum slang, ShaderStage::Enum stage);
 
     std::string content;
     int tab_width = 4;
