@@ -242,7 +242,7 @@ Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) 
     return out;
 }
 
-StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, const Input& inp, ErrMsg& out_error) {
+StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, const Input& inp, const BindSlotMap& bindslot_map, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
 
@@ -298,17 +298,24 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
-        const int slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
-        const BindSlot::Type res_type = BindSlot::Type::UniformBlock;
+        assert(!ub_res.name.empty());
         UniformBlock refl_ub;
+        refl_ub.sokol_slot = bindslot_map.find_uniformblock_index(ub_res.name);
+        if (refl_ub.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for uniformblock '{}' (might be unused in shader code?)\n", refl_ub.name));
+            return refl;
+        }
+        refl_ub.name = ub_res.name;
         refl_ub.stage = refl.stage;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
-        refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        const BindSlot* bindslot = bindslot_map.find_uniformblock_bindslot(ub_res.name);
+        assert(bindslot);
+        refl_ub.hlsl_register_b_n = bindslot->hlsl.register_b_n;
+        refl_ub.msl_buffer_n = bindslot->msl.buffer_n;
+        refl_ub.wgsl_group0_binding_n = bindslot->wgsl.group0_binding_n;
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
@@ -316,18 +323,18 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         // uniform blocks always have 16 byte alignment
         refl_ub.struct_info.align = 16;
-        refl_ub.name = refl_ub.struct_info.name;
-        // FIXME FIXME FIXME refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.name);
-        if (refl_ub.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for uniformblock '{}' (might be unused in shader code?)\n", refl_ub.name));
-            return refl;
-        }
         refl.bindings.uniform_blocks.push_back(refl_ub);
     }
     // storage buffers
     for (const Resource& sbuf_res: shd_resources.storage_buffers) {
-        const int slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
+        assert(!sbuf_res.name.empty());
         StorageBuffer refl_sbuf;
+        refl_sbuf.sokol_slot = bindslot_map.find_view_index(sbuf_res.name);
+        if (refl_sbuf.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
+            return refl;
+        }
+        refl_sbuf.name = sbuf_res.name;
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
@@ -336,7 +343,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
-        refl_sbuf.name = refl_sbuf.struct_info.name;
         // check that the size and alignment of the nested struct is identical with the outher struct
         if (refl_sbuf.struct_info.size != refl_sbuf.struct_info.struct_items[0].size) {
             out_error = inp.error(0, fmt::format("SSBO struct size doesn't match nested item struct size (in ssbo '{}')\n", refl_sbuf.name));
@@ -346,45 +352,41 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             out_error = inp.error(0, fmt::format("SSBO struct alignment doesn't match nested item struct alignment (in ssbo '{}')\n", refl_sbuf.name));
             return refl;
         }
-        // FIXME FIXME FIXME refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
-        if (refl_sbuf.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
-            return refl;
-        }
         const bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         refl_sbuf.stage = refl.stage;
         refl_sbuf.readonly = readonly;
-        // FIXME FIXME FIXME
-        //const BindSlot::Type res_type = BindSlot::Type::StorageBuffer;
-        //if (readonly) {
-        //    refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
-        //} else {
-        //    refl_sbuf.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
-        //}
-        //refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        //refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        // SPECIAL CASE GL: the GL storage buffer bind slot is identical with the sokol-bind slot
-        // since GL also has a common bindspace across shader stages for storage buffers
-        refl_sbuf.glsl_binding_n = refl_sbuf.sokol_slot;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(sbuf_res.name);
+        assert(bindslot);
+        assert(readonly == bindslot->readonly());
+        refl_sbuf.hlsl_register_t_n = bindslot->hlsl.register_t_n;
+        refl_sbuf.hlsl_register_u_n = bindslot->hlsl.register_u_n;
+        refl_sbuf.msl_buffer_n = bindslot->msl.buffer_n;
+        refl_sbuf.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_sbuf.glsl_binding_n = bindslot->glsl.binding_n;
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
     // storage images
     for (const Resource& simg_res: shd_resources.storage_images) {
-        const int slot = compiler.get_decoration(simg_res.id, spv::DecorationBinding);
+        assert(!simg_res.name.empty());
         const auto& spir_type = compiler.get_type(simg_res.type_id);
         const auto& mask = compiler.get_decoration_bitset(simg_res.id);
         StorageImage refl_simg;
-        refl_simg.stage = refl.stage;
+        refl_simg.sokol_slot = bindslot_map.find_view_index(simg_res.name);
+        if (refl_simg.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for storageimage '{}' (might be unused in shader code?)\n", refl_simg.name));
+            return refl;
+        }
         refl_simg.name = simg_res.name;
-        // FIXME FIXME FIXME
-        // const BindSlot::Type res_type = BindSlot::Type::StorageImage;
-        // refl_simg.sokol_slot = inp.find_simg_slot(refl_simg.name);
-        // refl_simg.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        // refl_simg.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        // refl_simg.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        // refl_simg.glsl_binding_n = refl_simg.sokol_slot;
+        refl_simg.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(simg_res.name);
+        assert(bindslot);
+        refl_simg.hlsl_register_u_n = bindslot->hlsl.register_u_n;
+        refl_simg.msl_texture_n = bindslot->msl.texture_n;
+        refl_simg.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_simg.glsl_binding_n = bindslot->glsl.binding_n;
         refl_simg.writeonly = mask.get(spv::DecorationNonReadable);
+        assert(bindslot->writeonly() == refl_simg.writeonly);
         refl_simg.type = spirtype_to_image_type(spir_type);
         refl_simg.access_format = spirtype_to_storage_pixel_format(spir_type);
         refl.bindings.storage_images.push_back(refl_simg);
@@ -392,14 +394,20 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
 
     // (separate) texture images
     for (const Resource& img_res: shd_resources.separate_images) {
-        const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-        const BindSlot::Type res_type = BindSlot::Type::Texture;
+        assert(!img_res.name.empty());
         Texture refl_tex;
-        refl_tex.stage = refl.stage;
-        refl_tex.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_tex.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_tex.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_tex.sokol_slot = bindslot_map.find_view_index(img_res.name);
+        if (refl_tex.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for texture '{}' (might be unused in shader code?)\n", refl_tex.name));
+            return refl;
+        }
         refl_tex.name = img_res.name;
+        refl_tex.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(img_res.name);
+        assert(bindslot);
+        refl_tex.hlsl_register_t_n = bindslot->hlsl.register_t_n;
+        refl_tex.msl_texture_n = bindslot->msl.texture_n;
+        refl_tex.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_tex.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
@@ -408,34 +416,30 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             refl_tex.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
         }
         refl_tex.multisampled = spirtype_to_image_multisampled(img_type);
-        // FIXME FIXME FIXME refl_tex.sokol_slot = inp.find_img_slot(refl_tex.name);
-        if (refl_tex.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for texture '{}' (might be unused in shader code?)\n", refl_tex.name));
-            return refl;
-        }
         refl.bindings.textures.push_back(refl_tex);
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
-        const int slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
-        const BindSlot::Type res_type = BindSlot::Type::Sampler;
-        const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
+        assert(!smp_res.name.empty());
         Sampler refl_smp;
-        refl_smp.stage = refl.stage;
-        refl_smp.hlsl_register_s_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_smp.msl_sampler_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_smp.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_smp.sokol_slot = bindslot_map.find_sampler_index(smp_res.name);
+        if (refl_smp.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for sampler '{}' (might be unused in shader code?)\n", refl_smp.name));
+            return refl;
+        }
         refl_smp.name = smp_res.name;
+        refl_smp.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_sampler_bindslot(smp_res.name);
+        assert(bindslot);
+        refl_smp.hlsl_register_s_n = bindslot->hlsl.register_s_n;
+        refl_smp.msl_sampler_n = bindslot->msl.sampler_n;
+        refl_smp.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
         // HACK ALERT!
+        const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
             refl_smp.type = SamplerType::COMPARISON;
         } else {
             refl_smp.type = SamplerType::FILTERING;
-        }
-        // FIXME FIXME FIXME refl_smp.sokol_slot = inp.find_smp_slot(refl_smp.name);
-        if (refl_smp.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for sampler '{}' (might be unused in shader code?)\n", refl_smp.name));
-            return refl;
         }
         refl.bindings.samplers.push_back(refl_smp);
     }

@@ -24,13 +24,14 @@ struct Bindings {
     std::vector<Sampler> samplers;
     std::vector<TextureSampler> texture_samplers;
 
-    static uint32_t base_slot(Slang::Enum slang, ShaderStage::Enum stage, BindSlot::Type type, bool readonly=true);
-
     View get_view_by_sokol_slot(int slot) const;
 
     const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
+    // FIXME: OBSOLETE
     const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
+    // FIXME: OBSOLETE
     const StorageImage* find_storage_image_by_sokol_slot(int slot) const;
+    // FIXME: OBSOLETE
     const Texture* find_texture_by_sokol_slot(int slot) const;
     const Sampler* find_sampler_by_sokol_slot(int slot) const;
     const TextureSampler* find_texture_sampler_by_sokol_slot(int slot) const;
@@ -44,70 +45,6 @@ struct Bindings {
 
     void dump_debug(const std::string& indent) const;
 };
-
-// returns the 3D API specific base-binding slot for a shader dialect, stage and resource type
-// NOTE: the special Slang::REFLECTION always returns zero, this can be used
-// to figure out the sokol-gfx bindslots
-inline uint32_t Bindings::base_slot(Slang::Enum slang, ShaderStage::Enum stage, BindSlot::Type type, bool readonly) {
-    int res = 0;
-    switch (type) {
-        case BindSlot::Type::UniformBlock:
-            if (Slang::is_wgsl(slang)) {
-                res = ShaderStage::is_fs(stage) ? MaxUniformBlocks: 0;
-            }
-            break;
-        case BindSlot::Type::TextureSampler:
-            if (Slang::is_glsl(slang)) {
-                res = ShaderStage::is_fs(stage) ? MaxTextureSamplers: 0;
-            }
-            break;
-        case BindSlot::Type::Texture:
-            if (Slang::is_wgsl(slang)) {
-                if (ShaderStage::is_fs(stage)) {
-                    res += 64;
-                }
-            }
-            break;
-        case BindSlot::Type::Sampler:
-            if (Slang::is_wgsl(slang)) {
-                res = 32;
-                if (ShaderStage::is_fs(stage)) {
-                    res += 64;
-                }
-            }
-            break;
-        case BindSlot::Type::StorageBuffer:
-            if (Slang::is_msl(slang)) {
-                res = MaxUniformBlocks;
-            } else if (Slang::is_hlsl(slang)) {
-                if (readonly) {
-                    // read-only storage buffers are bound as SRV
-                    res = MaxTextureBindingsPerStage;
-                } else {
-                    // read/write storage buffers are bound as UAV
-                    res = 0;
-                }
-            } else if (Slang::is_wgsl(slang)) {
-                if (ShaderStage::is_fs(stage)) {
-                    res += 64;
-                }
-            }
-            break;
-        case BindSlot::Type::StorageImage:
-            // HLSL: assume D3D11.1, which allows for more than 8 UAV slots
-            // MSL: uses texture bindslot, but enough bindslot space available to move behind texture bindings
-            if (Slang::is_hlsl(slang)) {
-                res = MaxStorageBufferBindingsPerStage;
-            } else if (Slang::is_msl(slang)) {
-                res = MaxTextureBindingsPerStage;
-            }
-            break;
-        default:
-            assert(false);
-            break;
-    }
-    return res;
-}
 
 inline Bindings::View Bindings::get_view_by_sokol_slot(int slot) const {
     View view;

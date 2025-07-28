@@ -47,7 +47,6 @@ struct BindSlot {
     BindSlot(int binding, const std::string& name, Type type, int qualifiers = 0);
     static const char* type_to_str(Type t);
     bool empty() const;
-    bool equals(const BindSlot& other) const;
     bool readonly() const;
     bool writeonly() const;
     void dump_debug() const;
@@ -83,22 +82,6 @@ inline bool BindSlot::readonly() const {
 
 inline bool BindSlot::writeonly() const {
     return 0 != (qualifiers & WriteOnly);
-}
-
-inline bool BindSlot::equals(const BindSlot& other) const {
-    return (binding == other.binding)
-        && (name == other.name)
-        && (type == other.type)
-        && (qualifiers == other.qualifiers)
-        && (hlsl.register_b_n == other.hlsl.register_b_n)
-        && (hlsl.register_t_n == other.hlsl.register_t_n)
-        && (hlsl.register_u_n == other.hlsl.register_u_n)
-        && (hlsl.register_s_n == other.hlsl.register_s_n)
-        && (msl.buffer_n == other.msl.buffer_n)
-        && (msl.texture_n == other.msl.texture_n)
-        && (msl.sampler_n == other.msl.sampler_n)
-        && (wgsl.group0_binding_n == other.wgsl.group0_binding_n)
-        && (wgsl.group1_binding_n == other.wgsl.group1_binding_n);
 }
 
 inline void BindSlot::dump_debug() const {

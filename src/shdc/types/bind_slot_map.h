@@ -20,6 +20,9 @@ struct BindSlotMap {
     int find_uniformblock_slang_slot(const std::string& name, Slang::Enum slang) const;
     int find_view_slang_slot(const std::string& name, Slang::Enum slang) const;
     int find_sampler_slang_slot(const std::string& name, Slang::Enum slang) const;
+    int find_uniformblock_index(const std::string& name) const;
+    int find_view_index(const std::string& name) const;
+    int find_sampler_index(const std::string& name) const;
     const BindSlot* find_uniformblock_bindslot(const std::string& name) const;
     const BindSlot* find_view_bindslot(const std::string& name) const;
     const BindSlot* find_sampler_bindslot(const std::string& name) const;
@@ -27,31 +30,58 @@ struct BindSlotMap {
     void dump_debug() const;
 };
 
-inline const BindSlot* BindSlotMap::find_uniformblock_bindslot(const std::string& name) const {
-    for (const auto& bs: uniform_blocks) {
-        if (!bs.empty() && (bs.name == name)) {
-            return &bs;
+inline int BindSlotMap::find_uniformblock_index(const std::string& name) const {
+    for (int i = 0; i < MaxUniformBlocks; i++) {
+        if (!uniform_blocks[i].empty() && (uniform_blocks[i].name == name)) {
+            return i;
         }
     }
-    return nullptr;
+    return -1;
+}
+
+inline int BindSlotMap::find_view_index(const std::string& name) const {
+    for (int i = 0; i < MaxViews; i++) {
+        if (!views[i].empty() && (views[i].name == name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline int BindSlotMap::find_sampler_index(const std::string& name) const {
+    for (int i = 0; i < MaxSamplers; i++) {
+        if (!samplers[i].empty() && (samplers[i].name == name)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+inline const BindSlot* BindSlotMap::find_uniformblock_bindslot(const std::string& name) const {
+    int i = find_uniformblock_index(name);
+    if (-1 != i) {
+        return &uniform_blocks[i];
+    } else {
+        return nullptr;
+    }
 }
 
 inline const BindSlot* BindSlotMap::find_view_bindslot(const std::string& name) const {
-    for (const auto& bs: views) {
-        if (!bs.empty() && (bs.name == name)) {
-            return &bs;
-        }
+    int i = find_view_index(name);
+    if (-1 != i) {
+        return &views[i];
+    } else {
+        return nullptr;
     }
-    return nullptr;
 }
 
 inline const BindSlot* BindSlotMap::find_sampler_bindslot(const std::string& name) const {
-    for (const auto& bs: samplers) {
-        if (!bs.empty() && (bs.name == name)) {
-            return &bs;
-        }
+    int i = find_sampler_index(name);
+    if (-1 != i) {
+        return &samplers[i];
+    } else {
+        return nullptr;
     }
-    return nullptr;
 }
 
 inline int BindSlotMap::find_uniformblock_slang_slot(const std::string& name, Slang::Enum slang) const {

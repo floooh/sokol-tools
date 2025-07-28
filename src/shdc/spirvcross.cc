@@ -320,10 +320,10 @@ static void to_combined_image_samplers(CompilerGLSL& compiler) {
     }
 }
 
-static StageReflection parse_reflection(const Input& inp, const std::vector<uint32_t>& bytecode, const Snippet& snippet, ErrMsg& out_error) {
+static StageReflection parse_reflection(const Input& inp, const SpirvBlob& blob, const Snippet& snippet, ErrMsg& out_error) {
     // NOTE: do *NOT* use CompilerReflection here, this doesn't generate
     // the right reflection info for depth textures and comparison samplers
-    CompilerGLSL compiler(bytecode);
+    CompilerGLSL compiler(blob.bytecode);
     CompilerGLSL::Options options;
     options.emit_line_directives = false;
     options.version = 430;
@@ -344,7 +344,7 @@ static StageReflection parse_reflection(const Input& inp, const std::vector<uint
     // NOTE: we need to compile here, otherwise the reflection won't be
     // able to detect depth-textures and comparison-samplers!
     compiler.compile();
-    return Reflection::parse_snippet_reflection(compiler, snippet, inp, out_error);
+    return Reflection::parse_snippet_reflection(compiler, snippet, inp, blob.bindings, out_error);
 }
 
 static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
@@ -388,7 +388,7 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -418,12 +418,10 @@ static SpirvcrossSource to_hlsl(const Input& inp, const SpirvBlob& blob, Slang::
     std::string src = compiler.compile();
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
-/*
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
     }
-*/
     res.valid = !res.error.valid();
     return res;
 }
@@ -452,7 +450,7 @@ static SpirvcrossSource to_msl(const Input& inp, const SpirvBlob& blob, Slang::E
     res.snippet_index = blob.snippet_index;
     if (!src.empty()) {
         res.source_code = std::move(src);
-        res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
+        res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
     }
     res.valid = !res.error.valid();
     return res;
@@ -474,7 +472,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
         tint::Result result = tint::wgsl::writer::Generate(program, wgsl_options);
         if (result == tint::Success) {
             res.source_code = result.Get().wgsl;
-            res.stage_refl = parse_reflection(inp, blob.bytecode, snippet, res.error);
+            res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
         } else {
             res.error = inp.error(blob.snippet_index, result.Failure().reason);
         }
