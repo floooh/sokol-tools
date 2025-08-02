@@ -33,28 +33,31 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
 static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
-    // uniform buffers
-    for (const Resource& res: shader_resources.uniform_buffers) {
-        assert(!res.name.empty());
-        const int binding = bindslot_map.find_uniformblock_slang_slot(res.name, slang); assert(binding != -1);
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
-    }
+    // NOTE: on GLSL the following resource types have no GLSL bindings since they
+    // are either unused or are looked up by name:
+    //  - uniform blocks: converted to uniforms and looked up by name
+    //  - textures: converted to combined image-samplers
+    //  - samplers: converted to combined image-samplers
+    //  - combined image-samplers: looked up by name
 
-    // NOTE: combined texture samplers are looked up by name, so the binding doesn't matter
-    /*
-    for (const Resource& res: shader_resources.sampled_images) {
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-        compiler.set_decoration(res.id, spv::DecorationBinding, binding);
+    // uniform buffers (no GLSL)
+    if (!Slang::is_glsl(slang)) {
+        for (const Resource& res: shader_resources.uniform_buffers) {
+            assert(!res.name.empty());
+            const int binding = bindslot_map.find_uniformblock_slang_slot(res.name, slang); assert(binding != -1);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+        }
     }
-    */
 
     // separate textures
-    for (const Resource& res: shader_resources.separate_images) {
-        assert(!res.name.empty());
-        const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+    if (!Slang::is_glsl(slang)) {
+        for (const Resource& res: shader_resources.separate_images) {
+            assert(!res.name.empty());
+            const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+        }
     }
 
     // storage buffers
@@ -74,11 +77,13 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
     }
 
     // separate samplers
-    for (const Resource& res: shader_resources.separate_samplers) {
-        assert(!res.name.empty());
-        const int binding = bindslot_map.find_sampler_slang_slot(res.name, slang); assert(binding != -1);
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
-        compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+    if (!Slang::is_glsl(slang)) {
+        for (const Resource& res: shader_resources.separate_samplers) {
+            assert(!res.name.empty());
+            const int binding = bindslot_map.find_sampler_slang_slot(res.name, slang); assert(binding != -1);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
+        }
     }
 }
 
