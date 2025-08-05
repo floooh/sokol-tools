@@ -273,6 +273,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         for (int i = 0; i < 3; i++) {
             refl.cs_workgroup_size[i] = compiler.get_execution_mode_argument(spv::ExecutionModeLocalSize, (uint32_t)i);
         }
+        // x*y*z must be a multiple of 32
+        int x = refl.cs_workgroup_size[0];
+        int y = refl.cs_workgroup_size[1];
+        int z = refl.cs_workgroup_size[2];
+        if (((x * y * z) & 31) != 0) {
+            out_error = inp.error(0, "compute shader (local_size_x * local_size_y * local_size_z) must be a multiple of 32\n");
+            return refl;
+        }
     }
 
     // stage inputs and outputs
