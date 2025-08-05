@@ -12,6 +12,7 @@
 #include "spirv_msl.hpp"
 #include "spirv_reflect.hpp"
 #include "tint/tint.h"
+#include "util.h"
 
 #include "spirv_glsl.hpp"
 
@@ -520,7 +521,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
                 assert(src.snippet_index == blob.snippet_index);
                 spv_cross.sources.push_back(std::move(src));
             } else {
-                const int line_index = snippet.lines[0];
+                const int line_index = util::first_snippet_line_index_skipping_include_blocks(inp, snippet);
                 std::string err_msg;
                 if (src.error.valid()) {
                     err_msg = src.error.msg;
