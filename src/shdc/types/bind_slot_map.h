@@ -189,7 +189,7 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
             case BindSlot::Type::StorageImage:
                 slot.hlsl.register_u_n = hlsl_register_u_n++;
                 slot.msl.texture_n = msl_texture_n++;
-                // this is fine since storage images are only allowed on compute stagef
+                // this is fine since storage images are only allowed on compute stage
                 slot.glsl.binding_n = glsl_storage_image_binding_n++;
                 break;
             default: break;
