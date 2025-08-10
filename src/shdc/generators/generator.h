@@ -88,10 +88,10 @@ protected:
 
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string texture_bind_slot_definition(const refl::Texture& img) { assert(false && "implement me"); return ""; };
-    virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
-    virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
     virtual std::string storage_image_bind_slot_definition(const refl::StorageImage& simg) { assert(false && "implement me"); return ""; };
+    virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
+    virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
 
     struct ShaderStageArrayInfo {
     public:
