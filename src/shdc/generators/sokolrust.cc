@@ -285,10 +285,25 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     }
                 }
             }
-            for (int sbuf_index = 0; sbuf_index < MaxStorageBufferBindingsPerStage; sbuf_index++) {
-                const StorageBuffer* sbuf = prog.bindings.find_storage_buffer_by_sokol_slot(sbuf_index);
-                if (sbuf) {
-                    const std::string& sbn = fmt::format("desc.storage_buffers[{}]", sbuf_index);
+            for (int view_index = 0; view_index < MaxViews; view_index++) {
+                const Bindings::View view = prog.bindings.get_view_by_sokol_slot(view_index);
+                if (view.type == BindSlot::Type::Texture) {
+                    const Texture* tex = &view.texture;
+                    const std::string tn = fmt::format("desc.views[{}].texture", view_index);
+                    l("{}.stage = {};\n", tn, shader_stage(tex->stage));
+                    l("{}.multisampled = {};\n", tn, tex->multisampled ? "true" : "false");
+                    l("{}.image_type = {};\n", tn, image_type(tex->type));
+                    l("{}.sample_type = {};\n", tn, image_sample_type(tex->sample_type));
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_t_n = {};\n", tn, tex->hlsl_register_t_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {};\n", tn, tex->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group1_binding_n = {};\n", tn, tex->wgsl_group1_binding_n);
+                    }
+                } else if (view.type == BindSlot::Type::StorageBuffer) {
+                    const StorageBuffer* sbuf = &view.storage_buffer;
+                    const std::string& sbn = fmt::format("desc.views[{}].storage_buffer", view_index);
                     l("{}.stage = {};\n", sbn, shader_stage(sbuf->stage));
                     l("{}.readonly = {};\n", sbn, sbuf->readonly);
                     if (Slang::is_hlsl(slang)) {
@@ -305,12 +320,9 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sbn, sbuf->glsl_binding_n);
                     }
-                }
-            }
-            for (int simg_index = 0; simg_index < MaxStorageImageBindingsPerStage; simg_index++) {
-                const StorageImage* simg = prog.bindings.find_storage_image_by_sokol_slot(simg_index);
-                if (simg) {
-                    const std::string& sin = fmt::format("desc.storage_images[{}]", simg_index);
+                } else if (view.type == BindSlot::Type::StorageImage) {
+                    const StorageImage* simg = &view.storage_image;
+                    const std::string& sin = fmt::format("desc.views[{}].storage_image", view_index);
                     l("{}.stage = {};\n", sin, shader_stage(simg->stage));
                     l("{}.image_type = {};\n", sin, image_type(simg->type));
                     l("{}.access_format = {};\n", sin, storage_pixel_format(simg->access_format));
@@ -323,23 +335,6 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                         l("{}.wgsl_group1_binding_n = {};\n", sin, simg->wgsl_group1_binding_n);
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
-                    }
-                }
-            }
-            for (int tex_index = 0; tex_index < MaxTextureBindingsPerStage; tex_index++) {
-                const Texture* tex = prog.bindings.find_texture_by_sokol_slot(tex_index);
-                if (tex) {
-                    const std::string tn = fmt::format("desc.textures[{}]", tex_index);
-                    l("{}.stage = {};\n", tn, shader_stage(tex->stage));
-                    l("{}.multisampled = {};\n", tn, tex->multisampled ? "true" : "false");
-                    l("{}.image_type = {};\n", tn, image_type(tex->type));
-                    l("{}.sample_type = {};\n", tn, image_sample_type(tex->sample_type));
-                    if (Slang::is_hlsl(slang)) {
-                        l("{}.hlsl_register_t_n = {};\n", tn, tex->hlsl_register_t_n);
-                    } else if (Slang::is_msl(slang)) {
-                        l("{}.msl_texture_n = {};\n", tn, tex->msl_texture_n);
-                    } else if (Slang::is_wgsl(slang)) {
-                        l("{}.wgsl_group1_binding_n = {};\n", tn, tex->wgsl_group1_binding_n);
                     }
                 }
             }
@@ -363,7 +358,7 @@ void SokolRustGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 if (tex_smp) {
                     const std::string tsn = fmt::format("desc.texture_sampler_pairs[{}]", tex_smp_index);
                     l("{}.stage = {};\n", tsn, shader_stage(tex_smp->stage));
-                    l("{}.texture_slot = {};\n", tsn, prog.bindings.find_texture_by_name(tex_smp->texture_name)->sokol_slot);
+                    l("{}.view_slot = {};\n", tsn, prog.bindings.find_texture_by_name(tex_smp->texture_name)->sokol_slot);
                     l("{}.sampler_slot = {};\n", tsn, prog.bindings.find_sampler_by_name(tex_smp->sampler_name)->sokol_slot);
                     if (Slang::is_glsl(slang)) {
                         l("{}.glsl_name = c\"{}\".as_ptr();\n", tsn, tex_smp->name);
