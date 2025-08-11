@@ -283,58 +283,52 @@ void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const Program
                 const Bindings::View view = prog.bindings.get_view_by_sokol_slot(view_index);
                 if (view.type == BindSlot::Type::Texture) {
                     const Texture* tex = &view.texture;
-                    if (tex) {
-                        const std::string tn = fmt::format("desc.views[{}].texture", view_index);
-                        l("{}.stage = {}\n", tn, shader_stage(tex->stage));
-                        l("{}.image_type = {}\n", tn, image_type(tex->type));
-                        l("{}.sample_type = {}\n", tn, image_sample_type(tex->sample_type));
-                        l("{}.multisampled = {}\n", tn, tex->multisampled ? "true" : "false");
-                        if (Slang::is_hlsl(slang)) {
-                            l("{}.hlsl_register_t_n = {}\n", tn, tex->hlsl_register_t_n);
-                        } else if (Slang::is_msl(slang)) {
-                            l("{}.msl_texture_n = {}\n", tn, tex->msl_texture_n);
-                        } else if (Slang::is_wgsl(slang)) {
-                            l("{}.wgsl_group1_binding_n = {}\n", tn, tex->wgsl_group1_binding_n);
-                        }
+                    const std::string tn = fmt::format("desc.views[{}].texture", view_index);
+                    l("{}.stage = {}\n", tn, shader_stage(tex->stage));
+                    l("{}.image_type = {}\n", tn, image_type(tex->type));
+                    l("{}.sample_type = {}\n", tn, image_sample_type(tex->sample_type));
+                    l("{}.multisampled = {}\n", tn, tex->multisampled ? "true" : "false");
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_t_n = {}\n", tn, tex->hlsl_register_t_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {}\n", tn, tex->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group1_binding_n = {}\n", tn, tex->wgsl_group1_binding_n);
                     }
                 } else if (view.type == BindSlot::Type::StorageBuffer) {
                     const StorageBuffer* sbuf = &view.storage_buffer;
-                    if (sbuf) {
-                        const std::string& sbn = fmt::format("desc.views[{}].storage_buffer", view_index);
-                        l("{}.stage = {}\n", sbn, shader_stage(sbuf->stage));
-                        l("{}.readonly = {}\n", sbn, sbuf->readonly);
-                        if (Slang::is_hlsl(slang)) {
-                            if (sbuf->hlsl_register_t_n >= 0) {
-                                l("{}.hlsl_register_t_n = {}\n", sbn, sbuf->hlsl_register_t_n);
-                            }
-                            if (sbuf->hlsl_register_u_n >= 0) {
-                                l("{}.hlsl_register_u_n = {}\n", sbn, sbuf->hlsl_register_u_n);
-                            }
-                        } else if (Slang::is_msl(slang)) {
-                            l("{}.msl_buffer_n = {}\n", sbn, sbuf->msl_buffer_n);
-                        } else if (Slang::is_wgsl(slang)) {
-                            l("{}.wgsl_group1_binding_n = {}\n", sbn, sbuf->wgsl_group1_binding_n);
-                        } else if (Slang::is_glsl(slang)) {
-                            l("{}.glsl_binding_n = {}\n", sbn, sbuf->glsl_binding_n);
+                    const std::string& sbn = fmt::format("desc.views[{}].storage_buffer", view_index);
+                    l("{}.stage = {}\n", sbn, shader_stage(sbuf->stage));
+                    l("{}.readonly = {}\n", sbn, sbuf->readonly);
+                    if (Slang::is_hlsl(slang)) {
+                        if (sbuf->hlsl_register_t_n >= 0) {
+                            l("{}.hlsl_register_t_n = {}\n", sbn, sbuf->hlsl_register_t_n);
                         }
+                        if (sbuf->hlsl_register_u_n >= 0) {
+                            l("{}.hlsl_register_u_n = {}\n", sbn, sbuf->hlsl_register_u_n);
+                        }
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_buffer_n = {}\n", sbn, sbuf->msl_buffer_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group1_binding_n = {}\n", sbn, sbuf->wgsl_group1_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glsl_binding_n = {}\n", sbn, sbuf->glsl_binding_n);
                     }
                 } else if (view.type == BindSlot::Type::StorageImage) {
                     const StorageImage* simg = &view.storage_image;
-                    if (simg) {
-                        const std::string& sin = fmt::format("desc.views[{}].storage_image", view_index);
-                        l("{}.stage = {}\n", sin, shader_stage(simg->stage));
-                        l("{}.image_type = {}\n", sin, image_type(simg->type));
-                        l("{}.access_format = {}\n", sin, storage_pixel_format(simg->access_format));
-                        l("{}.writeonly = {}\n", sin, simg->writeonly);
-                        if (Slang::is_hlsl(slang)) {
-                            l("{}.hlsl_register_u_n = {}\n", sin, simg->hlsl_register_u_n);
-                        } else if (Slang::is_msl(slang)) {
-                            l("{}.msl_texture_n = {}\n", sin, simg->msl_texture_n);
-                        } else if (Slang::is_wgsl(slang)) {
-                            l("{}.wgsl_group1_binding_n = {}\n", sin, simg->wgsl_group1_binding_n);
-                        } else if (Slang::is_glsl(slang)) {
-                            l("{}.glsl_binding_n = {}\n", sin, simg->glsl_binding_n);
-                        }
+                    const std::string& sin = fmt::format("desc.views[{}].storage_image", view_index);
+                    l("{}.stage = {}\n", sin, shader_stage(simg->stage));
+                    l("{}.image_type = {}\n", sin, image_type(simg->type));
+                    l("{}.access_format = {}\n", sin, storage_pixel_format(simg->access_format));
+                    l("{}.writeonly = {}\n", sin, simg->writeonly);
+                    if (Slang::is_hlsl(slang)) {
+                        l("{}.hlsl_register_u_n = {}\n", sin, simg->hlsl_register_u_n);
+                    } else if (Slang::is_msl(slang)) {
+                        l("{}.msl_texture_n = {}\n", sin, simg->msl_texture_n);
+                    } else if (Slang::is_wgsl(slang)) {
+                        l("{}.wgsl_group1_binding_n = {}\n", sin, simg->wgsl_group1_binding_n);
+                    } else if (Slang::is_glsl(slang)) {
+                        l("{}.glsl_binding_n = {}\n", sin, simg->glsl_binding_n);
                     }
                 }
             }
