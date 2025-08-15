@@ -77,24 +77,17 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     }
                     l_close();
                 }
-                if (prog.bindings.storage_buffers.size() > 0) {
-                    l_open("storage_buffers:\n");
-                    for (const auto& sbuf: prog.bindings.storage_buffers) {
-                        gen_storage_buffer(sbuf, slang);
-                    }
-                    l_close();
-                }
-                if (prog.bindings.storage_images.size() > 0) {
-                    l_open("storage_images:\n");
-                    for (const auto& simg: prog.bindings.storage_images) {
-                        gen_storage_image(simg, slang);
-                    }
-                    l_close();
-                }
-                if (prog.bindings.textures.size() > 0) {
-                    l_open("textures:\n");
-                    for (const auto& texture: prog.bindings.textures) {
-                        gen_texture(texture, slang);
+                if (prog.bindings.get_num_populated_views() > 0) {
+                    l_open("views:\n");
+                    for (int view_index = 0; view_index < MaxViews; view_index++) {
+                        const Bindings::View view = prog.bindings.get_view_by_sokol_slot(view_index);
+                        if (view.type == BindSlot::Type::Texture) {
+                            gen_texture(view.texture, slang);
+                        } else if (view.type == BindSlot::Type::StorageBuffer) {
+                            gen_storage_buffer(view.storage_buffer, slang);
+                        } else if (view.type == BindSlot::Type::StorageImage) {
+                            gen_storage_image(view.storage_image, slang);
+                        }
                     }
                     l_close();
                 }
@@ -108,7 +101,7 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                 if (prog.bindings.texture_samplers.size() > 0) {
                     l_open("texture_sampler_pairs:\n");
                     for (const auto& texture_sampler: prog.bindings.texture_samplers) {
-                        gen_texture_sampler(texture_sampler, slang);
+                        gen_texture_sampler(prog.bindings, texture_sampler, slang);
                     }
                     l_close();
                 }
@@ -201,6 +194,7 @@ void YamlGenerator::gen_uniform_block_refl(const UniformBlock& ub) {
 void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum slang) {
     const auto& item = sbuf.struct_info.struct_items[0];
     l_open("-\n");
+    l_open("storage_buffer:\n");
     l("slot: {}\n", sbuf.sokol_slot);
     l("stage: {}\n", shader_stage(sbuf.stage));
     l("size: {}\n", sbuf.struct_info.size);
@@ -224,10 +218,12 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum sl
         l("glsl_binding_n: {}\n", sbuf.glsl_binding_n);
     }
     l_close();
+    l_close();
 }
 
 void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slang) {
     l_open("-\n");
+    l_open("storage_image:\n");
     l("slot: {}\n", simg.sokol_slot);
     l("stage: {}\n", shader_stage(simg.stage));
     l("name: {}\n", simg.name);
@@ -244,10 +240,12 @@ void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slan
         l("glsl_binding_n: {}\n", simg.glsl_binding_n);
     }
     l_close();
+    l_close();
 }
 
 void YamlGenerator::gen_texture(const Texture& tex, Slang::Enum slang) {
     l_open("-\n");
+    l_open("texture:\n");
     l("slot: {}\n", tex.sokol_slot);
     l("stage: {}\n", shader_stage(tex.stage));
     l("name: {}\n", tex.name);
@@ -261,6 +259,7 @@ void YamlGenerator::gen_texture(const Texture& tex, Slang::Enum slang) {
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group1_binding_n: {}\n", tex.wgsl_group1_binding_n);
     }
+    l_close();
     l_close();
 }
 
@@ -280,13 +279,15 @@ void YamlGenerator::gen_sampler(const Sampler& smp, Slang::Enum slang) {
     l_close();
 }
 
-void YamlGenerator::gen_texture_sampler(const TextureSampler& tex_smp, Slang::Enum slang) {
+void YamlGenerator::gen_texture_sampler(const Bindings& bindings, const TextureSampler& tex_smp, Slang::Enum slang) {
     l_open("-\n");
     l("slot: {}\n", tex_smp.sokol_slot);
     l("stage: {}\n", shader_stage(tex_smp.stage));
     l("name: {}\n", tex_smp.name);
-    l("texture_name: {}\n", tex_smp.texture_name);
+    l("view_name: {}\n", tex_smp.texture_name);
     l("sampler_name: {}\n", tex_smp.sampler_name);
+    l("view_slot: {}\n", bindings.find_texture_by_name(tex_smp.texture_name)->sokol_slot);
+    l("sampler_slot: {}\n", bindings.find_sampler_by_name(tex_smp.sampler_name)->sokol_slot);
     if (Slang::is_glsl(slang)) {
         l("glsl_name: {}\n", tex_smp.name);
     }

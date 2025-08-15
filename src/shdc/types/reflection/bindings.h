@@ -25,13 +25,11 @@ struct Bindings {
     std::vector<TextureSampler> texture_samplers;
 
     View get_view_by_sokol_slot(int slot) const;
+    int get_num_populated_views() const;
 
     const UniformBlock* find_uniform_block_by_sokol_slot(int slot) const;
-    // FIXME: OBSOLETE
     const StorageBuffer* find_storage_buffer_by_sokol_slot(int slot) const;
-    // FIXME: OBSOLETE
     const StorageImage* find_storage_image_by_sokol_slot(int slot) const;
-    // FIXME: OBSOLETE
     const Texture* find_texture_by_sokol_slot(int slot) const;
     const Sampler* find_sampler_by_sokol_slot(int slot) const;
     const TextureSampler* find_texture_sampler_by_sokol_slot(int slot) const;
@@ -65,6 +63,19 @@ inline Bindings::View Bindings::get_view_by_sokol_slot(int slot) const {
         view.storage_image = *simg;
     }
     return view;
+}
+
+inline int Bindings::get_num_populated_views() const {
+    int num_views = 0;
+    for (int slot = 0; slot < MaxViews; slot++) {
+        const Texture* tex = find_texture_by_sokol_slot(slot);
+        const StorageBuffer* sbuf = find_storage_buffer_by_sokol_slot(slot);
+        const StorageImage* simg = find_storage_image_by_sokol_slot(slot);
+        if (tex || sbuf || simg) {
+            num_views++;
+        }
+    }
+    return num_views;
 }
 
 inline const UniformBlock* Bindings::find_uniform_block_by_sokol_slot(int slot) const {
