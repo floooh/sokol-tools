@@ -65,8 +65,10 @@ pub fn buildExe(
 
     const exe = b.addExecutable(.{
         .name = "sokol-shdc",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
     if (exe.rootModuleTarget().abi != .msvc) {
         exe.linkLibCpp();
@@ -96,12 +98,14 @@ fn libGetopt(
     mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "getopt",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+            .link_libc = true,
+        }),
     });
-    lib.linkLibC();
     lib.addIncludePath(b.path(prefix_path ++ "ext/getopt/include"));
     const flags = common_c_flags;
     lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/getopt/src/getopt.c"), .flags = &flags });
@@ -111,18 +115,21 @@ fn libGetopt(
 fn libPystring(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.Mode,
+    mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "pystring",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     const flags = common_cpp_flags;
     lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/pystring/pystring.cpp"), .flags = &flags });
     return lib;
@@ -136,15 +143,18 @@ fn libFmt(
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/fmt/src/";
     const sources = [_][]const u8{ "format.cc", "os.cc" };
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "fmt",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     lib.addIncludePath(b.path(prefix_path ++ "ext/fmt/include"));
     const flags = common_cpp_flags;
     inline for (sources) |src| {
@@ -173,15 +183,18 @@ fn libSpirvcross(
     };
     const flags = common_cpp_flags ++ spvcross_public_cpp_flags;
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "spirvcross",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     lib.addIncludePath(b.path("ext/SPIRV-Cross"));
     inline for (sources) |src| {
         lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
@@ -195,10 +208,12 @@ fn libGlslang(
     mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "glslang",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
 
     const dir = prefix_path ++ "ext/glslang/";
@@ -261,10 +276,11 @@ fn libGlslang(
     const unx_flags = cmn_flags ++ [_][]const u8{"-DGLSLANG_OSINCLUDE_UNIX"};
     const flags = if (lib.rootModuleTarget().os.tag == .windows) win_flags else unx_flags;
 
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     inline for (incl_dirs) |incl_dir| {
         lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
@@ -286,7 +302,7 @@ fn libGlslang(
 fn libSpirvtools(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.Mode,
+    mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/SPIRV-Tools/source/";
@@ -496,15 +512,18 @@ fn libSpirvtools(
     };
     const flags = common_cpp_flags;
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "spirvtools",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     inline for (incl_dirs) |incl_dir| {
         lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
@@ -517,7 +536,7 @@ fn libSpirvtools(
 fn libTint(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.Mode,
+    mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/tint-extract/src/tint/";
@@ -953,15 +972,18 @@ fn libTint(
     };
     const flags = common_cpp_flags ++ tint_public_cpp_flags;
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "tint",
-        .target = target,
-        .optimize = mode,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = mode,
+        }),
     });
-    if (lib.rootModuleTarget().abi != .msvc)
-        lib.linkLibCpp()
-    else
+    if (lib.rootModuleTarget().abi != .msvc) {
+        lib.linkLibCpp();
+    } else {
         lib.linkLibC();
+    }
     inline for (incl_dirs) |incl_dir| {
         lib.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
