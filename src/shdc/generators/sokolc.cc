@@ -70,7 +70,7 @@ void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
             l("const sg_shader_desc* {}{}_shader_desc(sg_backend backend);\n", mod_prefix, prog.name);
             if (gen.args.reflection) {
                 l("int {}{}_attr_slot(const char* attr_name);\n", mod_prefix, prog.name);
-                l("int {}{}_image_slot(const char* img_name);\n", mod_prefix, prog.name);
+                l("int {}{}_texture_slot(const char* tex_name);\n", mod_prefix, prog.name);
                 l("int {}{}_sampler_slot(const char* smp_name);\n", mod_prefix, prog.name);
                 l("int {}{}_uniformblock_slot(const char* ub_name);\n", mod_prefix, prog.name);
                 l("size_t {}{}_uniformblock_size(const char* ub_name);\n", mod_prefix, prog.name);
