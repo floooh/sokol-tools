@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include "fmt/format.h"
-#include "shader_stage.h"
+#include "../shader_stage.h"
 #include "type.h"
 
 namespace shdc::refl {

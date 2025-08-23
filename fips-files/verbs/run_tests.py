@@ -68,7 +68,10 @@ shaders = [
     'sapp/triangle-sapp.glsl',
     'sapp/uniformtypes-sapp.glsl',
     'sapp/uvwrap-sapp.glsl',
+    'sapp/vertexindexbuffer-sapp.glsl',
     'sapp/vertexpull-sapp.glsl',
+    'sapp/vertextexture-sapp.glsl',
+    'sapp/write-storageimage-sapp.glsl',
 ]
 
 def run_sokol_shdc(fips_dir, proj_dir, cfg_name, out_path, shader_filename):

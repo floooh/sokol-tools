@@ -242,7 +242,7 @@ Type get_type_for_attribute(const Compiler& compiler, const Resource& res_attr) 
     return out;
 }
 
-StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, const Input& inp, ErrMsg& out_error) {
+StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, const Snippet& snippet, const Input& inp, const BindSlotMap& bindslot_map, ErrMsg& out_error) {
     out_error = ErrMsg();
     StageReflection refl;
 
@@ -273,6 +273,14 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         for (int i = 0; i < 3; i++) {
             refl.cs_workgroup_size[i] = compiler.get_execution_mode_argument(spv::ExecutionModeLocalSize, (uint32_t)i);
         }
+        // x*y*z must be a multiple of 32
+        int x = refl.cs_workgroup_size[0];
+        int y = refl.cs_workgroup_size[1];
+        int z = refl.cs_workgroup_size[2];
+        if (((x * y * z) & 31) != 0) {
+            out_error = inp.error(0, "compute shader (local_size_x * local_size_y * local_size_z) must be a multiple of 32\n");
+            return refl;
+        }
     }
 
     // stage inputs and outputs
@@ -298,17 +306,24 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
     }
     // uniform blocks
     for (const Resource& ub_res: shd_resources.uniform_buffers) {
-        const int slot = compiler.get_decoration(ub_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::UNIFORM_BLOCK;
+        assert(!ub_res.name.empty());
         UniformBlock refl_ub;
+        refl_ub.sokol_slot = bindslot_map.find_uniformblock_index(ub_res.name);
+        if (refl_ub.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for uniformblock '{}' (might be unused in shader code?)\n", refl_ub.name));
+            return refl;
+        }
+        refl_ub.name = ub_res.name;
         refl_ub.stage = refl.stage;
         refl_ub.inst_name = compiler.get_name(ub_res.id);
         if (refl_ub.inst_name.empty()) {
             refl_ub.inst_name = compiler.get_fallback_name(ub_res.id);
         }
-        refl_ub.hlsl_register_b_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_ub.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_ub.wgsl_group0_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        const BindSlot* bindslot = bindslot_map.find_uniformblock_bindslot(ub_res.name);
+        assert(bindslot);
+        refl_ub.hlsl_register_b_n = bindslot->hlsl.register_b_n;
+        refl_ub.msl_buffer_n = bindslot->msl.buffer_n;
+        refl_ub.wgsl_group0_binding_n = bindslot->wgsl.group0_binding_n;
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
@@ -316,19 +331,18 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         }
         // uniform blocks always have 16 byte alignment
         refl_ub.struct_info.align = 16;
-        refl_ub.name = refl_ub.struct_info.name;
-        refl_ub.sokol_slot = inp.find_ub_slot(refl_ub.name);
-        if (refl_ub.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for uniformblock '{}' (might be unused in shader code?)\n", refl_ub.name));
-            return refl;
-        }
         refl.bindings.uniform_blocks.push_back(refl_ub);
     }
     // storage buffers
     for (const Resource& sbuf_res: shd_resources.storage_buffers) {
-        const int slot = compiler.get_decoration(sbuf_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::STORAGE_BUFFER;
+        assert(!sbuf_res.name.empty());
         StorageBuffer refl_sbuf;
+        refl_sbuf.sokol_slot = bindslot_map.find_view_index(sbuf_res.name);
+        if (refl_sbuf.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
+            return refl;
+        }
+        refl_sbuf.name = sbuf_res.name;
         refl_sbuf.inst_name = compiler.get_name(sbuf_res.id);
         if (refl_sbuf.inst_name.empty()) {
             refl_sbuf.inst_name = compiler.get_fallback_name(sbuf_res.id);
@@ -337,7 +351,6 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         if (out_error.valid()) {
             return refl;
         }
-        refl_sbuf.name = refl_sbuf.struct_info.name;
         // check that the size and alignment of the nested struct is identical with the outher struct
         if (refl_sbuf.struct_info.size != refl_sbuf.struct_info.struct_items[0].size) {
             out_error = inp.error(0, fmt::format("SSBO struct size doesn't match nested item struct size (in ssbo '{}')\n", refl_sbuf.name));
@@ -347,111 +360,112 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
             out_error = inp.error(0, fmt::format("SSBO struct alignment doesn't match nested item struct alignment (in ssbo '{}')\n", refl_sbuf.name));
             return refl;
         }
-        refl_sbuf.sokol_slot = inp.find_sbuf_slot(refl_sbuf.name);
-        if (refl_sbuf.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for storagebuffer '{}' (might be unused in shader code?)\n", refl_sbuf.name));
-            return refl;
-        }
         const bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
         refl_sbuf.stage = refl.stage;
         refl_sbuf.readonly = readonly;
-        if (readonly) {
-            refl_sbuf.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
-        } else {
-            refl_sbuf.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type, readonly);
-        }
-        refl_sbuf.msl_buffer_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_sbuf.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        // SPECIAL CASE GL: the GL storage buffer bind slot is identical with the sokol-bind slot
-        // since GL also has a common bindspace across shader stages for storage buffers
-        refl_sbuf.glsl_binding_n = refl_sbuf.sokol_slot;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(sbuf_res.name);
+        assert(bindslot);
+        assert(readonly == bindslot->readonly());
+        refl_sbuf.hlsl_register_t_n = bindslot->hlsl.register_t_n;
+        refl_sbuf.hlsl_register_u_n = bindslot->hlsl.register_u_n;
+        refl_sbuf.msl_buffer_n = bindslot->msl.buffer_n;
+        refl_sbuf.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_sbuf.glsl_binding_n = bindslot->glsl.binding_n;
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
 
     // storage images
     for (const Resource& simg_res: shd_resources.storage_images) {
-        const int slot = compiler.get_decoration(simg_res.id, spv::DecorationBinding);
+        assert(!simg_res.name.empty());
         const auto& spir_type = compiler.get_type(simg_res.type_id);
         const auto& mask = compiler.get_decoration_bitset(simg_res.id);
-        const Bindings::Type res_type = Bindings::Type::STORAGE_IMAGE;
         StorageImage refl_simg;
-        refl_simg.stage = refl.stage;
+        refl_simg.sokol_slot = bindslot_map.find_view_index(simg_res.name);
+        if (refl_simg.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for storageimage '{}' (might be unused in shader code?)\n", refl_simg.name));
+            return refl;
+        }
         refl_simg.name = simg_res.name;
-        refl_simg.sokol_slot = inp.find_simg_slot(refl_simg.name);
-        refl_simg.hlsl_register_u_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_simg.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_simg.wgsl_group2_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        refl_simg.glsl_binding_n = refl_simg.sokol_slot;
+        refl_simg.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(simg_res.name);
+        assert(bindslot);
+        refl_simg.hlsl_register_u_n = bindslot->hlsl.register_u_n;
+        refl_simg.msl_texture_n = bindslot->msl.texture_n;
+        refl_simg.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_simg.glsl_binding_n = bindslot->glsl.binding_n;
         refl_simg.writeonly = mask.get(spv::DecorationNonReadable);
+        assert(bindslot->writeonly() == refl_simg.writeonly);
         refl_simg.type = spirtype_to_image_type(spir_type);
         refl_simg.access_format = spirtype_to_storage_pixel_format(spir_type);
         refl.bindings.storage_images.push_back(refl_simg);
     }
 
-    // (separate) images
+    // (separate) texture images
     for (const Resource& img_res: shd_resources.separate_images) {
-        const int slot = compiler.get_decoration(img_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::IMAGE;
-        Image refl_img;
-        refl_img.stage = refl.stage;
-        refl_img.hlsl_register_t_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_img.msl_texture_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_img.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
-        refl_img.name = img_res.name;
-        const SPIRType& img_type = compiler.get_type(img_res.type_id);
-        refl_img.type = spirtype_to_image_type(img_type);
-        if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
-            refl_img.sample_type = ImageSampleType::DEPTH;
-        } else {
-            refl_img.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
-        }
-        refl_img.multisampled = spirtype_to_image_multisampled(img_type);
-        refl_img.sokol_slot = inp.find_img_slot(refl_img.name);
-        if (refl_img.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for image '{}' (might be unused in shader code?)\n", refl_img.name));
+        assert(!img_res.name.empty());
+        Texture refl_tex;
+        refl_tex.sokol_slot = bindslot_map.find_view_index(img_res.name);
+        if (refl_tex.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for texture '{}' (might be unused in shader code?)\n", refl_tex.name));
             return refl;
         }
-        refl.bindings.images.push_back(refl_img);
+        refl_tex.name = img_res.name;
+        refl_tex.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_view_bindslot(img_res.name);
+        assert(bindslot);
+        refl_tex.hlsl_register_t_n = bindslot->hlsl.register_t_n;
+        refl_tex.msl_texture_n = bindslot->msl.texture_n;
+        refl_tex.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        const SPIRType& img_type = compiler.get_type(img_res.type_id);
+        refl_tex.type = spirtype_to_image_type(img_type);
+        if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
+            refl_tex.sample_type = ImageSampleType::DEPTH;
+        } else {
+            refl_tex.sample_type = spirtype_to_image_sample_type(compiler.get_type(img_type.image.type));
+        }
+        refl_tex.multisampled = spirtype_to_image_multisampled(img_type);
+        refl.bindings.textures.push_back(refl_tex);
     }
     // (separate) samplers
     for (const Resource& smp_res: shd_resources.separate_samplers) {
-        const int slot = compiler.get_decoration(smp_res.id, spv::DecorationBinding);
-        const Bindings::Type res_type = Bindings::Type::SAMPLER;
-        const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
+        assert(!smp_res.name.empty());
         Sampler refl_smp;
-        refl_smp.stage = refl.stage;
-        refl_smp.hlsl_register_s_n = slot + Bindings::base_slot(Slang::HLSL5, refl.stage, res_type);
-        refl_smp.msl_sampler_n = slot + Bindings::base_slot(Slang::METAL_SIM, refl.stage, res_type);
-        refl_smp.wgsl_group1_binding_n = slot + Bindings::base_slot(Slang::WGSL, refl.stage, res_type);
+        refl_smp.sokol_slot = bindslot_map.find_sampler_index(smp_res.name);
+        if (refl_smp.sokol_slot == -1) {
+            out_error = inp.error(0, fmt::format("no binding found for sampler '{}' (might be unused in shader code?)\n", refl_smp.name));
+            return refl;
+        }
         refl_smp.name = smp_res.name;
+        refl_smp.stage = refl.stage;
+        const BindSlot* bindslot = bindslot_map.find_sampler_bindslot(smp_res.name);
+        assert(bindslot);
+        refl_smp.hlsl_register_s_n = bindslot->hlsl.register_s_n;
+        refl_smp.msl_sampler_n = bindslot->msl.sampler_n;
+        refl_smp.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
         // HACK ALERT!
+        const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
             refl_smp.type = SamplerType::COMPARISON;
         } else {
             refl_smp.type = SamplerType::FILTERING;
         }
-        refl_smp.sokol_slot = inp.find_smp_slot(refl_smp.name);
-        if (refl_smp.sokol_slot == -1) {
-            out_error = inp.error(0, fmt::format("no binding found for sampler '{}' (might be unused in shader code?)\n", refl_smp.name));
-            return refl;
-        }
         refl.bindings.samplers.push_back(refl_smp);
     }
-    // combined image samplers
-    for (auto& img_smp_res: compiler.get_combined_image_samplers()) {
-        ImageSampler refl_img_smp;
-        refl_img_smp.stage = refl.stage;
-        refl_img_smp.sokol_slot = compiler.get_decoration(img_smp_res.combined_id, spv::DecorationBinding);
-        refl_img_smp.name = compiler.get_name(img_smp_res.combined_id);
-        refl_img_smp.image_name = compiler.get_name(img_smp_res.image_id);
-        refl_img_smp.sampler_name = compiler.get_name(img_smp_res.sampler_id);
-        refl.bindings.image_samplers.push_back(refl_img_smp);
+    // combined texture-samplers
+    for (auto& tex_smp_res: compiler.get_combined_image_samplers()) {
+        TextureSampler refl_tex_smp;
+        refl_tex_smp.stage = refl.stage;
+        refl_tex_smp.sokol_slot = compiler.get_decoration(tex_smp_res.combined_id, spv::DecorationBinding);
+        refl_tex_smp.name = compiler.get_name(tex_smp_res.combined_id);
+        refl_tex_smp.texture_name = compiler.get_name(tex_smp_res.image_id);
+        refl_tex_smp.sampler_name = compiler.get_name(tex_smp_res.sampler_id);
+        refl.bindings.texture_samplers.push_back(refl_tex_smp);
     }
-    // patch textures with overridden image-sample-types
-    for (auto& img: refl.bindings.images) {
-        const auto* tag = inp.find_image_sample_type_tag(img.name);
+    // patch textures with overridden texture-sample-types
+    for (auto& tex: refl.bindings.textures) {
+        const auto* tag = inp.find_image_sample_type_tag(tex.name);
         if (tag) {
-            img.sample_type = tag->type;
+            tex.sample_type = tag->type;
         }
     }
     // patch samplers with overridden sampler-types
@@ -511,17 +525,17 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
             }
         }
 
-        // merge identical images
-        for (const Image& img: src_bindings.images) {
-            const Image* other_img = out_bindings.find_image_by_name(img.name);
-            if (other_img) {
+        // merge identical textures
+        for (const Texture& tex: src_bindings.textures) {
+            const Texture* other_tex = out_bindings.find_texture_by_name(tex.name);
+            if (other_tex) {
                 // another image of the same name exists, make sure it's identical
-                if (!img.equals(*other_img)) {
-                    out_error = ErrMsg::error(fmt::format("conflicting texture definitions found for '{}'", img.name));
+                if (!tex.equals(*other_tex)) {
+                    out_error = ErrMsg::error(fmt::format("conflicting texture definitions found for '{}'", tex.name));
                     return Bindings();
                 }
             } else {
-                out_bindings.images.push_back(img);
+                out_bindings.textures.push_back(tex);
             }
         }
 
@@ -539,32 +553,32 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
             }
         }
 
-        // merge image samplers (only for prog bindings)
-        // since image-samplers will have their bindings auto-assigned their slots won't
-        // match across programs, but common image-sampler bindings across programs are also not required
+        // merge texture samplers (only for prog bindings)
+        // since texture samplers will have their bindings auto-assigned their slots won't
+        // match across programs, but common texture-sampler bindings across programs are also not required
         // anywhere (such bindings are only needed for generating the common slot constants)
         if (to_prog_bindings) {
-            for (const ImageSampler& img_smp: src_bindings.image_samplers) {
-                const ImageSampler* other_img_smp = out_bindings.find_image_sampler_by_name(img_smp.name);
-                if (other_img_smp) {
-                    // another image sampler of the same name exists, make sure it's identical
-                    if (!img_smp.equals(*other_img_smp)) {
-                        out_error = ErrMsg::error(fmt::format("conflicting image-sampler definition found for '{}'", img_smp.name));
+            for (const TextureSampler& tex_smp: src_bindings.texture_samplers) {
+                const TextureSampler* other_tex_smp = out_bindings.find_texture_sampler_by_name(tex_smp.name);
+                if (other_tex_smp) {
+                    // another texture sampler of the same name exists, make sure it's identical
+                    if (!tex_smp.equals(*other_tex_smp)) {
+                        out_error = ErrMsg::error(fmt::format("conflicting texture-sampler definition found for '{}'", tex_smp.name));
                         return Bindings();
                     }
                 } else {
-                    out_bindings.image_samplers.push_back(img_smp);
+                    out_bindings.texture_samplers.push_back(tex_smp);
                 }
             }
         }
     }
 
-    // if requested, assign new image-sampler slots which are unique across shader stages, this
+    // if requested, assign new texture-sampler slots which are unique across shader stages, this
     // is needed when merging the per-shader-stage bindings into per-program-bindings
     if (to_prog_bindings) {
         int sokol_slot = 0;
-        for (ImageSampler& img_smp: out_bindings.image_samplers) {
-            img_smp.sokol_slot = sokol_slot++;
+        for (TextureSampler& tex_smp: out_bindings.texture_samplers) {
+            tex_smp.sokol_slot = sokol_slot++;
         }
     }
 
@@ -677,14 +691,14 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
 
 ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
     {
-        std::array<std::string, Bindings::MaxUniformBlocks> ub_slots;
+        std::array<std::string, MaxUniformBlocks> ub_slots;
         for (const auto& ub: bindings.uniform_blocks) {
             const int slot = ub.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxUniformBlocks)) {
+            if ((slot < 0) || (slot >= MaxUniformBlocks)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for uniform block '{}' (must be 0..{})",
                     slot,
                     ub.name,
-                    Bindings::MaxUniformBlocks - 1));
+                    MaxUniformBlocks - 1));
             }
             if (!ub_slots[slot].empty()) {
                 return ErrMsg::error(fmt::format("uniform blocks {} and {} cannot use the same binding {}",
@@ -696,69 +710,65 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
     }
     {
-        std::array<std::string, Bindings::MaxStorageBuffers> sbuf_slots;
-        std::array<std::string, Bindings::MaxStorageImages> simg_slots;
+        std::array<std::string, MaxViews> view_slots;
         for (const auto& sbuf: bindings.storage_buffers) {
             const int slot = sbuf.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxStorageBuffers)) {
-                return ErrMsg::error(fmt::format("binding {} out of range for storage buffer '{}' (must be 0..{})",
+            if ((slot < 0) || (slot >= MaxViews)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     sbuf.name,
-                    Bindings::MaxStorageBuffers - 1));
+                    MaxViews - 1));
             }
-            if (!sbuf_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("storage buffer '{}' and '{}' cannot use the same binding {}",
-                    sbuf_slots[slot],
+            if (!view_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
+                    view_slots[slot],
                     sbuf.name,
                     slot));
             }
-            sbuf_slots[slot] = sbuf.name;
+            view_slots[slot] = sbuf.name;
         }
         for (const auto& simg: bindings.storage_images) {
             const int slot = simg.sokol_slot;
-            if ((slot < 0) || (slot >= Bindings::MaxStorageImages)) {
-                return ErrMsg::error(fmt::format("binding {} out of range for storage image '{}' (must be 0..{})",
+            if ((slot < 0) || (slot >= MaxViews)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     simg.name,
-                    Bindings::MaxStorageImages - 1));
+                    MaxViews - 1));
             }
-            if (!simg_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("storage image '{}' and '{}' cannot use the same binding {}",
-                    simg_slots[slot],
+            if (!view_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
+                    view_slots[slot],
                     simg.name,
                     slot));
             }
-            simg_slots[slot] = simg.name;
+            view_slots[slot] = simg.name;
         }
-    }
-    {
-        std::array<std::string, Bindings::MaxImages> img_slots;
-        for (const auto& img: bindings.images) {
-            const int slot = img.sokol_slot;
-            if ((slot < 0) || (slot > Bindings::MaxImages)) {
-                return ErrMsg::error(fmt::format("binding {} out of range for image '{}' (must be 0..{})",
+        for (const auto& tex: bindings.textures) {
+            const int slot = tex.sokol_slot;
+            if ((slot < 0) || (slot > MaxViews)) {
+                return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
-                    img.name,
-                    Bindings::MaxImages - 1));
+                    tex.name,
+                    MaxViews - 1));
             }
-            if (!img_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("images '{}' and '{}' cannot use the same binding {}",
-                    img_slots[slot],
-                    img.name,
+            if (!view_slots[slot].empty()) {
+                return ErrMsg::error(fmt::format("resources '{}' and '{}' cannot use the same binding {}",
+                    view_slots[slot],
+                    tex.name,
                     slot));
             }
-            img_slots[slot] = img.name;
+            view_slots[slot] = tex.name;
         }
     }
     {
-        std::array<std::string, Bindings::MaxSamplers> smp_slots;
+        std::array<std::string, MaxSamplers> smp_slots;
         for (const auto& smp: bindings.samplers) {
             const int slot = smp.sokol_slot;
-            if ((slot < 0) || (slot > Bindings::MaxSamplers)) {
+            if ((slot < 0) || (slot > MaxSamplers)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for sampler '{}' (must be 0..{})",
                     slot,
                     smp.name,
-                    Bindings::MaxSamplers - 1));
+                    MaxSamplers - 1));
             }
             if (!smp_slots[slot].empty()) {
                     return ErrMsg::error(fmt::format("samplers '{}' and '{}' cannot use the same binding {}",

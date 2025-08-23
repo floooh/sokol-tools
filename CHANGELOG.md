@@ -1,6 +1,25 @@
 CHANGELOG
 =========
 
+### **23-Aug-2025**
+
+This is the update for the sokol-gfx 'resource-view-update'
+(see sokol-gfx PR https://github.com/floooh/sokol/pull/1287 and sokol-tools
+PR: https://github.com/floooh/sokol-tools/pull/187).
+
+When recompiling your existing shaders you may get errors about bindslot collisions.
+
+This is because the formerly separate bindslot ranges for textures, storage-buffers
+and storage-buffers have now been merged into a common 'view bindslot range'.
+
+The N `layout(binding=N)` for textures, storage-images and storage-buffers
+now directly maps to the index in the `sg_bindings.views[]` array which
+defines the resource bindings for texture-, storage-image- and storage-buffer-
+bindings.
+
+For more detailed information, see the updated [sokol-shdc documentation](https://github.com/floooh/sokol-tools/blob/master/docs/sokol-shdc.md),
+and this [blog post](https://floooh.github.io/2025/08/17/sokol-gfx-view-update.html).
+
 ### **26-Jun-2025**
 
 sokol-shdc can now write a Clang/GCC style dep-file via the new command line

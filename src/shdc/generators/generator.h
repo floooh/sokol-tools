@@ -48,7 +48,7 @@ protected:
 
     // optional, called by gen_reflection_funcs()
     virtual void gen_attr_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
-    virtual void gen_image_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
+    virtual void gen_texture_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
     virtual void gen_sampler_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& progm) { };
     virtual void gen_uniform_block_slot_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
     virtual void gen_uniform_block_size_refl_func(const GenInput& gen, const refl::ProgramReflection& prog) { };
@@ -68,7 +68,7 @@ protected:
     virtual std::string shader_bytecode_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
     virtual std::string shader_source_array_name(const std::string& snippet_name, Slang::Enum slang) { return "INVALID"; };
 
-    virtual std::string shader_stage(refl::ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
+    virtual std::string shader_stage(ShaderStage::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string attr_basetype(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
     virtual std::string flattened_uniform_type(refl::Type::Enum e) { assert(false && "implement me"); return ""; };
@@ -80,28 +80,28 @@ protected:
 
     virtual std::string struct_name(const std::string& name) { assert(false && "implement me"); return ""; };
     virtual std::string vertex_attr_name(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
-    virtual std::string image_bind_slot_name(const refl::Image& img) { assert(false && "implement me"); return ""; };
+    virtual std::string texture_bind_slot_name(const refl::Texture& tex) { assert(false && "implement me"); return ""; };
     virtual std::string sampler_bind_slot_name(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
     virtual std::string storage_image_bind_slot_name(const refl::StorageImage& simg) { assert(false && "implement me"); return ""; };
 
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
-    virtual std::string image_bind_slot_definition(const refl::Image& img) { assert(false && "implement me"); return ""; };
-    virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
-    virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
+    virtual std::string texture_bind_slot_definition(const refl::Texture& img) { assert(false && "implement me"); return ""; };
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
     virtual std::string storage_image_bind_slot_definition(const refl::StorageImage& simg) { assert(false && "implement me"); return ""; };
+    virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp) { assert(false && "implement me"); return ""; };
+    virtual std::string uniform_block_bind_slot_definition(const refl::UniformBlock& ub) { assert(false && "implement me"); return ""; };
 
     struct ShaderStageArrayInfo {
     public:
-        refl::ShaderStage::Enum stage = refl::ShaderStage::Enum::Invalid;
+        ShaderStage::Enum stage = ShaderStage::Enum::Invalid;
         bool has_bytecode = false;
         size_t bytecode_array_size = 0;
         std::string bytecode_array_name;
         std::string source_array_name;
     };
-    ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, refl::ShaderStage::Enum stage, Slang::Enum slang);
+    ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang);
 
     // line output
     template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
@@ -154,7 +154,7 @@ protected:
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
-    static const char* hlsl_target(Slang::Enum slang, refl::ShaderStage::Enum stage);
+    static const char* hlsl_target(Slang::Enum slang, ShaderStage::Enum stage);
 
     std::string content;
     int tab_width = 4;

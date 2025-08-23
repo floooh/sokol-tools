@@ -7,7 +7,7 @@ class YamlGenerator: public BareGenerator {
 public:
     virtual ErrMsg generate(const GenInput& gen);
 protected:
-    virtual std::string shader_stage(refl::ShaderStage::Enum e);
+    virtual std::string shader_stage(ShaderStage::Enum e);
     virtual std::string attr_basetype(refl::Type::Enum e);
     virtual std::string uniform_type(refl::Type::Enum e);
     virtual std::string flattened_uniform_type(refl::Type::Enum e);
@@ -21,9 +21,9 @@ private:
     void gen_uniform_block_refl(const refl::UniformBlock& ub);
     void gen_storage_buffer(const refl::StorageBuffer& sbuf, Slang::Enum slang);
     void gen_storage_image(const refl::StorageImage& simg, Slang::Enum slang);
-    void gen_image(const refl::Image& img, Slang::Enum slang);
+    void gen_texture(const refl::Texture& tex, Slang::Enum slang);
     void gen_sampler(const refl::Sampler& smp, Slang::Enum slang);
-    void gen_image_sampler(const refl::ImageSampler& img_smp, Slang::Enum slang);
+    void gen_texture_sampler(const refl::Bindings& bindings, const refl::TextureSampler& tex_smp, Slang::Enum slang);
 };
 
 } // namespace

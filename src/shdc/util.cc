@@ -19,4 +19,19 @@ ErrMsg write_dep_file(const Args& args, const Input& inp) {
     return ErrMsg();
 }
 
+// this returns the first line index of a snippet which actually belong to the snippet,
+// skipping any included blocks - used for error messages which should be positioned
+// at the start of a snippet (if the snippet started with an @include_block that first
+// line would point in the @block instead)
+int first_snippet_line_index_skipping_include_blocks(const Input& inp, const Snippet& snippet) {
+    for (int i: snippet.lines) {
+        assert(i < (int)inp.lines.size());
+        if ((inp.lines[i].snippet != -1) && (inp.lines[i].snippet == snippet.index)) {
+            return i;
+        }
+    }
+    // hmm, this shouldn't actually happen
+    return snippet.lines[0];
+}
+
 } // namespace shdc::util

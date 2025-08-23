@@ -7,6 +7,7 @@ namespace shdc {
 struct Line {
     std::string line;       // line content
     int filename = 0;       // index into Input filenames
+    int snippet = -1;       // snippet index to which this line belongs (-1 => none)
     int index = 0;          // line index == line nr - 1
 
     Line();

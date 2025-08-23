@@ -69,8 +69,14 @@ inline void ProgramReflection::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}stages:\n", indent2);
     bindings.dump_debug(indent2);
-    for (const auto& stage: stages) {
-        stage.dump_debug(indent2);
+    if (has_vs()) {
+        vs().dump_debug(indent2);
+    }
+    if (has_fs()) {
+        fs().dump_debug(indent2);
+    }
+    if (has_cs()) {
+        cs().dump_debug(indent2);
     }
 }
 

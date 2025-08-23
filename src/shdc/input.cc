@@ -15,35 +15,6 @@ namespace shdc {
 
 using namespace refl;
 
-static int find_slot(const std::map<std::string, int>& map, const std::string& key) {
-    auto it = map.find(key);
-    if (it != map.end()) {
-        return map.at(key);
-    } else {
-        return -1;
-    }
-}
-
-int Input::find_ub_slot(const std::string& name) const {
-    return find_slot(ub_slots, name);
-}
-
-int Input::find_img_slot(const std::string& name) const {
-    return find_slot(img_slots, name);
-}
-
-int Input::find_smp_slot(const std::string& name) const {
-    return find_slot(smp_slots, name);
-}
-
-int Input::find_sbuf_slot(const std::string& name) const {
-    return find_slot(sbuf_slots, name);
-}
-
-int Input::find_simg_slot(const std::string& name) const {
-    return find_slot(simg_slots, name);
-}
-
 const ImageSampleTypeTag* Input::find_image_sample_type_tag(const std::string& tex_name) const {
     auto it = image_sample_type_tags.find(tex_name);
     if (it != image_sample_type_tags.end()) {
@@ -421,7 +392,7 @@ static bool parse(Input& inp) {
     Snippet cur_snippet;
     std::vector<std::string> tokens;
     int line_index = 0;
-    for (const Line& line_info : inp.lines) {
+    for (Line& line_info : inp.lines) {
         const std::string& line = line_info.line;
         add_line = in_snippet;
         pystring::split(line, tokens);
@@ -572,6 +543,10 @@ static bool parse(Input& inp) {
         if (add_line) {
             cur_snippet.lines.push_back(line_index);
         }
+        // add snippet index to current line if we're in a snippet
+        if (in_snippet) {
+            line_info.snippet = (int)inp.snippets.size();
+        }
         line_index++;
     }
     if (in_snippet) {
@@ -589,8 +564,7 @@ static bool validate_include_tag(const std::vector<std::string>& tokens, int lin
     return true;
 }
 
-static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs,
-                                Input& inp, int parent_line_index) {
+static bool load_and_preprocess(const std::string& path, const std::vector<std::string>& include_dirs, Input& inp, int parent_line_index) {
     std::string path_used = path;
     std::string str = load_file_into_str(path_used);
     if (str.empty()) {
@@ -658,7 +632,7 @@ static bool load_and_preprocess(const std::string& path, const std::vector<std::
         } else {
             // this is an empty line, but add it anyway so the error line
             // indices are always correct
-            inp.lines.push_back({ line, filename_index, line_index});
+            inp.lines.push_back({line, filename_index, line_index});
         }
         line_index++;
     }
