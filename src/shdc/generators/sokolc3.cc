@@ -191,9 +191,9 @@ void SokolC3Generator::gen_storage_buffer_decl(const GenInput& gen, const Type& 
 }
 
 void SokolC3Generator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    l("fn sg::ShaderDesc {}_shader_desc(sg::Backend backend)\n", prog.name);
+    l("fn SgShaderDesc {}_shader_desc(SgBackend backend)\n", prog.name);
     l_open("{{\n");
-    l("sg::ShaderDesc desc;\n");
+    l("SgShaderDesc desc;\n");
     l("desc.label = \"{}_shader\";\n", prog.name);
     l("switch (backend)\n");
     l_open("{{\n");
@@ -250,7 +250,7 @@ void SokolC3Generator::gen_shader_desc_func(const GenInput& gen, const ProgramRe
                 if (ub) {
                     const std::string ubn = fmt::format("desc.uniform_blocks[{}]", ub_index);
                     l("{}.stage = {};\n", ubn, shader_stage(ub->stage));
-                    l("{}.layout = uniform_layout::STD140;\n", ubn);
+                    l("{}.layout = SgUniformLayout.STD140;\n", ubn);
                     l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
                     if (Slang::is_hlsl(slang)) {
                         l("{}.hlsl_register_b_n = {};\n", ubn, ub->hlsl_register_b_n);
@@ -402,33 +402,33 @@ std::string SokolC3Generator::get_shader_desc_help(const std::string& prog_name)
 
 std::string SokolC3Generator::shader_stage(const ShaderStage::Enum e) {
     switch (e) {
-        case ShaderStage::Vertex: return "shader_stage::VERTEX";
-        case ShaderStage::Fragment: return "shader_stage::FRAGMENT";
-        case ShaderStage::Compute: return "shader_stage::COMPUTE";
+        case ShaderStage::Vertex: return "SgShaderStage.VERTEX";
+        case ShaderStage::Fragment: return "SgShaderStage.FRAGMENT";
+        case ShaderStage::Compute: return "SgShaderStage.COMPUTE";
         default: return "INVALID";
     }
 }
 
 std::string SokolC3Generator::attr_basetype(Type::Enum e) {
     switch (e) {
-        case Type::Float:   return "shader_attr_base_type::FLOAT";
-        case Type::Int:     return "shader_attr_base_type::SINT";
-        case Type::UInt:    return "shader_attr_base_type::UINT";
+        case Type::Float:   return "SgShaderAttrBaseType.FLOAT";
+        case Type::Int:     return "SgShaderAttrBaseType.SINT";
+        case Type::UInt:    return "SgShaderAttrBaseType.UINT";
         default: return "INVALID";
     }
 }
 
 std::string SokolC3Generator::uniform_type(Type::Enum e) {
     switch (e) {
-        case Type::Float:  return "uniform_type::FLOAT";
-        case Type::Float2: return "uniform_type::FLOAT2";
-        case Type::Float3: return "uniform_type::FLOAT3";
-        case Type::Float4: return "uniform_type::FLOAT4";
-        case Type::Int:    return "uniform_type::INT";
-        case Type::Int2:   return "uniform_type::INT2";
-        case Type::Int3:   return "uniform_type::INT3";
-        case Type::Int4:   return "uniform_type::INT4";
-        case Type::Mat4x4: return "uniform_type::MAT4";
+        case Type::Float:  return "SgUniformType.FLOAT";
+        case Type::Float2: return "SgUniformType.FLOAT2";
+        case Type::Float3: return "SgUniformType.FLOAT3";
+        case Type::Float4: return "SgUniformType.FLOAT4";
+        case Type::Int:    return "SgUniformType.INT";
+        case Type::Int2:   return "SgUniformType.INT2";
+        case Type::Int3:   return "SgUniformType.INT3";
+        case Type::Int4:   return "SgUniformType.INT4";
+        case Type::Mat4x4: return "SgUniformType.MAT4";
         default: return "INVALID";
     }
 }
@@ -440,12 +440,12 @@ std::string SokolC3Generator::flattened_uniform_type(Type::Enum e) {
         case Type::Float3:
         case Type::Float4:
         case Type::Mat4x4:
-             return "uniform_type::FLOAT4";
+             return "SgUniformType.FLOAT4";
         case Type::Int:
         case Type::Int2:
         case Type::Int3:
         case Type::Int4:
-            return "uniform_type::INT4";
+            return "SgUniformType.INT4";
         default:
             return "INVALID";
     }
@@ -453,52 +453,52 @@ std::string SokolC3Generator::flattened_uniform_type(Type::Enum e) {
 
 std::string SokolC3Generator::image_type(ImageType::Enum e) {
     switch (e) {
-        case ImageType::_2D:     return "image_type::TYPE_2D";
-        case ImageType::CUBE:    return "image_type::CUBE";
-        case ImageType::_3D:     return "image_type::TYPE_3D";
-        case ImageType::ARRAY:   return "image_type::ARRAY";
+        case ImageType::_2D:     return "SgImageType.TYPE_2D";
+        case ImageType::CUBE:    return "SgImageType.CUBE";
+        case ImageType::_3D:     return "SgImageType.TYPE_3D";
+        case ImageType::ARRAY:   return "SgImageType.ARRAY";
         default: return "INVALID";
     }
 }
 
 std::string SokolC3Generator::image_sample_type(ImageSampleType::Enum e) {
     switch (e) {
-        case ImageSampleType::FLOAT: return "image_sample_type::FLOAT";
-        case ImageSampleType::DEPTH: return "image_sample_type::DEPTH";
-        case ImageSampleType::SINT:  return "image_sample_type::SINT";
-        case ImageSampleType::UINT:  return "image_sample_type::UINT";
-        case ImageSampleType::UNFILTERABLE_FLOAT:  return "image_sample_type::UNFILTERABLE_FLOAT";
+        case ImageSampleType::FLOAT: return "SgImageSampleType.FLOAT";
+        case ImageSampleType::DEPTH: return "SgImageSampleType.DEPTH";
+        case ImageSampleType::SINT:  return "SgImageSampleType.SINT";
+        case ImageSampleType::UINT:  return "SgImageSampleType.UINT";
+        case ImageSampleType::UNFILTERABLE_FLOAT:  return "SgImageSampleType.UNFILTERABLE_FLOAT";
         default: return "INVALID";
     }
 }
 
 std::string SokolC3Generator::sampler_type(SamplerType::Enum e) {
     switch (e) {
-        case SamplerType::FILTERING:     return "sampler_type::FILTERING";
-        case SamplerType::COMPARISON:    return "sampler_type::COMPARISON";
-        case SamplerType::NONFILTERING:  return "sampler_type::NONFILTERING";
+        case SamplerType::FILTERING:     return "SgSamplerType.FILTERING";
+        case SamplerType::COMPARISON:    return "SgSamplerType.COMPARISON";
+        case SamplerType::NONFILTERING:  return "SgSamplerType.NONFILTERING";
         default: return "INVALID";
     }
 }
 
 std::string SokolC3Generator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
     switch (e) {
-        case StoragePixelFormat::RGBA8:     return "pixel_format::RGBA8";
-        case StoragePixelFormat::RGBA8SN:   return "pixel_format::RGBA8SN";
-        case StoragePixelFormat::RGBA8UI:   return "pixel_format::RGBA8UI";
-        case StoragePixelFormat::RGBA8SI:   return "pixel_format::RGBS8SI";
-        case StoragePixelFormat::RGBA16UI:  return "pixel_format::RGBA16UI";
-        case StoragePixelFormat::RGBA16SI:  return "pixel_format::RGBA16SI";
-        case StoragePixelFormat::RGBA16F:   return "pixel_format::RGBA16F";
-        case StoragePixelFormat::R32UI:     return "pixel_format::R32UI";
-        case StoragePixelFormat::R32SI:     return "pixel_format::R32SI";
-        case StoragePixelFormat::R32F:      return "pixel_format::R32F";
-        case StoragePixelFormat::RG32UI:    return "pixel_format::RG32UI";
-        case StoragePixelFormat::RG32SI:    return "pixel_format::RG32SI";
-        case StoragePixelFormat::RG32F:     return "pixel_format::RG32F";
-        case StoragePixelFormat::RGBA32UI:  return "pixel_format::RGBA32UI";
-        case StoragePixelFormat::RGBA32SI:  return "pixel_format::RGBA32SI";
-        case StoragePixelFormat::RGBA32F:   return "pixel_format::RGBA32F";
+        case StoragePixelFormat::RGBA8:     return "SgPixelFormat.RGBA8";
+        case StoragePixelFormat::RGBA8SN:   return "SgPixelFormat.RGBA8SN";
+        case StoragePixelFormat::RGBA8UI:   return "SgPixelFormat.RGBA8UI";
+        case StoragePixelFormat::RGBA8SI:   return "SgPixelFormat.RGBS8SI";
+        case StoragePixelFormat::RGBA16UI:  return "SgPixelFormat.RGBA16UI";
+        case StoragePixelFormat::RGBA16SI:  return "SgPixelFormat.RGBA16SI";
+        case StoragePixelFormat::RGBA16F:   return "SgPixelFormat.RGBA16F";
+        case StoragePixelFormat::R32UI:     return "SgPixelFormat.R32UI";
+        case StoragePixelFormat::R32SI:     return "SgPixelFormat.R32SI";
+        case StoragePixelFormat::R32F:      return "SgPixelFormat.R32F";
+        case StoragePixelFormat::RG32UI:    return "SgPixelFormat.RG32UI";
+        case StoragePixelFormat::RG32SI:    return "SgPixelFormat.RG32SI";
+        case StoragePixelFormat::RG32F:     return "SgPixelFormat.RG32F";
+        case StoragePixelFormat::RGBA32UI:  return "SgPixelFormat.RGBA32UI";
+        case StoragePixelFormat::RGBA32SI:  return "SgPixelFormat.RGBA32SI";
+        case StoragePixelFormat::RGBA32F:   return "SgPixelFormat.RGBA32F";
         default: return "INVALID";
     }
 }
@@ -507,21 +507,21 @@ std::string SokolC3Generator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
         case Slang::GLSL430:
-            return "backend::GLCORE";
+            return "SgBackend.GLCORE";
         case Slang::GLSL300ES:
         case Slang::GLSL310ES:
-            return "backend::GLES3";
+            return "SgBackend.GLES3";
         case Slang::HLSL4:
         case Slang::HLSL5:
-            return "backend::D3D11";
+            return "SgBackend.D3D11";
         case Slang::METAL_MACOS:
-            return "backend::METAL_MACOS";
+            return "SgBackend.METAL_MACOS";
         case Slang::METAL_IOS:
-            return "backend::METAL_IOS";
+            return "SgBackend.METAL_IOS";
         case Slang::METAL_SIM:
-            return "backend::METAL_SIMULATOR";
+            return "SgBackend.METAL_SIMULATOR";
         case Slang::WGSL:
-            return "backend::WGPU";
+            return "SgBackend.WGPU";
         default:
             return "INVALID";
     }
