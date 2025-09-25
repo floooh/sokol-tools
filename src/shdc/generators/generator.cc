@@ -217,7 +217,7 @@ void Generator::gen_shader_arrays(const GenInput& gen) {
                 // first write the source code in a comment block
                 cbl_start();
                 for (const std::string& line: lines) {
-                    cbl("{}\n", replace_C_comment_tokens(line));
+                    cbl("{}\n", fix_shader_source_for_code_comment(line));
                 }
                 cbl_end();
                 if (blob) {
@@ -328,13 +328,16 @@ int Generator::roundup(int val, int round_to) {
     return (val + (round_to - 1)) & ~(round_to - 1);
 }
 
-std::string Generator::replace_C_comment_tokens(const std::string& str) {
-    static const std::string comment_start_old = "/*";
-    static const std::string comment_start_new = "/_";
-    static const std::string comment_end_old = "*/";
-    static const std::string comment_end_new = "_/";
-    std::string s = pystring::replace(str, comment_start_old, comment_start_new);
-    s = pystring::replace(s, comment_end_old, comment_end_new);
+std::string Generator::fix_shader_source_for_code_comment(const std::string& str) {
+    static const std::string comment_start = "/*";
+    static const std::string comment_start_replace = "/_";
+    static const std::string comment_end = "*/";
+    static const std::string comment_end_replace = "_/";
+    static const std::string tab = "\t";
+    static const std::string tab_replace = " ";
+    std::string s = pystring::replace(str, comment_start, comment_start_replace);
+    s = pystring::replace(s, comment_end, comment_end_replace);
+    s = pystring::replace(s, tab, tab_replace);
     return s;
 }
 std::string Generator::to_pascal_case(const std::string& str) {

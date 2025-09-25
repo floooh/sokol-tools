@@ -150,7 +150,7 @@ protected:
     // utility methods
     static ErrMsg check_errors(const GenInput& gen);
     static int roundup(int val, int round_to);
-    static std::string replace_C_comment_tokens(const std::string& str);
+    static std::string fix_shader_source_for_code_comment(const std::string& str);
     static std::string to_camel_case(const std::string& str);
     static std::string to_pascal_case(const std::string& str);
     static std::string to_ada_case(const std::string& str);
