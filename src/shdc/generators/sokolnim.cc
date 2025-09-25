@@ -31,7 +31,7 @@ void SokolNimGenerator::gen_shader_arrays(const GenInput& gen) {
                 // first write the source code in a comment block
                 cbl_start();
                 for (const std::string& line: lines) {
-                    cbl("{}\n", replace_C_comment_tokens(line));
+                    cbl("{}\n", fix_shader_source_for_code_comment(line));
                 }
                 cbl_end();
                 if (blob) {
