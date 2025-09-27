@@ -105,8 +105,7 @@ A generated C header contains (similar information is generated for the other ou
 
 - human-readable reflection info in a comment block
 - a C struct for each shader uniform block and storage buffer binding
-- constants for vertex attribute locations, uniform block, image, sampler
-  and storage buffer binding indices
+- constants for vertex attribute locations, uniform block and resource view binding indices
 - for each shader program, a C function which returns a pointer to a
 ```sg_shader_desc``` for a specific sokol-gfx backend which can be passed
 directly into `sg_make_shader()`
@@ -917,10 +916,10 @@ storage buffers) must be annotated with explicit bind slots via
     - `layout(binding=N) texture2D tex;`
     - `layout(binding=N) readonly buffer ssbo { ... }`
     - `layout(binding=N, rgba8) uniform writeonly image2D img`
-    - ...where `(N >= 0) && (N < 28)`
+    - ...where `(N >= 0) && (N < 32)`
     - N maps to the view index in `sg_bindings.views[N]`
 - samplers (all shader stages):
-    - `layout(binding=N) sampler smp;` where `(N >= 0) && (N < 16)`
+    - `layout(binding=N) sampler smp;` where `(N >= 0) && (N < 12)`
     - N maps to the sampler index in `sg_bindings.samplers[N]`
 
 Bindings must be unique within their bindings space with a shader `@program`
@@ -1007,8 +1006,8 @@ Textures and samplers must be defined separately in the input GLSL (this is
 also known as 'Vulkan-style GLSL'). Just as with uniform blocks, you must
 define explicit bind slots via `layout(binding=N)`. Textures share their
 bindslot space with storage images and storage buffers with a range
-of `(N >= 0) && (N < 28)` while samplers have their own bindslot space
-with a range of `(N >= 0) && (N < 28)`.
+of `(N >= 0) && (N < 32)` while samplers have their own bindslot space
+with a range of `(N >= 0) && (N < 12)`.
 
 ```glsl
 layout(binding=0) uniform texture2D tex;
@@ -1073,7 +1072,7 @@ layout(binding=1) buffer out_ssbo {
 ```
 
 Storage-buffer-bindings share their bindings space with texture- and
-storage-image-bindings with a range of `(N >= 0) && (N < 28)` across
+storage-image-bindings with a range of `(N >= 0) && (N < 32)` across
 all shader stages. `N` directly corresponds to
 the index into the `sg_bindings.views[]` array.
 
@@ -1124,6 +1123,14 @@ On the C side, `sokol-shdc` will create a C struct `sb_vertex_t` with the requir
 alignment and padding (according to `std430` layout) and a `VIEW_*` define
 which can be used in the `sg_bindings` struct to index into the `.views[]` array.
 
+**An important OpenGL caveat**: OpenGL has a shared bindslot space for storage buffers
+across all shader stages. Because of this backend-specific detail, sokol-shdc
+directly assigns the `layout(binding=N)` value from the GLSL source code as
+OpenGL storage buffer bindslot. This means that on limited GL implementations
+you should put the storage buffer bindings first before other resource type
+bindslots to make the best use of the limited shared bindslot space for storage
+buffer bindings on OpenGL.
+
 ### Binding storage images
 
 Note that storage-image-bindings are only allowed in compute shaders and only
@@ -1131,7 +1138,7 @@ in `writeonly` and `readwrite` access mode. For `readonly` access use a
 regular texture binding instead.
 
 Storage-image-bindings share the bindings space with texture- and
-storage-buffer-bindings with a range of `(N >= 0) && (N < 28)`.
+storage-buffer-bindings with a range of `(N >= 0) && (N < 32)`.
 
 In a compute shader, first define a storage image binding as `writeonly`
 or `readwrite` and then access it via the `imageLoad()` or `imageStore()`
