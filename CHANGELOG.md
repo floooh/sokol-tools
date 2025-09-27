@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+### **27-Sep-2025**
+
+Minor update for the upcoming sokol-gfx 'dynamic resource limits' update:
+
+- the max number of resource view bindslots has been bumped from 28 to 32
+- the max number of sampler bindslots has been reduced from 16 to 12
+
 ### **23-Aug-2025**
 
 This is the update for the sokol-gfx 'resource-view-update'

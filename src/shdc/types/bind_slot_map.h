@@ -182,8 +182,11 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
                     slot.hlsl.register_u_n = hlsl_register_u_n++;
                 }
                 slot.msl.buffer_n = msl_buffer_n++;
-                // FIXME: must be < MaxStorageBufferBindingsPerStage!
-                // FIXME: this is a problem on min-spec GL drivers with only 8 storage buffer bindslots!
+                // NOTE: use the view bindslot directly here instead of allocating,
+                // since GL has a common storage buffer bindspace for all shader stages.
+                // To avoid problems with minspec GL drivers which only have 8 storage buffer
+                // bindslots in total it's best to put the bindslots for storage buffers in
+                // front of other resource bindings when authoring shaders.
                 slot.glsl.binding_n = i;
                 break;
             case BindSlot::Type::StorageImage:
@@ -224,4 +227,3 @@ inline void BindSlotMap::dump_debug() const {
 }
 
 } // namespace shdc
-
