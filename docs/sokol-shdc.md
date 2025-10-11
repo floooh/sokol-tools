@@ -44,6 +44,7 @@ sokol-shdc supports the following output formats:
 - Rust for integration with [sokol-rust](https://github.com/floooh/sokol-rust)
 - Odin for integration with [sokol-odin](https://github.com/floooh/sokol-odin)
 - C3 for integration with [sokol-c3](https://github.com/floooh/sokol-c3)
+- C2 for integration with [sokol-c2](https://github.com/floooh/sokol-c2)
 - Nim for integration with [sokol-nim](https://github.com/floooh/sokol-nim)
 - D for integration with [sokol-d](https://github.com/kassane/sokol-d)
 - Jai for integration with [sokol-jai](https://github.com/colinbellino/sokol-jai)
@@ -364,6 +365,7 @@ follows:
     - **sokol_rust**: generates output for the [sokol-rust bindings](https://github.com/floooh/sokol-rust)
     - **sokol_d**: generates output for the [sokol-d bindings](https://github.com/kassane/sokol-d)
     - **sokol_c3**: generates output for the [sokol-c3 bindings](https://github.com/floooh/sokol-c3)
+    - **sokol_c2**: generates output for the [sokol-c2 bindings](https://github.com/floooh/sokol-c2)
     - **sokol_jai**: generates output for the [sokol-jai bindings](https://github.com/colinbellino/sokol-jai)
 
   Note that some options and features of sokol-shdc can be contradictory to
