@@ -31,7 +31,7 @@ void SokolC2Generator::gen_prerequisites(const GenInput& gen) {
 
 void SokolC2Generator::gen_uniform_block_decl(const GenInput &gen, const UniformBlock& ub) {
     int cur_offset = 0;
-    l("type {} struct @(align({}), packed) ", struct_name(ub.name), ub.struct_info.align);
+    l("type {} struct @(aligned={}, packed) ", struct_name(ub.name), ub.struct_info.align);
     l_open("{{\n");
     for (const Type& uniform: ub.struct_info.struct_items) {
         int next_offset = uniform.offset;
@@ -182,7 +182,7 @@ void SokolC2Generator::gen_struct_interior_decl_std430(const GenInput& gen, cons
 }
 
 void SokolC2Generator::gen_storage_buffer_decl(const GenInput& gen, const Type& struc) {
-    l("type {} struct @(align({}), packed) ", struct_name(struc.struct_typename), struc.align);
+    l("type {} struct @(aligned={}, packed) ", struct_name(struc.struct_typename), struc.align);
     l_open("{{\n");
     gen_struct_interior_decl_std430(gen, struc, struc.size);
     l_close("}}\n");
@@ -260,14 +260,14 @@ void SokolC2Generator::gen_shader_desc_func(const GenInput& gen, const ProgramRe
                     } else if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                         if (ub->flattened) {
                             // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
-                            l("{}.glsl_uniforms[0].type = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
+                            l("{}.glsl_uniforms[0].type_ = {};\n", ubn, flattened_uniform_type(ub->struct_info.struct_items[0].type));
                             l("{}.glsl_uniforms[0].array_count = {};\n", ubn, roundup(ub->struct_info.size, 16) / 16);
                             l("{}.glsl_uniforms[0].glsl_name = \"{}\";\n", ubn, ub->name);
                         } else {
                             for (int u_index = 0; u_index < (int)ub->struct_info.struct_items.size(); u_index++) {
                                 const Type& u = ub->struct_info.struct_items[u_index];
                                 const std::string un = fmt::format("{}.glsl_uniforms[{}]", ubn, u_index);
-                                l("{}.type = {};\n", un, uniform_type(u.type));
+                                l("{}.type_ = {};\n", un, uniform_type(u.type));
                                 l("{}.array_count = {};\n", un, u.array_count);
                                 l("{}.glsl_name = \"{}.{}\";\n", un, ub->inst_name, u.name);
                             }
