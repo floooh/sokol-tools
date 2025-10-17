@@ -90,8 +90,8 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
 
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
-// for the SPIRV-to-WGSL translation.
-static void wgsl_patch_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, std::vector<uint32_t>& inout_bytecode) {
+// for the SPIRV-to-WGSL translation, or directly for the Vulkan-SPIRV output.
+static void wgsl_vkspirv_patch_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
     const Slang::Enum slang = Slang::WGSL;
     const uint32_t ub_bindgroup = 0;
@@ -466,7 +466,7 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     std::vector<uint32_t> patched_bytecode = blob.bytecode;
     CompilerGLSL compiler_temp(blob.bytecode);
     fix_bind_slots(compiler_temp, blob.bindings, slang);
-    wgsl_patch_bind_slots(compiler_temp, blob.bindings, patched_bytecode);
+    wgsl_vkspirv_patch_bind_slots(compiler_temp, blob.bindings, patched_bytecode);
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
     tint::spirv::reader::Options spirv_options;
@@ -487,6 +487,10 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     }
     res.valid = !res.error.valid();
     return res;
+}
+
+static SpirvcrossSource to_vulkan_spirv(const Input& inp, const SpirvBlob& blob, Slang::Enum slang, uint32_t opt_mask, const Snippet& snippet) {
+    assert(false && "FIXME");
 }
 
 struct SnippetRefls {
@@ -516,6 +520,8 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
                 src = to_msl(inp, blob, slang, opt_mask, snippet);
             } else if (Slang::is_wgsl(slang)) {
                 src = to_wgsl(inp, blob, slang, opt_mask, snippet);
+            } else if (Slang::is_spirv(slang)) {
+                src = to_vulkan_spirv(inp, blob, slang, opt_mask, snippet);
             }
             if (src.valid) {
                 assert(src.snippet_index == blob.snippet_index);

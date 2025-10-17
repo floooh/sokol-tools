@@ -231,6 +231,9 @@ elseif (SOKOL_USE_METAL)
     else()
         set(slang "metal_macos")
     endif()
+elseif (SOKOL_USE_VULKAN)
+    add_definitions(-DSOKOL_VULKAN)
+    set(slang "spirv_vk")
 else()
     if (FIPS_IOS)
         add_definitions(-DSOKOL_GLES3)
@@ -323,6 +326,7 @@ void main() {
     - **metal_ios**: Metal on iOS device
     - **metal_sim**: Metal on iOS simulator
     - **wgsl**: WebGPU
+    - **spirv_vk**: Vulkan-flavoured SPIRV
 
   For instance, to generate a header with support for Metal on macOS and desktop GL:
 

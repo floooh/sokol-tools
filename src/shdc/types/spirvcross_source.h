@@ -9,6 +9,7 @@ struct SpirvcrossSource {
     bool valid = false;
     int snippet_index = -1;
     std::string source_code;
+    std::vector<uint32_t> byte_code;
     ErrMsg error;
     refl::StageReflection stage_refl;
 };

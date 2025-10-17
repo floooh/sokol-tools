@@ -75,6 +75,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - metal_ios      Metal on iOS devices (SOKOL_METAL)\n"
         "  - metal_sim      Metal on iOS simulator (SOKOL_METAL)\n"
         "  - wgsl           WebGPU (SOKOL_WGPU)\n\n"
+        "  - spirv_vk       Vulkan-flavoured SPIRV (SOKOL_VULKAN)\n"
         "Output formats (used with -f --format):\n"
         "  - sokol          C header which includes both decl and inlined impl\n"
         "  - sokol_impl     C header with STB-style SOKOL_SHDC_IMPL wrapped impl\n"

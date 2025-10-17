@@ -18,6 +18,7 @@ struct Slang {
         METAL_IOS,
         METAL_SIM,
         WGSL,
+        SPIRV_VK,
         REFLECTION,     // special 'virtual slang' for extracting reflection info
         Num,
     };
@@ -30,6 +31,7 @@ struct Slang {
     static bool is_hlsl(Enum c);
     static bool is_msl(Enum c);
     static bool is_wgsl(Enum c);
+    static bool is_spirv(Enum c);
     static bool is_reflection(Enum c);
     static Slang::Enum first_valid(uint32_t mask);
 };
@@ -55,6 +57,7 @@ inline const char* Slang::to_str(Enum c) {
         case METAL_IOS:     return "metal_ios";
         case METAL_SIM:     return "metal_sim";
         case WGSL:          return "wgsl";
+        case SPIRV_VK:      return "spirv_vk";
         case REFLECTION:    return "reflection";
         default:            return "<invalid>";
     }
@@ -110,6 +113,10 @@ inline bool Slang::is_msl(Enum c) {
 
 inline bool Slang::is_wgsl(Enum c) {
     return WGSL == c;
+}
+
+inline bool Slang::is_spirv(Enum c) {
+    return SPIRV_VK == c;
 }
 
 inline bool Slang::is_reflection(Enum c) {

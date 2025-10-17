@@ -42,6 +42,10 @@ struct BindSlot {
         int group0_binding_n = -1;  // uniform block
         int group1_binding_n = -1;  // texture, storage buffer/image, sampler
     } wgsl;
+    struct {
+        int set0_binding_n = -1;    // uniform block
+        int set1_binding_n = -1;    // textures, storage buffers/images, samplers
+    } spirv;
 
     BindSlot() {};
     BindSlot(int binding, const std::string& name, Type type, int qualifiers = 0);
@@ -120,8 +124,14 @@ inline void BindSlot::dump_debug() const {
     if (wgsl.group0_binding_n != -1) {
         fmt::print("      wgsl.group0_binding_n: {}\n", wgsl.group0_binding_n);
     }
-    if (wgsl.group1_binding_n!= -1) {
+    if (wgsl.group1_binding_n != -1) {
         fmt::print("      wgsl.group1_binding_b: {}\n", wgsl.group1_binding_n);
+    }
+    if (spirv.set0_binding_n != -1) {
+        fmt::print("      spirv.set0_binding_n: {}\n", spirv.set0_binding_n);
+    }
+    if (spirv.set1_binding_n != -1) {
+        fmt::print("      spirv.set1_binding_n: {}\n", spirv.set1_binding_n);
     }
 }
 
@@ -161,12 +171,19 @@ inline int BindSlot::get_slot_by_slang(Slang::Enum slang) const {
             default:
                 return wgsl.group1_binding_n;
         }
+    } else if (Slang::is_spirv(slang)) {
+        switch (type) {
+            case BindSlot::Type::UniformBlock:
+                return spirv.set0_binding_n;
+            default:
+                return spirv.set1_binding_n;
+        }
     } else if (Slang::is_glsl(slang)) {
         return glsl.binding_n;
+
     } else {
         return -1;
     }
 }
 
 } // namespace shdc
-
