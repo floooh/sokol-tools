@@ -252,6 +252,8 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.msl_buffer_n = {};\n", ubn, ub->msl_buffer_n);
                     } else if (Slang::is_wgsl(slang)) {
                         l("{}.wgsl_group0_binding_n = {};\n", ubn, ub->wgsl_group0_binding_n);
+                    } else if (Slang::is_spirv(slang)) {
+                        l("{}.spirv_set0_binding_n = {};\n", ubn, ub->spirv_set0_binding_n);
                     } else if (Slang::is_glsl(slang) && (ub->struct_info.struct_items.size() > 0)) {
                         if (ub->flattened) {
                             // NOT A BUG (to take the type from the first struct item, but the size from the toplevel ub)
@@ -285,6 +287,8 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.msl_texture_n = {};\n", tn, tex->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
                         l("{}.wgsl_group1_binding_n = {};\n", tn, tex->wgsl_group1_binding_n);
+                    } else if (Slang::is_spirv(slang)) {
+                        l("{}.spirv_set1_binding_n = {};\n", tn, tex->spirv_set1_binding_n);
                     }
                 } else if (view.type == BindSlot::Type::StorageBuffer) {
                     const StorageBuffer* sbuf = &view.storage_buffer;
@@ -302,6 +306,8 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.msl_buffer_n = {};\n", sbn, sbuf->msl_buffer_n);
                     } else if (Slang::is_wgsl(slang)) {
                         l("{}.wgsl_group1_binding_n = {};\n", sbn, sbuf->wgsl_group1_binding_n);
+                    } else if (Slang::is_spirv(slang)) {
+                        l("{}.spirv_set1_binding_n = {};\n", sbn, sbuf->spirv_set1_binding_n);
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sbn, sbuf->glsl_binding_n);
                     }
@@ -318,6 +324,8 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.msl_texture_n = {};\n", sin, simg->msl_texture_n);
                     } else if (Slang::is_wgsl(slang)) {
                         l("{}.wgsl_group1_binding_n = {};\n", sin, simg->wgsl_group1_binding_n);
+                    } else if (Slang::is_spirv(slang)) {
+                        l("{}.spirv_set1_binding_n = {};\n", sin, simg->spirv_set1_binding_n);
                     } else if (Slang::is_glsl(slang)) {
                         l("{}.glsl_binding_n = {};\n", sin, simg->glsl_binding_n);
                     }
@@ -335,6 +343,8 @@ void SokolJaiGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramR
                         l("{}.msl_sampler_n = {};\n", sn, smp->msl_sampler_n);
                     } else if (Slang::is_wgsl(slang)) {
                         l("{}.wgsl_group1_binding_n = {};\n", sn, smp->wgsl_group1_binding_n);
+                    } else if (Slang::is_spirv(slang)) {
+                        l("{}.spirv_set1_binding_n = {};\n", sn, smp->spirv_set1_binding_n);
                     }
                 }
             }
@@ -516,6 +526,8 @@ std::string SokolJaiGenerator::backend(Slang::Enum e) {
             return ".METAL_SIMULATOR";
         case Slang::WGSL:
             return ".WGPU";
+        case Slang::SPIRV_VK:
+            return ".VULKAN";
         default:
             return "INVALID";
     }

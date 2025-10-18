@@ -17,6 +17,11 @@
 #include <d3dcompiler.h>
 #include <d3dcommon.h>
 #endif
+#include "glslang/Public/ShaderLang.h"
+#include "glslang/Public/ResourceLimits.h"
+#include "glslang/Include/Types.h"
+#include "SPIRV/GlslangToSpv.h"
+#include "util.h"
 
 namespace shdc {
 
@@ -340,6 +345,89 @@ static Bytecode d3d_compile(const Input& inp, const Spirvcross& spirvcross, Slan
 }
 #endif
 
+static Bytecode spirv_compile(const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
+    Bytecode bytecode;
+    for (const SpirvcrossSource& src: spirvcross.sources) {
+        const Snippet& snippet = inp.snippets[src.snippet_index];
+
+        const char* sources[1] = { src.source_code.c_str() };
+        const int sourcesLen[1] = { (int) src.source_code.length() };
+        const char* sourcesNames[1] = { inp.base_path.c_str() };
+        const int linenr_offset = 0;
+
+        EShLanguage stage;
+        if (Snippet::is_vs(snippet.type)) {
+            stage = EShLangVertex;
+        } else if (Snippet::is_fs(snippet.type)) {
+            stage = EShLangFragment;
+        } else {
+            stage = EShLangCompute;
+        }
+
+        glslang::TShader shader(stage);
+        shader.setStringsWithLengthsAndNames(sources, sourcesLen, sourcesNames, 1);
+        shader.setEnvInput(glslang::EShSourceGlsl, stage, glslang::EShClientVulkan, 100);
+        shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_0);
+        shader.setEnvTarget(glslang::EshTargetSpv, glslang::EShTargetSpv_1_4);
+        bool parse_success = shader.parse(GetDefaultResources(), 460, true, EShMsgDefault);
+        util::infolog_to_errors(shader.getInfoLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        util::infolog_to_errors(shader.getInfoDebugLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        if (!parse_success) {
+            bytecode.errors.push_back(ErrMsg::warning(inp.base_path, 0, fmt::format("failed to compile GLSL to SPIRV")));
+            return bytecode;
+        }
+
+        // "link" into a program
+        glslang::TProgram program;
+        program.addShader(&shader);
+        bool link_success = program.link(EShMsgDefault);
+        util::infolog_to_errors(program.getInfoLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        util::infolog_to_errors(program.getInfoDebugLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        if (!link_success) {
+            return bytecode;
+        }
+        bool map_success = program.mapIO();
+        util::infolog_to_errors(program.getInfoLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        util::infolog_to_errors(program.getInfoDebugLog(), inp, src.snippet_index, linenr_offset, bytecode.errors);
+        if (!map_success) {
+            return bytecode;
+        }
+
+        // translate intermediate representation to SPIRV
+        std::vector<uint32_t> out_spirv;
+        const glslang::TIntermediate* im = program.getIntermediate(stage);
+        assert(im);
+        spv::SpvBuildLogger spv_logger;
+        glslang::SpvOptions spv_options;
+        // disable the optimizer passes, we'll run our own after the translation
+        spv_options.generateDebugInfo = false;
+        spv_options.stripDebugInfo = false; // NOTE: don't set this to true as the info is needed for reflection!
+        spv_options.disableOptimizer = true;
+        spv_options.optimizeSize = false;
+        spv_options.disassemble = false;
+        spv_options.validate = false;
+        spv_options.emitNonSemanticShaderDebugInfo = false;
+        spv_options.emitNonSemanticShaderDebugSource = false;
+        glslang::GlslangToSpv(*im, out_spirv, &spv_logger, &spv_options);
+        std::string spirv_log = spv_logger.getAllMessages();
+        if (!spirv_log.empty()) {
+            // FIXME: need to parse string for errors and translate to ErrMsg objects?
+            // haven't seen a case yet where this generates log messages
+            fmt::print(stderr, "{}", spirv_log);
+        }
+
+        const uint8_t* data_ptr = (const uint8_t*)out_spirv.data();
+        const size_t data_len = out_spirv.size() * sizeof(uint32_t);
+
+        BytecodeBlob blob;
+        blob.valid = true;
+        blob.snippet_index = src.snippet_index;
+        blob.data = std::vector<uint8_t>(data_ptr, data_ptr + data_len);
+        bytecode.blobs.push_back(std::move(blob));
+    }
+    return bytecode;
+}
+
 Bytecode Bytecode::compile(const Args& args, const Input& inp, const Spirvcross& spirvcross, Slang::Enum slang) {
     Bytecode bytecode;
     #if defined(__APPLE__)
@@ -349,10 +437,13 @@ Bytecode Bytecode::compile(const Args& args, const Input& inp, const Spirvcross&
     }
     #endif
     #if defined(_WIN32)
-    if ((slang == Slang::HLSL4) || (slang == Slang::HLSL5)) {
+    if (Slang::is_hlsl(slang)) {
         bytecode = d3d_compile(inp, spirvcross, slang);
     }
     #endif
+    if (Slang::is_spirv(slang)) {
+        bytecode = spirv_compile(inp, spirvcross, slang);
+    }
     return bytecode;
 }
 

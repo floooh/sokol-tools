@@ -324,6 +324,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_ub.hlsl_register_b_n = bindslot->hlsl.register_b_n;
         refl_ub.msl_buffer_n = bindslot->msl.buffer_n;
         refl_ub.wgsl_group0_binding_n = bindslot->wgsl.group0_binding_n;
+        refl_ub.spirv_set0_binding_n = bindslot->spirv.set0_binding_n;
         refl_ub.flattened = Spirvcross::can_flatten_uniform_block(compiler, ub_res);
         refl_ub.struct_info = parse_toplevel_struct(compiler, ub_res, out_error);
         if (out_error.valid()) {
@@ -370,6 +371,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_sbuf.hlsl_register_u_n = bindslot->hlsl.register_u_n;
         refl_sbuf.msl_buffer_n = bindslot->msl.buffer_n;
         refl_sbuf.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_sbuf.spirv_set1_binding_n = bindslot->spirv.set1_binding_n;
         refl_sbuf.glsl_binding_n = bindslot->glsl.binding_n;
         refl.bindings.storage_buffers.push_back(refl_sbuf);
     }
@@ -392,6 +394,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_simg.hlsl_register_u_n = bindslot->hlsl.register_u_n;
         refl_simg.msl_texture_n = bindslot->msl.texture_n;
         refl_simg.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_simg.spirv_set1_binding_n = bindslot->spirv.set1_binding_n;
         refl_simg.glsl_binding_n = bindslot->glsl.binding_n;
         refl_simg.writeonly = mask.get(spv::DecorationNonReadable);
         assert(bindslot->writeonly() == refl_simg.writeonly);
@@ -416,6 +419,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_tex.hlsl_register_t_n = bindslot->hlsl.register_t_n;
         refl_tex.msl_texture_n = bindslot->msl.texture_n;
         refl_tex.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_tex.spirv_set1_binding_n = bindslot->spirv.set1_binding_n;
         const SPIRType& img_type = compiler.get_type(img_res.type_id);
         refl_tex.type = spirtype_to_image_type(img_type);
         if (((UnprotectedCompiler*)&compiler)->is_used_as_depth_texture(img_type, img_res.id)) {
@@ -442,6 +446,7 @@ StageReflection Reflection::parse_snippet_reflection(const Compiler& compiler, c
         refl_smp.hlsl_register_s_n = bindslot->hlsl.register_s_n;
         refl_smp.msl_sampler_n = bindslot->msl.sampler_n;
         refl_smp.wgsl_group1_binding_n = bindslot->wgsl.group1_binding_n;
+        refl_smp.spirv_set1_binding_n = bindslot->spirv.set1_binding_n;
         // HACK ALERT!
         const SPIRType& smp_type = compiler.get_type(smp_res.type_id);
         if (((UnprotectedCompiler*)&compiler)->is_comparison_sampler(smp_type, smp_res.id)) {
