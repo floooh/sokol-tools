@@ -11,9 +11,6 @@ namespace shdc::gen {
 using namespace refl;
 
 void SokolC2Generator::gen_prolog(const GenInput& gen) {
-    //std::string root, ext;
-    //pystring::os::path::splitext(root, ext, gen.args.input);
-    //l("module {};\n", pystring::os::path::basename(root));
     for (const auto& header: gen.inp.headers) {
         l("{}\n", header);
     }
@@ -189,7 +186,6 @@ void SokolC2Generator::gen_storage_buffer_decl(const GenInput& gen, const Type& 
 }
 
 void SokolC2Generator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    //l("fn SgShaderDesc {}_shader_desc(SgBackend backend)\n", prog.name);
     l("fn sg.ShaderDesc {}ShaderDesc(sg.Backend backend) ", prog.name);
     l_open("{{\n");
     l("sg.ShaderDesc desc = {{0}}\n");
@@ -249,7 +245,7 @@ void SokolC2Generator::gen_shader_desc_func(const GenInput& gen, const ProgramRe
                 if (ub) {
                     const std::string ubn = fmt::format("desc.uniform_blocks[{}]", ub_index);
                     l("{}.stage = {};\n", ubn, shader_stage(ub->stage));
-                    l("{}.layout = sg.UniformLayout.STD140;\n", ubn);
+                    l("{}.layout = STD140;\n", ubn);
                     l("{}.size = {};\n", ubn, roundup(ub->struct_info.size, 16));
                     if (Slang::is_hlsl(slang)) {
                         l("{}.hlsl_register_b_n = {};\n", ubn, ub->hlsl_register_b_n);
@@ -404,7 +400,6 @@ std::string SokolC2Generator::get_shader_desc_help(const std::string& prog_name)
 
 std::string SokolC2Generator::shader_stage(const ShaderStage::Enum e) {
     switch (e) {
-        //case ShaderStage::Vertex: return "sg.ShaderStage.VERTEX";
         case ShaderStage::Vertex: return "VERTEX";
         case ShaderStage::Fragment: return "FRAGMENT";
         case ShaderStage::Compute: return "COMPUTE";
@@ -424,7 +419,6 @@ std::string SokolC2Generator::attr_basetype(Type::Enum e) {
 
 std::string SokolC2Generator::uniform_type(Type::Enum e) {
     switch (e) {
-        //case Type::Float:  return "sg.UniformType.FLOAT";
         case Type::Float:  return "FLOAT";
         case Type::Float2: return "FLOAT2";
         case Type::Float3: return "FLOAT3";
@@ -445,7 +439,6 @@ std::string SokolC2Generator::flattened_uniform_type(Type::Enum e) {
         case Type::Float3:
         case Type::Float4:
         case Type::Mat4x4:
-             //return "sg.UniformType.FLOAT4";
              return "FLOAT4";
         case Type::Int:
         case Type::Int2:
@@ -482,7 +475,6 @@ std::string SokolC2Generator::image_sample_type(ImageSampleType::Enum e) {
 
 std::string SokolC2Generator::sampler_type(SamplerType::Enum e) {
     switch (e) {
-        //case SamplerType::FILTERING:     return "sg.SamplerType.FILTERING";
         case SamplerType::FILTERING:     return "FILTERING";
         case SamplerType::COMPARISON:    return "COMPARISON";
         case SamplerType::NONFILTERING:  return "NONFILTERING";
@@ -492,7 +484,6 @@ std::string SokolC2Generator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolC2Generator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
     switch (e) {
-        //case StoragePixelFormat::RGBA8:     return "sg.PixelFormat.RGBA8";
         case StoragePixelFormat::RGBA8:     return "RGBA8";
         case StoragePixelFormat::RGBA8SN:   return "RGBA8SN";
         case StoragePixelFormat::RGBA8UI:   return "RGBA8UI";
@@ -517,7 +508,6 @@ std::string SokolC2Generator::backend(Slang::Enum e) {
     switch (e) {
         case Slang::GLSL410:
         case Slang::GLSL430:
-            //return "sg.Backend.GLCORE";
             return "GLCORE";
         case Slang::GLSL300ES:
         case Slang::GLSL310ES:
