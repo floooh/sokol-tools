@@ -145,6 +145,7 @@ void SokolNimGenerator::gen_uniform_block_decl(const GenInput& gen, const Unifor
 
 void SokolNimGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const Type& struc, const std::string& name, int alignment, int pad_to_size) {
     assert(struc.type == Type::Struct);
+    assert(alignment > 0);
     assert(pad_to_size > 0);
 
     int cur_offset = 0;
@@ -255,7 +256,7 @@ void SokolNimGenerator::recurse_unfold_structs(const GenInput& gen, const Type& 
     // are nested
     for (const Type& item: struc.struct_items) {
         if (item.type == Type::Struct) {
-            recurse_unfold_structs(gen, item, fmt::format("{}_{}", name, item.name), 0, item.size);
+            recurse_unfold_structs(gen, item, fmt::format("{}_{}", name, item.name), 1, item.size);
         }
     }
     l_open("type {}* {{.packed.}} = object\n", struct_name(name));
