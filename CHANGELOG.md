@@ -3,10 +3,15 @@ CHANGELOG
 
 ### **22-Oct-2025**
 
-Fixed an issue in the sokol-zig code generator for nested structs in ssbo objects.
+- Fixed an issue in the sokol-zig code generator for nested structs in ssbo objects.
 
-Issue: https://github.com/floooh/sokol-tools/issues/197
-PR: https://github.com/floooh/sokol-tools/pull/198
+  Issue: https://github.com/floooh/sokol-tools/issues/197
+  PR: https://github.com/floooh/sokol-tools/pull/198
+
+- Merged new C2 code generation backend (many thanks to @Angluca!)
+  (Note that the related sokol bindgen PR is still in flight)
+
+  PR: https://github.com/floooh/sokol-tools/pull/195
 
 ### **27-Sep-2025**
 
