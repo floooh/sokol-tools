@@ -7,6 +7,9 @@ shaders = [
     'imgui.glsl',
     'infinity.glsl',
     'inout_mismatch.glsl',
+    'issue197_simple.glsl',
+    # NOTE: this one crashes D3DCompiler_47.dll
+    # 'issue197_complex.glsl',
     'sgl.glsl',
     'shared_ub.glsl',
     'test1.glsl',
