@@ -7,6 +7,8 @@ shaders = [
     'imgui.glsl',
     'infinity.glsl',
     'inout_mismatch.glsl',
+    'issue197_simple.glsl',
+    'issue197_complex.glsl',
     'sgl.glsl',
     'shared_ub.glsl',
     'test1.glsl',
