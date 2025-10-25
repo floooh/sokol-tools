@@ -44,6 +44,7 @@ pub fn buildExe(
         "generators/sokolrust.cc",
         "generators/sokoljai.cc",
         "generators/sokolc3.cc",
+        "generators/sokolc2.cc",
         "generators/sokolzig.cc",
         "generators/yaml.cc",
     };
