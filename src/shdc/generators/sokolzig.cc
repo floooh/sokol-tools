@@ -101,7 +101,7 @@ void SokolZigGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
             } else {
                 l_open("{}: [{}]extern struct {{\n",  item.name, item.array_count);
             }
-            gen_struct_interior_decl_std430(gen, item, 0, item.size);
+            gen_struct_interior_decl_std430(gen, item, 1, item.size);
             l_close("}}");
         } else if (gen.inp.ctype_map.count(item.type_as_glsl()) > 0) {
             // user-provided type names

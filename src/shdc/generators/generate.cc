@@ -11,6 +11,7 @@
 #include "sokolzig.h"
 #include "sokold.h"
 #include "sokoljai.h"
+#include "sokolc2.h"
 #include "sokolc3.h"
 #include "yaml.h"
 #include <memory>
@@ -19,10 +20,6 @@ namespace shdc::gen {
 
 std::unique_ptr<Generator> make_generator(Format::Enum format) {
     switch (format) {
-        case Format::BARE:
-            return std::make_unique<BareGenerator>();
-        case Format::BARE_YAML:
-            return std::make_unique<YamlGenerator>();
         case Format::SOKOL_ZIG:
             return std::make_unique<SokolZigGenerator>();
         case Format::SOKOL_NIM:
@@ -35,8 +32,14 @@ std::unique_ptr<Generator> make_generator(Format::Enum format) {
             return std::make_unique<SokolDGenerator>();
         case Format::SOKOL_JAI:
             return std::make_unique<SokolJaiGenerator>();
+        case Format::SOKOL_C2:
+            return std::make_unique<SokolC2Generator>();
         case Format::SOKOL_C3:
             return std::make_unique<SokolC3Generator>();
+        case Format::BARE:
+            return std::make_unique<BareGenerator>();
+        case Format::BARE_YAML:
+            return std::make_unique<YamlGenerator>();
         default:
             return std::make_unique<SokolCGenerator>();
     }

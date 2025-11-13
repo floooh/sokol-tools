@@ -14,6 +14,7 @@ struct Format	{
         SOKOL_RUST,
         SOKOL_D,
         SOKOL_JAI,
+        SOKOL_C2,
         SOKOL_C3,
         BARE,
         BARE_YAML,
@@ -35,7 +36,8 @@ inline const char* Format::to_str(Enum f) {
         case SOKOL_RUST:    return "sokol_rust";
         case SOKOL_D:       return "sokol_d";
         case SOKOL_JAI:     return "sokol_jai";
-        case SOKOL_C3:     return "sokol_c3";
+        case SOKOL_C2:      return "sokol_c2";
+        case SOKOL_C3:      return "sokol_c3";
         case BARE:          return "bare";
         case BARE_YAML:     return "bare_yaml";
         default:            return "<invalid>";
@@ -59,6 +61,8 @@ inline Format::Enum Format::from_str(const std::string& str) {
         return SOKOL_D;
     } else if (str == "sokol_jai") {
         return SOKOL_JAI;
+    } else if (str == "sokol_c2") {
+        return SOKOL_C2;
     } else if (str == "sokol_c3") {
         return SOKOL_C3;
     } else if (str == "bare") {
