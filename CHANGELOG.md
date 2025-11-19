@@ -6,6 +6,8 @@ CHANGELOG
 Added `spirv_vk` output option (Vulkan-flavoured SPIRV for the upcoming
 sokol-gfx Vulkan backend).
 
+PR: https://github.com/floooh/sokol-tools/pull/196
+
 ### **22-Oct-2025**
 
 - Fixed an issue in the sokol-zig code generator for nested structs in ssbo objects.
