@@ -14,6 +14,7 @@ struct StorageImage {
     int hlsl_register_u_n = -1;
     int msl_texture_n = -1;
     int wgsl_group1_binding_n = -1;
+    int spirv_set1_binding_n = -1;
     int glsl_binding_n = -1;
     std::string name;   // shortcut for struct_info.name
     bool writeonly;
@@ -40,6 +41,8 @@ inline void StorageImage::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}hlsl_register_u_n: {}\n", indent2, hlsl_register_u_n);
     fmt::print(stderr, "{}msl_texture_n: {}\n", indent2, msl_texture_n);
     fmt::print(stderr, "{}wgsl_group1_binding_n: {}\n", indent2, wgsl_group1_binding_n);
+    fmt::print(stderr, "{}spirv_set1_binding_n: {}\n", indent2, spirv_set1_binding_n);
+    fmt::print(stderr, "{}glsl_binding_n: {}\n", indent2, glsl_binding_n);
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}type: {}\n", indent2, ImageType::to_str(type));
     fmt::print(stderr, "{}access_format: {}\n", indent2, StoragePixelFormat::to_str(access_format));

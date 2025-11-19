@@ -13,6 +13,7 @@ struct Texture {
     int hlsl_register_t_n = -1;
     int msl_texture_n = -1;
     int wgsl_group1_binding_n = -1;
+    int spirv_set1_binding_n = -1;
     std::string name;
     ImageType::Enum type = ImageType::INVALID;
     ImageSampleType::Enum sample_type = ImageSampleType::INVALID;
@@ -39,6 +40,7 @@ inline void Texture::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}hlsl_register_t_n: {}\n", indent2, hlsl_register_t_n);
     fmt::print(stderr, "{}msl_texture_n: {}\n", indent2, msl_texture_n);
     fmt::print(stderr, "{}wgsl_group1_binding_n: {}\n", indent2, wgsl_group1_binding_n);
+    fmt::print(stderr, "{}spirv_set1_binding_n: {}\n", indent2, spirv_set1_binding_n);
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}type: {}\n", indent2, ImageType::to_str(type));
     fmt::print(stderr, "{}sample_type: {}\n", indent2, ImageSampleType::to_str(sample_type));

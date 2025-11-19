@@ -34,19 +34,22 @@ const SpirvcrossSource* Spirvcross::find_source_by_snippet_index(int snippet_ind
 static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, Slang::Enum slang) {
     ShaderResources shader_resources = compiler.get_shader_resources();
 
-    // NOTE: on GLSL the following resource types have no GLSL bindings since they
+    // NOTE: on GLSL (GL flavour) the following resource types have no GLSL bindings since they
     // are either unused or are looked up by name:
     //  - uniform blocks: converted to uniforms and looked up by name
     //  - textures: converted to combined image-samplers
     //  - samplers: converted to combined image-samplers
     //  - combined image-samplers: looked up by name
 
+    uint32_t ub_descriptor_set = 0;
+    uint32_t view_descriptor_set = Slang::is_spirv(slang) ? 1 : 0;
+
     // uniform buffers (no GLSL)
     if (!Slang::is_glsl(slang)) {
         for (const Resource& res: shader_resources.uniform_buffers) {
             assert(!res.name.empty());
             const int binding = bindslot_map.find_uniformblock_slang_slot(res.name, slang); assert(binding != -1);
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, ub_descriptor_set);
             compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
         }
     }
@@ -56,7 +59,7 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
         for (const Resource& res: shader_resources.separate_images) {
             assert(!res.name.empty());
             const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, view_descriptor_set);
             compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
         }
     }
@@ -65,7 +68,7 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
     for (const Resource& res: shader_resources.storage_buffers) {
         assert(!res.name.empty());
         const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, view_descriptor_set);
         compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 
@@ -73,7 +76,7 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
     for (const Resource& res: shader_resources.storage_images) {
         assert(!res.name.empty());
         const int binding = bindslot_map.find_view_slang_slot(res.name, slang); assert(binding != -1);
-        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+        compiler.set_decoration(res.id, spv::DecorationDescriptorSet, view_descriptor_set);
         compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
     }
 
@@ -82,7 +85,7 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
         for (const Resource& res: shader_resources.separate_samplers) {
             assert(!res.name.empty());
             const int binding = bindslot_map.find_sampler_slang_slot(res.name, slang); assert(binding != -1);
-            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, 0);
+            compiler.set_decoration(res.id, spv::DecorationDescriptorSet, view_descriptor_set);
             compiler.set_decoration(res.id, spv::DecorationBinding, (uint32_t)binding);
         }
     }
@@ -90,7 +93,7 @@ static void fix_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, 
 
 // This directly patches the descriptor set and bindslot decorators in the input SPIRV
 // via SPIRVCross helper functions. This patched SPIRV is then used as input to Tint
-// for the SPIRV-to-WGSL translation.
+// for the SPIRV-to-WGSL translation
 static void wgsl_patch_bind_slots(Compiler& compiler, const BindSlotMap& bindslot_map, std::vector<uint32_t>& inout_bytecode) {
     ShaderResources shader_resources = compiler.get_shader_resources();
     const Slang::Enum slang = Slang::WGSL;
@@ -374,20 +377,31 @@ static SpirvcrossSource to_glsl(const Input& inp, const SpirvBlob& blob, Slang::
             options.version = 310;
             options.es = true;
             break;
+        case Slang::SPIRV_VK:
+            options.version = 460;
+            options.es = false;
+            break;
         default:
             // can't happen
             assert(false);
             break;
     }
-    options.vulkan_semantics = false;
+    if (Slang::is_spirv(slang)) {
+        options.vulkan_semantics = true;
+        options.emit_uniform_buffer_as_plain_uniforms = false;
+    } else {
+        options.vulkan_semantics = false;
+        options.emit_uniform_buffer_as_plain_uniforms = true;
+    }
     options.enable_420pack_extension = false;
-    options.emit_uniform_buffer_as_plain_uniforms = true;
     options.vertex.support_nonzero_base_instance = false;
     options.vertex.fixup_clipspace = (0 != (opt_mask & Option::FIXUP_CLIPSPACE));
     options.vertex.flip_vert_y = (0 != (opt_mask & Option::FLIP_VERT_Y));
     compiler.set_common_options(options);
-    flatten_uniform_blocks(compiler);
-    to_combined_image_samplers(compiler);
+    if (!Slang::is_spirv(slang)) {
+        flatten_uniform_blocks(compiler);
+        to_combined_image_samplers(compiler);
+    }
     fix_bind_slots(compiler, blob.bindings, slang);
     std::string src = compiler.compile();
     SpirvcrossSource res;
@@ -508,7 +522,7 @@ Spirvcross Spirvcross::translate(const Input& inp, const Spirv& spirv, Slang::En
             if (spv_cross.error.valid()) {
                 return spv_cross;
             }
-            if (Slang::is_glsl(slang)) {
+            if (Slang::is_glsl(slang) || Slang::is_spirv(slang)) {
                 src = to_glsl(inp, blob, slang, opt_mask, snippet);
             } else if (Slang::is_hlsl(slang)) {
                 src = to_hlsl(inp, blob, slang, opt_mask, snippet);

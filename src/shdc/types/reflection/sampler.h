@@ -12,6 +12,7 @@ struct Sampler {
     int hlsl_register_s_n = -1;
     int msl_sampler_n = -1;
     int wgsl_group1_binding_n = -1;
+    int spirv_set1_binding_n = -1;
     std::string name;
     SamplerType::Enum type = SamplerType::INVALID;
 
@@ -34,6 +35,7 @@ inline void Sampler::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}hlsl_register_s_n: {}\n", indent2, hlsl_register_s_n);
     fmt::print(stderr, "{}msl_sampler_n: {}\n", indent2, msl_sampler_n);
     fmt::print(stderr, "{}wgsl_group1_binding_n: {}\n", indent2, wgsl_group1_binding_n);
+    fmt::print(stderr, "{}spirv_set1_binding_n: {}\n", indent2, spirv_set1_binding_n);
     fmt::print(stderr, "{}name: {}\n", indent2, name);
     fmt::print(stderr, "{}type: {}\n", indent2, SamplerType::to_str(type));
 }

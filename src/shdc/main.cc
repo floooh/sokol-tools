@@ -93,9 +93,9 @@ int main(int argc, const char** argv) {
 
     // compile shader-byte code if requested (HLSL / Metal)
     std::array<Bytecode, Slang::Num> bytecode;
-    if (args.byte_code) {
-        for (int i = 0; i < Slang::Num; i++) {
-            Slang::Enum slang = Slang::from_index(i);
+    for (int i = 0; i < Slang::Num; i++) {
+        Slang::Enum slang = Slang::from_index(i);
+        if (args.byte_code || Slang::is_spirv(slang)) {
             if (args.slang & Slang::bit(slang)) {
                 bytecode[i] = Bytecode::compile(args, inp, spirvcross[i], slang);
                 if (args.debug_dump) {

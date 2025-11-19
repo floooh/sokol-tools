@@ -75,6 +75,11 @@ https://github.com/floooh/sokol/pull/1222
 
 Implemented in PR: https://github.com/floooh/sokol-tools/pull/176
 
+### **19-Nov-2025**
+
+Added `spirv_vk` output option (Vulkan-flavoured SPIRV for the upcoming
+sokol-gfx Vulkan backend).
+
 #### **05-Mar-2025**
 
 Add support for compute shaders.

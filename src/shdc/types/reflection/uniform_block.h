@@ -13,6 +13,7 @@ struct UniformBlock {
     int hlsl_register_b_n = -1;
     int msl_buffer_n = -1;
     int wgsl_group0_binding_n = -1;
+    int spirv_set0_binding_n = -1;
     std::string name;   // shortcut for struct_info.name
     std::string inst_name;
     bool flattened = false;
@@ -38,6 +39,7 @@ inline void UniformBlock::dump_debug(const std::string& indent) const {
     fmt::print(stderr, "{}hlsl_register_b_n: {}\n", indent2, hlsl_register_b_n);
     fmt::print(stderr, "{}msl_buffer_n: {}\n", indent2, msl_buffer_n);
     fmt::print(stderr, "{}wgsl_group0_binding_n: {}\n", indent2, wgsl_group0_binding_n);
+    fmt::print(stderr, "{}spirv_set0_binding_n: {}\n", indent2, spirv_set0_binding_n);
     fmt::print(stderr, "{}inst_name: {}\n", indent2, inst_name);
     fmt::print(stderr, "{}flattened: {}\n", indent2, flattened);
     fmt::print(stderr, "{}struct:\n", indent2);

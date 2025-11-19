@@ -151,6 +151,8 @@ void YamlGenerator::gen_uniform_block(const GenInput& gen, const UniformBlock& u
         l("msl_buffer_n: {}\n", ub.msl_buffer_n);
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group0_binding_n: {}\n", ub.wgsl_group0_binding_n);
+    } else if (Slang::is_spirv(slang)) {
+        l("spirv_set0_binding_n: {}\n", ub.spirv_set0_binding_n);
     } else if (Slang::is_glsl(slang)) {
         l_open("glsl_uniforms:\n");
         if (ub.flattened) {
@@ -214,6 +216,8 @@ void YamlGenerator::gen_storage_buffer(const StorageBuffer& sbuf, Slang::Enum sl
         l("msl_buffer_n: {}\n", sbuf.msl_buffer_n);
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group1_binding_n: {}\n", sbuf.wgsl_group1_binding_n);
+    } else if (Slang::is_spirv(slang)) {
+        l("spirv_set1_binding_n: {};\n", sbuf.spirv_set1_binding_n);
     } else if (Slang::is_glsl(slang)) {
         l("glsl_binding_n: {}\n", sbuf.glsl_binding_n);
     }
@@ -236,6 +240,8 @@ void YamlGenerator::gen_storage_image(const StorageImage& simg, Slang::Enum slan
         l("msl_texture_n: {}\n", simg.msl_texture_n);
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group1_binding_n: {}\n", simg.wgsl_group1_binding_n);
+    } else if (Slang::is_spirv(slang)) {
+        l("spirv_set1_binding_n: {};\n", simg.spirv_set1_binding_n);
     } else if (Slang::is_glsl(slang)) {
         l("glsl_binding_n: {}\n", simg.glsl_binding_n);
     }
@@ -258,6 +264,8 @@ void YamlGenerator::gen_texture(const Texture& tex, Slang::Enum slang) {
         l("msl_texture_n: {}\n", tex.msl_texture_n);
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group1_binding_n: {}\n", tex.wgsl_group1_binding_n);
+    } else if (Slang::is_spirv(slang)) {
+        l("spirv_set1_binding_n: {};\n", tex.spirv_set1_binding_n);
     }
     l_close();
     l_close();
@@ -275,6 +283,8 @@ void YamlGenerator::gen_sampler(const Sampler& smp, Slang::Enum slang) {
         l("msl_sampler_n: {}\n", smp.msl_sampler_n);
     } else if (Slang::is_wgsl(slang)) {
         l("wgsl_group1_binding_n: {}\n", smp.wgsl_group1_binding_n);
+    } else if (Slang::is_spirv(slang)) {
+        l("spirv_set1_binding_n: {};\n", smp.spirv_set1_binding_n);
     }
     l_close();
 }
