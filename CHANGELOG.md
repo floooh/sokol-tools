@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+### **19-Nov-2025**
+
+Added `spirv_vk` output option (Vulkan-flavoured SPIRV for the upcoming
+sokol-gfx Vulkan backend).
+
 ### **22-Oct-2025**
 
 - Fixed an issue in the sokol-zig code generator for nested structs in ssbo objects.
@@ -74,11 +79,6 @@ in the code-generated `sg_shader_desc`. Requires the sokol update:
 https://github.com/floooh/sokol/pull/1222
 
 Implemented in PR: https://github.com/floooh/sokol-tools/pull/176
-
-### **19-Nov-2025**
-
-Added `spirv_vk` output option (Vulkan-flavoured SPIRV for the upcoming
-sokol-gfx Vulkan backend).
 
 #### **05-Mar-2025**
 
