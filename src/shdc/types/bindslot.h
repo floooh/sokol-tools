@@ -180,7 +180,6 @@ inline int BindSlot::get_slot_by_slang(Slang::Enum slang) const {
         }
     } else if (Slang::is_glsl(slang)) {
         return glsl.binding_n;
-
     } else {
         return -1;
     }
