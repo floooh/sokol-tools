@@ -156,7 +156,7 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
         if (slot.type != BindSlot::Type::Invalid) {
             slot.hlsl.register_b_n = i;
             slot.msl.buffer_n = i;
-            slot.wgsl.group0_binding_n = (stage == ShaderStage::Fragment) ? MaxUniformBlocks + i : i;
+            slot.wgsl.group0_binding_n = i;
             slot.spirv.set0_binding_n = i;
         }
     }
@@ -164,12 +164,11 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
     int hlsl_register_u_n = 0;
     int msl_buffer_n = MaxUniformBlocks;
     int msl_texture_n = 0;
-    int wgsl_group1_binding_n = (stage == ShaderStage::Fragment) ? 64 : 0;
     int glsl_storage_image_binding_n = 0;
     for (int i = 0; i < MaxViews; i++) {
         auto& slot = views[i];
         if (slot.type != BindSlot::Type::Invalid) {
-            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
+            slot.wgsl.group1_binding_n = i;
             slot.spirv.set1_binding_n = i;
         }
         switch (slot.type) {
@@ -204,7 +203,7 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
     for (int i = 0; i < MaxSamplers; i++) {
         auto& slot = samplers[i];
         if (slot.type != BindSlot::Type::Invalid) {
-            slot.wgsl.group1_binding_n = wgsl_group1_binding_n++;
+            slot.wgsl.group1_binding_n = i + MaxViews;
             slot.spirv.set1_binding_n = i + MaxViews;
             slot.hlsl.register_s_n = i;
             slot.msl.sampler_n = i;
