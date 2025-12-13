@@ -552,8 +552,8 @@ std::string SokolNimGenerator::image_sample_type(ImageSampleType::Enum e) {
         case ImageSampleType::FLOAT:               return "imageSampleTypeFloat";
         case ImageSampleType::DEPTH:               return "imageSampleTypeDepth";
         case ImageSampleType::SINT:                return "imageSampleTypeSint";
-        case ImageSampleType::UINT:                return "imageSamplerTypeUint";
-        case ImageSampleType::UNFILTERABLE_FLOAT:  return "imageSamplerTypeUnfilterableFloat";
+        case ImageSampleType::UINT:                return "imageSampleTypeUint";
+        case ImageSampleType::UNFILTERABLE_FLOAT:  return "imageSampleTypeUnfilterableFloat";
         default: return "INVALID";
     }
 }
