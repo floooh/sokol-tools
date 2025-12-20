@@ -32,7 +32,7 @@ inline const char* StoragePixelFormat::to_str(Enum e) {
         case RGBA8: return "RGBA8";
         case RGBA8SN: return "RGBA8SN";
         case RGBA8UI: return "RGBA8UI";
-        case RGBA8SI: return "RGBS8SI";
+        case RGBA8SI: return "RGBA8SI";
         case RGBA16UI: return "RGBA16UI";
         case RGBA16SI: return "RGBA16SI";
         case RGBA16F: return "RGBA16F";

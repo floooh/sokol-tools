@@ -629,7 +629,7 @@ std::string SokolOdinGenerator::storage_pixel_format(refl::StoragePixelFormat::E
         case StoragePixelFormat::RGBA8:     return ".RGBA8";
         case StoragePixelFormat::RGBA8SN:   return ".RGBA8SN";
         case StoragePixelFormat::RGBA8UI:   return ".RGBA8UI";
-        case StoragePixelFormat::RGBA8SI:   return ".RGBS8SI";
+        case StoragePixelFormat::RGBA8SI:   return ".RGBA8SI";
         case StoragePixelFormat::RGBA16UI:  return ".RGBA16UI";
         case StoragePixelFormat::RGBA16SI:  return ".RGBA16SI";
         case StoragePixelFormat::RGBA16F:   return ".RGBA16F";
