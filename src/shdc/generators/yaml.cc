@@ -65,7 +65,7 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
                     l_open("attrs:\n");
                     for (const auto& attr: prog.vs().inputs) {
                         if (attr.slot >= 0) {
-                            gen_attr(attr, slang);
+                            gen_attr(gen, attr, slang);
                         }
                     }
                     l_close();
@@ -124,11 +124,14 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
     return ErrMsg();
 }
 
-void YamlGenerator::gen_attr(const StageAttr& attr, Slang::Enum slang) {
+void YamlGenerator::gen_attr(const GenInput& gen, const StageAttr& attr, Slang::Enum slang) {
     l_open("-\n");
     l("slot: {}\n", attr.slot);
     l("type: {}\n", uniform_type(attr.type_info.type));
     l("base_type: {}\n", attr_basetype(attr.type_info.basetype()));
+    if (gen.args.reflection) {
+        l("name: {}\n", attr.name);
+    }
     if (Slang::is_glsl(slang)) {
         l("glsl_name: {}\n", attr.name);
     } else if (Slang::is_hlsl(slang)) {
