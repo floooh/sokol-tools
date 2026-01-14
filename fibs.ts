@@ -20,7 +20,11 @@ export function build(b: Builder): void {
     // global options
     b.addCmakeVariable('CMAKE_CXX_STANDARD', '20');
     if (b.isMsvc()) {
-        b.addCompileOptions(['/W4', '/wd4715' ]);
+        // /W4: warning level 4
+        // /MP: multithreaded compilation
+        // /MT: statically linked stdlib
+        b.addCompileOptions(['/W4', '/MP', '/MT']);
+        b.addCompileOptions([ '/wd4715']);
         b.addCompileOptions({ opts: ['/Os'], buildMode: 'release' });
         b.addCompileDefinitions({
             _CRT_SECURE_NO_WARNINGS: '1',
@@ -49,6 +53,12 @@ export function build(b: Builder): void {
         if (b.isGcc() || b.isClang()) {
             t.addCompileOptions(['-Wno-unused-result', '-Wno-unused-parameter']);
         }
+        if (b.isMsvc()) {
+            // unreferenced parameter
+            // declaration of 'x' hides previous local declaration
+            // conversion from 'x' to 'y' possible loss of data
+            t.addCompileOptions(['/wd4100', '/wd4456', '/wd4244' ])
+        }
     });
 
     // external libs
@@ -59,6 +69,10 @@ export function build(b: Builder): void {
             'src/getopt.c',
             'include/getopt/getopt.h'
         ]);
+        if (b.isMsvc()) {
+            // unreachable code
+            b.addCompileOptions({ opts: ['/wd4702'], scope: 'private' });
+        }
         t.addIncludeDirectories(['include']);
     });
     b.addTarget('pystring', 'lib', (t) => {
@@ -89,6 +103,12 @@ export function build(b: Builder): void {
                 opts: [ '-Wno-range-loop-analysis', '-Wno-deprecated-declarations' ],
                 scope: 'private',
             });
+        }
+        if (b.isMsvc()) {
+            // conversion from 'int' to 'uint32_t', signed/unsigned mismatch
+            t.addCompileOptions({ opts: [ '/wd4127', '/wd4245' ], scope: 'private' });
+            // conditional expression is constant
+            t.addCompileOptions({ opts: [ '/wd4127'] , scope: 'public' });
         }
     });
     b.addTarget('glslang', 'lib', (t) => {
@@ -123,6 +143,20 @@ export function build(b: Builder): void {
                 scope: 'private',
             });
         }
+        if (b.isMsvc()) {
+            // declaration of 'x' hides class member
+            // conversion from 'x' to 'y'...
+            // signed/unsigned mismatch
+            // declaration of 'x' hides function parameter
+            // declaration of 'x' hides previous local declaration
+            // operator '+' deprecated between enumerations of different types
+            // conversion from 'x' to 'y' possible loss of data
+            // conditional expression is constant
+            t.addCompileOptions({
+                opts: ['/wd4458', '/wd4244', '/wd4389', '/wd4457', '/wd4456', '/wd5054', '/wd4267', '/wd4127' ],
+                scope: 'private'
+            });
+        }
         t.addDependencies(['SPIRV-Tools']);
     });
     b.addTarget('SPIRV-Cross', 'lib', (t) => {
@@ -140,6 +174,12 @@ export function build(b: Builder): void {
                 scope: 'private',
             });
         }
+        if (b.isMsvc()) {
+            // 'return': conversion from 'x' to 'y'
+            t.addCompileOptions({ opts: [ '/wd4244' ], scope: 'private' });
+            // switch statement contains default but no case labels
+            t.addCompileOptions({ opts: ['/wd4065'], scope: 'public' });
+        }
     });
     b.addTarget('tint', 'lib', (t) => {
         t.setDir('ext/tint-extract');
@@ -151,6 +191,16 @@ export function build(b: Builder): void {
             TINT_BUILD_WGSL_WRITER: '1',
         });
         t.addDependencies(['SPIRV-Tools']);
+        if (b.isMsvc()) {
+            // structure was padded...
+            // 'return': conversion from 'x' to 'y'
+            t.addCompileOptions({
+                opts: ['/wd4457', '/wd4459', '/wd4244' ],
+                scope: 'private'
+            });
+            // declaration of 'x' hides previous local declaration
+            t.addCompileOptions({ opts: ['/wd4324'], scope: 'public' });
+        }
     });
 }
 
