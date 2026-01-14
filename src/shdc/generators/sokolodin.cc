@@ -196,7 +196,7 @@ void SokolOdinGenerator::gen_storage_buffer_decl(const GenInput& gen, const Type
 }
 
 void SokolOdinGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramReflection& prog) {
-    l_open("{}_shader_desc :: proc (backend: sg.Backend) -> sg.Shader_Desc {{\n", prog.name);
+    l_open("{}_shader_desc :: proc \"c\" (backend: sg.Backend) -> sg.Shader_Desc {{\n", prog.name);
     l("desc: sg.Shader_Desc\n");
     l("desc.label = \"{}_shader\"\n", prog.name);
     l("#partial switch backend {{\n");
