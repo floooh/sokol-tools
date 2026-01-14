@@ -5,3 +5,4 @@ CMakePresets.json
 zig-*/
 .zig-*/
 test/out/
+sokol-shdc
