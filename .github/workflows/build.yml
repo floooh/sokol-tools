@@ -6,52 +6,75 @@ jobs:
     windows:
         runs-on: windows-latest
         steps:
-        - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@main
           with:
             submodules: true
+        - uses: denoland/setup-deno@v2
         - name: build debug
-          run:  python3 fips build win64-vstudio-debug
+          run: |
+            ./fibs config win-vstudio-debug
+            ./fibs build
         - name: build release
-          run:  python3 fips build win64-vstudio-release
+          run: |
+            ./fibs config win-vstudio-release
+            ./fibs build
         - name: test
-          run:  python3 fips run_tests win64-vstudio-release
+          run: |
+            ./fibs runtests win-vstudio-release
     mac:
         runs-on: macos-latest
         steps:
-        - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@main
           with:
             submodules: true
+        - uses: ashutoshvarma/setup-ninja@master
+        - uses: denoland/setup-deno@v2
         - name: build debug
-          run:  python3 fips build osx-ninja-debug
+          run: |
+            ./fibs config macos-ninja-debug
+            ./fibs build
         - name: build release
-          run:  python3 fips build osx-ninja-release
+          run: |
+            ./fibs config macos-ninja-release
+            ./fibs build
         - name: test
-          run:  python3 fips run_tests osx-ninja-release
+          run: |
+            ./fibs runtests macos-ninja-release
     linux:
         runs-on: ubuntu-latest
         steps:
-        - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@main
           with:
             submodules: true
+        - uses: ashutoshvarma/setup-ninja@master
+        - uses: denoland/setup-deno@v2
         - name: build debug
-          run:  python fips build linux-ninja-debug
+          run: |
+            ./fibs config linux-ninja-debug
+            ./fibs build
         - name: build release
-          run:  python fips build linux-ninja-release
+          run: |
+            ./fibs config linux-ninja-release
+            ./fibs build
         - name: test
-          run:  python3 fips run_tests linux-ninja-release
+          run: |
+            ./fibs runtests linux-ninja-release
     linux-arm64:
         runs-on: ubuntu-24.04-arm
         steps:
-        - uses: lukka/get-cmake@latest
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@main
           with:
             submodules: true
+        - uses: ashutoshvarma/setup-ninja@master
+        - uses: denoland/setup-deno@v2
         - name: build debug
-          run:  python fips build linux-ninja-debug
+          run: |
+            ./fibs config linux-ninja-debug
+            ./fibs build
         - name: build release
-          run:  python fips build linux-ninja-release
+          run: |
+            ./fibs config linux-ninja-release
+            ./fibs build
         - name: test
-          run:  python3 fips run_tests linux-ninja-release
+          run: |
+            ./fibs runtests linux-ninja-release
