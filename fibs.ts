@@ -37,7 +37,7 @@ export function build(b: Builder): void {
         b.addCompileOptions(['-Wall', '-Wextra', '-Wno-missing-field-initializers' ]);
         b.addCompileOptions({ opts: ['-Os'], buildMode: 'release' });
         if (b.isGcc()) {
-            b.addCompileOptions(['-Wno-missing-braces']);
+            b.addCompileOptions(['-Wno-missing-braces', '-Wno-deprecated']);
         }
         if (b.isClang()) {
             b.addLinkOptions(['-dead_strip'])
