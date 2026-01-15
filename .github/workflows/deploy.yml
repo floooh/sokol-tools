@@ -50,7 +50,7 @@ jobs:
     - uses: denoland/setup-deno@v2
     - name: build
       run: |
-        ./fibs config macos-arm64-ninja-release
+        ./fibs config macos-arm-ninja-release
         python3 fips set local on
         python3 fips build osx-arm-ninja-release
         md5 .fibs/dist/macos-arm-ninja-release/sokol-shdc
