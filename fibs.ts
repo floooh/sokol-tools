@@ -208,7 +208,10 @@ export function build(b: Builder): void {
 }
 
 function runTestsHelp() {
-    log.helpCmd([ 'runtests [config' ], 'run shader compilation tests');
+    log.helpCmd([
+        'runtests',
+        'runtests [config]'
+    ], 'run shader compilation tests');
 }
 
 async function runTestsRun(p: Project, args: string[]) {
@@ -221,7 +224,6 @@ async function runTestsRun(p: Project, args: string[]) {
     const outDir = `${cwd}/out`;
     util.ensureDir(outDir);
     util.ensureDir(`${outDir}/sapp`);
-
     const cmd = `${p.targetDistDir('sokol-shdc', config.name)}/sokol-shdc`;
     for (const shd of test_shaders) {
         const res = await util.runCmd(cmd, {
