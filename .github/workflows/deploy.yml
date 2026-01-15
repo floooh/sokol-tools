@@ -6,56 +6,59 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-    - uses: lukka/get-cmake@latest
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@main
       with:
         submodules: true
+    - uses: denoland/setup-deno@v2
     - name: build
       run: |
-        python3 fips set local on
-        python3 fips build win64-vstudio-release
-        md5sum fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
+        ./fibs config win-vstudio-release
+        ./fibs build
+        md5sum .fibs/dist/win-vstudio-release/sokol-shdc.exe
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: win64-vstudio-release
-        path: fips-files/deploy/sokol-tools/win64-vstudio-release/sokol-shdc.exe
+        name: win-vstudio-release
+        path: .fibs/dist/win-vstudio-release/sokol-shdc.exe
         retention-days: 1
   mac_intel:
     runs-on: macos-latest
     steps:
-    - uses: lukka/get-cmake@latest
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@main
       with:
         submodules: true
+    - uses: ashutoshvarma/setup-ninja@master
+    - uses: denoland/setup-deno@v2
     - name: build
       run: |
-        python3 fips set local on
-        python3 fips build osx-x64-ninja-release
-        md5 fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
+        ./fibs config macos-x64-ninja-release
+        ./fibs build
+        md5 .fibs/dist/macos-x64-ninja-release/sokol-shdc
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: osx-x64-ninja-release
-        path: fips-files/deploy/sokol-tools/osx-x64-ninja-release/sokol-shdc
+        name: macos-x64-ninja-release
+        path: .fibs/dist/macos-x64-ninja-release/sokol-shdc
         retention-days: 1
   mac_arm:
     runs-on: macos-latest
     steps:
-    - uses: lukka/get-cmake@latest
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@main
       with:
         submodules: true
+    - uses: ashutoshvarma/setup-ninja@master
+    - uses: denoland/setup-deno@v2
     - name: build
       run: |
+        ./fibs config macos-arm64-ninja-release
         python3 fips set local on
-        python3 fips build osx-arm64-ninja-release
-        md5 fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
+        python3 fips build osx-arm-ninja-release
+        md5 .fibs/dist/macos-arm-ninja-release/sokol-shdc
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: osx-arm64-ninja-release
-        path: fips-files/deploy/sokol-tools/osx-arm64-ninja-release/sokol-shdc
+        name: macos-arm-ninja-release
+        path: .fibs/dist/macos-arm-ninja-release/sokol-shdc
         retention-days: 1
   linux_intel:
     runs-on: ubuntu-latest
@@ -86,7 +89,7 @@ jobs:
     - name: upload
       uses: actions/upload-artifact@v4
       with:
-        name: linux-arm64-ninja-release
+        name: linux-arm-ninja-release
         path: sokol-shdc
         retention-days: 1
   deploy:
@@ -99,15 +102,15 @@ jobs:
         ssh-key: ${{ secrets.GHACTIONS_PUSH }}
     - uses: actions/download-artifact@v4
       with:
-        name: win64-vstudio-release
+        name: win-vstudio-release
         path: bin/win32
     - uses: actions/download-artifact@v4
       with:
-        name: osx-x64-ninja-release
+        name: macos-x64-ninja-release
         path: bin/osx
     - uses: actions/download-artifact@v4
       with:
-        name: osx-arm64-ninja-release
+        name: macos-arm-ninja-release
         path: bin/osx_arm64
     - uses: actions/download-artifact@v4
       with:
@@ -115,7 +118,7 @@ jobs:
         path: bin/linux
     - uses: actions/download-artifact@v4
       with:
-        name: linux-arm64-ninja-release
+        name: linux-arm-ninja-release
         path: bin/linux_arm64
     - name: "commit and push"
       run: |
@@ -128,5 +131,5 @@ jobs:
         git config user.email "none"
         git config user.name "GH Action"
         git add .
-        git commit -m "updated (${{ github.run_number }})"
-        git push
+#        git commit -m "updated (${{ github.run_number }})"
+#        git push
