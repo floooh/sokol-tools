@@ -1,4 +1,4 @@
-import { Configurer, Builder, ConfigDesc } from 'jsr:@floooh/fibs@^1';
+import { Configurer, Builder, ConfigDesc, Project, log, util } from 'jsr:@floooh/fibs@^1';
 
 export function configure(c: Configurer): void {
     // add explicit macos x86_64 vs arm64 build configs
@@ -14,6 +14,9 @@ export function configure(c: Configurer): void {
     c.addConfig({ ...macos, name: 'macos-x64-ninja-release', buildMode: 'release', cmakeVariables: osx_x64 });
     c.addConfig({ ...macos, name: 'macos-arm-ninja-debug', buildMode: 'debug', cmakeVariables: osx_arm });
     c.addConfig({ ...macos, name: 'macos-arm-ninja-release', buildMode: 'release', cmakeVariables: osx_arm });
+
+    // add a runtests command
+    c.addCommand({ name: 'runtests', help: runTestsHelp, run: runTestsRun });
 }
 
 export function build(b: Builder): void {
@@ -203,6 +206,114 @@ export function build(b: Builder): void {
         }
     });
 }
+
+function runTestsHelp() {
+    log.helpCmd([ 'runtests [config' ], 'run shader compilation tests');
+}
+
+async function runTestsRun(p: Project, args: string[]) {
+    const configName = args[1];
+    let config = p.activeConfig();
+    if (configName !== undefined) {
+        config = p.config(configName);
+    }
+    const cwd = `${p.dir()}/test`;
+    const outDir = `${cwd}/out`;
+    util.ensureDir(outDir);
+    util.ensureDir(`${outDir}/sapp`);
+
+    const cmd = `${p.targetDistDir('sokol-shdc', config.name)}/sokol-shdc`;
+    for (const shd of test_shaders) {
+        const res = await util.runCmd(cmd, {
+            cwd,
+            args: [
+                '-i', shd,
+                '-o', `${outDir}/${shd}.h`,
+                '-l', 'glsl310es:glsl430:hlsl5:metal_macos:metal_ios:metal_sim',
+                '-b',
+            ]
+        });
+        if (res.exitCode !== 0) {
+            Deno.exit(res.exitCode);
+        }
+    }
+}
+
+const test_shaders = [
+    'chipvis.glsl',
+    'fontstash.glsl',
+    'imgui.glsl',
+    'infinity.glsl',
+    'inout_mismatch.glsl',
+    'issue197_simple.glsl',
+    // NOTE: this one crashes D3DCompiler_47.dll
+    // 'issue197_complex.glsl',
+    'sgl.glsl',
+    'shared_ub.glsl',
+    'test1.glsl',
+    'test1_pragma.glsl',
+    'test_nim.glsl',
+    'ub_equality_1.glsl',
+    'ub_equality_2.glsl',
+    'uniform_types.glsl',
+    'unused_vertex_attr.glsl',
+    // sokol-samples shaders
+    'sapp/arraytex-sapp.glsl',
+    'sapp/blend-op-sapp.glsl',
+    'sapp/blend-sapp.glsl',
+    'sapp/bufferoffsets-sapp.glsl',
+    'sapp/cgltf-sapp.glsl',
+    'sapp/computeboids-sapp.glsl',
+    'sapp/cube-sapp.glsl',
+    'sapp/cubemap-jpeg-sapp.glsl',
+    'sapp/cubemaprt-sapp.glsl',
+    'sapp/customresolve-sapp.glsl',
+    'sapp/debugtext-context-sapp.glsl',
+    'sapp/drawcallperf-sapp.glsl',
+    'sapp/dyntex-sapp.glsl',
+    'sapp/dyntex3d-sapp.glsl',
+    'sapp/fontstash-layers-sapp.glsl',
+    'sapp/imgui-usercallback-sapp.glsl',
+    'sapp/instancing-compute-sapp.glsl',
+    'sapp/instancing-pull-sapp.glsl',
+    'sapp/instancing-sapp.glsl',
+    'sapp/layerrender-sapp.glsl',
+    'sapp/loadpng-sapp.glsl',
+    'sapp/mipmap-sapp.glsl',
+    'sapp/miprender-sapp.glsl',
+    'sapp/mrt-pixelformats-sapp.glsl',
+    'sapp/mrt-sapp.glsl',
+    'sapp/noentry-dll-sapp.glsl',
+    'sapp/noentry-sapp.glsl',
+    'sapp/noninterleaved-sapp.glsl',
+    'sapp/offscreen-msaa-sapp.glsl',
+    'sapp/offscreen-sapp.glsl',
+    'sapp/ozz-skin-sapp.glsl',
+    'sapp/ozz-storagebuffer-sapp.glsl',
+    'sapp/pixelformats-sapp.glsl',
+    'sapp/plmpeg-sapp.glsl',
+    'sapp/primtypes-sapp.glsl',
+    'sapp/quad-sapp.glsl',
+    'sapp/restart-sapp.glsl',
+    'sapp/sbuftex-sapp.glsl',
+    'sapp/sdf-sapp.glsl',
+    'sapp/shadows-depthtex-sapp.glsl',
+    'sapp/shadows-sapp.glsl',
+    'sapp/shapes-sapp.glsl',
+    'sapp/shapes-transform-sapp.glsl',
+    'sapp/shared-bindings-sapp.glsl',
+    'sapp/shdfeatures-sapp.glsl',
+    'sapp/tex3d-sapp.glsl',
+    'sapp/texcube-sapp.glsl',
+    'sapp/triangle-bufferless-sapp.glsl',
+    'sapp/triangle-sapp.glsl',
+    'sapp/uniformtypes-sapp.glsl',
+    'sapp/uvwrap-sapp.glsl',
+    'sapp/vertexindexbuffer-sapp.glsl',
+    'sapp/vertexpull-sapp.glsl',
+    'sapp/vertextexture-sapp.glsl',
+    'sapp/write-storageimage-sapp.glsl',
+];
 
 const sokol_shdc_sources = [
     'args.cc',
