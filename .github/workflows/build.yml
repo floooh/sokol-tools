@@ -68,7 +68,9 @@ jobs:
         - uses: denoland/setup-deno@v2
         # NOTE: setup-ninja action doesn't work on ARM Linux, install x86 exe
         - name: install ninja
-          run: apt install ninja-build
+          run: |
+            sudo apt-get update
+            sudo apt install ninja-build
         - name: build debug
           run: |
             ./fibs config linux-ninja-debug
