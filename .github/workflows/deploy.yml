@@ -130,5 +130,5 @@ jobs:
         git config user.email "none"
         git config user.name "GH Action"
         git add .
-#        git commit -m "updated (${{ github.run_number }})"
-#        git push
+        git commit -m "updated (${{ github.run_number }})"
+        git push
