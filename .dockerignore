@@ -1,8 +1,13 @@
 .git/
 zig-*
+.zig-*
+.fibs/
+docs/
+.vscode/
+.github/
+test/
 ext/SPIRV-Cross/reference
 ext/SPIRV-Cross/shaders*
 ext/SPIRV-Cross/test*
 ext/SPIRV-Tools/test/
 ext/glslang/Test/
-

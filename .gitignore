@@ -1,13 +1,8 @@
-#>fips
-# this area is managed by fips, do not edit
-.fips-*
-*.pyc
+.fibs/
 .vscode/
-.idea/
-CMakeUserPresets.json
-#<fips
-sokol-shdc
+CMakeLists.txt
+CMakePresets.json
 zig-*/
 .zig-*/
 test/out/
-
+sokol-shdc
