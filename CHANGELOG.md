@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+### **16-Jan-2026**
+
+Moved the standard build system from fips to fibs (which is essentially fips 2.0:
+https://github.com/floooh/fibs)
+
 ### **19-Nov-2025**
 
 Added `spirv_vk` output option (Vulkan-flavoured SPIRV for the upcoming
