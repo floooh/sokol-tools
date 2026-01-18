@@ -70,7 +70,7 @@ static void print_help_string(getopt_context_t& ctx) {
         "  - glsl300es      OpenGLES3 and WebGL2 (SOKOL_GLES3)\n"
         "  - glsl310es      OpenGLES3.1 (SOKOL_GLES3)\n"
         "  - hlsl4          Direct3D11 with HLSL4 (SOKOL_D3D11)\n"
-        "  - hlsl5          Direct3D11 with HLSL5 (SOKOL_D3D11)\n"
+        "  - hlsl5          Direct3D11/12 with HLSL5 (SOKOL_D3D11, SOKOL_D3D12)\n"
         "  - metal_macos    Metal on macOS (SOKOL_METAL)\n"
         "  - metal_ios      Metal on iOS devices (SOKOL_METAL)\n"
         "  - metal_sim      Metal on iOS simulator (SOKOL_METAL)\n"
