@@ -156,9 +156,9 @@ static bool mtl_cc(const std::string& src_path, const std::string& out_dia, cons
     cmdline += " -o ";
     cmdline += out_air;
     if (slang == Slang::METAL_MACOS) {
-        cmdline += " -mmacosx-version-min=10.11 -std=osx-metal1.1 ";
+        cmdline += " -mmacosx-version-min=10.11 -std=macos-metal1.2 ";
     } else {
-        cmdline += " -miphoneos-version-min=9.0 -std=ios-metal1.1 ";
+        cmdline += " -miphoneos-version-min=9.0 -std=ios-metal2.0 ";
     }
     cmdline += src_path;
     return 0 == xcrun(cmdline, output, slang);
