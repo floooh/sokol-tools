@@ -1,5 +1,5 @@
 FROM --platform=$TARGETPLATFORM denoland/deno:alpine
-RUN apk add build-base git cmake ninja
+RUN LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH apk add build-base git cmake ninja
 COPY . /workspace/sokol-tools
 # LD_LIBRARY_PATH hack see: https://github.com/denoland/deno_docker/issues/373
 RUN cd /workspace/sokol-tools && \
