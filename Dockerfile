@@ -5,4 +5,4 @@ COPY . /workspace/sokol-tools
 RUN cd /workspace/sokol-tools && \
     LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH ./fibs config linux-ninja-release --verbose && \
     LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH ./fibs build --verbose && \
-    strip /workspace/sokol-tools/.fibs/dist/linux-ninja-release/sokol-shdc
+    LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH strip /workspace/sokol-tools/.fibs/dist/linux-ninja-release/sokol-shdc
