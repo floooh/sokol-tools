@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+### **07-Feb-2026**
+
+When generating binary output, the metal command line compiler is now called
+with `-std=macos-metal1.2` or `-std=ios-metal2.0` (needed for dual-source-blending
+support).
+
 ### **16-Jan-2026**
 
 Moved the standard build system from fips to fibs (which is essentially fips 2.0:
