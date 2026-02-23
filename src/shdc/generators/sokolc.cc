@@ -10,25 +10,26 @@ namespace shdc::gen {
 
 using namespace refl;
 
-static const char* sokol_define(Slang::Enum slang) {
+static std::vector<std::string> sokol_defines(Slang::Enum slang) {
     switch (slang) {
         case Slang::GLSL410:
         case Slang::GLSL430:
-            return "SOKOL_GLCORE";
+            return {"SOKOL_GLCORE"};
         case Slang::GLSL300ES:
         case Slang::GLSL310ES:
-            return "SOKOL_GLES3";
+            return {"SOKOL_GLES3"};
         case Slang::HLSL4:
+            return {"SOKOL_D3D11"};
         case Slang::HLSL5:
-            return "SOKOL_D3D11";
+            return {"SOKOL_D3D11", "SOKOL_D3D12"};
         case Slang::METAL_MACOS:
         case Slang::METAL_IOS:
         case Slang::METAL_SIM:
-            return "SOKOL_METAL";
+            return {"SOKOL_METAL"};
         case Slang::WGSL:
-            return "SOKOL_WGPU";
+            return {"SOKOL_WGPU"};
         default:
-            return "<INVALID>";
+            return {"<INVALID>"};
     }
 }
 
@@ -255,7 +256,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
         Slang::Enum slang = Slang::from_index(i);
         if (gen.args.slang & Slang::bit(slang)) {
             if (gen.args.ifdef) {
-                l("#if defined({})\n", sokol_define(slang));
+                l("#if defined({})\n", pystring::join(") || defined(", sokol_defines(slang)));
             }
             l_open("if (backend == {}) {{\n", backend(slang));
             l("static sg_shader_desc desc;\n");
@@ -432,7 +433,7 @@ void SokolCGenerator::gen_shader_desc_func(const GenInput& gen, const ProgramRef
             l("return &desc;\n");
             l_close("}}\n");
             if (gen.args.ifdef) {
-                l("#endif /* {} */\n", sokol_define(slang));
+                l("#endif /* {} */\n", pystring::join(" || ", sokol_defines(slang)));
             }
         }
     }
@@ -584,7 +585,7 @@ void SokolCGenerator::gen_uniform_desc_refl_func(const GenInput& gen, const Prog
 
 void SokolCGenerator::gen_shader_array_start(const GenInput& gen, const std::string& array_name, size_t num_bytes, Slang::Enum slang) {
     if (gen.args.ifdef) {
-        l("#if defined({})\n", sokol_define(slang));
+        l("#if defined({})\n", pystring::join(") || defined(", sokol_defines(slang)));
     }
     l("static const uint8_t {}[{}] = {{\n", array_name, num_bytes);
 }
@@ -748,8 +749,9 @@ std::string SokolCGenerator::backend(Slang::Enum e) {
         case Slang::GLSL310ES:
             return "SG_BACKEND_GLES3";
         case Slang::HLSL4:
-        case Slang::HLSL5:
             return "SG_BACKEND_D3D11";
+        case Slang::HLSL5:
+            return "SG_BACKEND_D3D11 || backend == SG_BACKEND_D3D12";
         case Slang::METAL_MACOS:
             return "SG_BACKEND_METAL_MACOS";
         case Slang::METAL_IOS:
