@@ -6,6 +6,8 @@ CHANGELOG
 sokol-shdc not throws an error when encountering unsupported texture uniform
 types (see https://github.com/floooh/sokol-tools/issues/209).
 
+PR: https://github.com/floooh/sokol-tools/pull/210
+
 ### **07-Feb-2026**
 
 When generating binary output, the metal command line compiler is now called
