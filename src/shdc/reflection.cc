@@ -149,7 +149,7 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
     return res;
 }
 
-static ImageType::Enum spirtype_to_image_type(const SPIRType& type) {
+ImageType::Enum Reflection::spirtype_to_image_type(const SPIRType& type) {
     if (type.image.arrayed) {
         if (type.image.dim == spv::Dim2D) {
             return ImageType::ARRAY;
