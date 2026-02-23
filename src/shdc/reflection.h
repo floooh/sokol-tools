@@ -27,6 +27,9 @@ struct Reflection {
     // print a debug dump to stderr
     void dump_debug(ErrMsg::Format err_fmt) const;
 
+    // helper: convert SPIRType to ImageType
+    static ImageType::Enum spirtype_to_image_type(const spirv_cross::SPIRType& type);
+
 private:
     // create a set of unique resource bindings from shader snippet input bindings
     static Bindings merge_bindings(const std::vector<Bindings>& in_bindings, bool to_prog_bindings, ErrMsg& out_error);

@@ -211,6 +211,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     //   - must not be readonly
     //   - must have specific pixel formats
     // - must use separate image and sampler objects
+    // - 1D-textures / textureBuffers not supported
     //
     // FIXME: disallow vec3 arrays
     //
@@ -280,6 +281,12 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
                 break;
             default:
                 return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': access format must be one of rgba8_snorm, rgba8i, rgba8ui, rgba16ui, rgba16i, rgba16f, r32ui, r32i, r32f, rg32ui, rg32i, rg32f, rgba32ui, rgba32i, rgba32f", simg_res.name));
+        }
+    }
+    for (const Resource& tex_res: res.separate_images) {
+        const SPIRType& tex_type = compiler.get_type(tex_res.type_id);
+        if (Reflection::spirtype_to_image_type(tex_type) == ImageType::INVALID) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("texture '{}': unsupported texture type (must be texture2D[MS], texture3D, textureCube or texture2DArray)", tex_res.name));
         }
     }
     if (res.sampled_images.size() > 0) {
