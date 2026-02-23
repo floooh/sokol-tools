@@ -3,7 +3,7 @@ CHANGELOG
 
 ### **23-Feb-2026**
 
-sokol-shdc not throws an error when encountering unsupported texture uniform
+sokol-shdc now throws an error when encountering unsupported texture uniform
 types (see https://github.com/floooh/sokol-tools/issues/209).
 
 PR: https://github.com/floooh/sokol-tools/pull/211
