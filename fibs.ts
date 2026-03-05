@@ -1,6 +1,12 @@
 import { Configurer, Builder, ConfigDesc, Project, log, util } from 'jsr:@floooh/fibs@^1';
 
 export function configure(c: Configurer): void {
+    c.addImport({
+        name: 'extras',
+        url: 'https://github.com/floooh/fibs-extras',
+        files: ['vscode.ts'],
+    });
+
     // add explicit macos x86_64 vs arm64 build configs
     const macos: ConfigDesc = {
         name: 'macos-base',
