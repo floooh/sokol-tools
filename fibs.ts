@@ -4,7 +4,7 @@ export function configure(c: Configurer): void {
     c.addImport({
         name: 'extras',
         url: 'https://github.com/floooh/fibs-extras',
-        files: ['vscode.ts'],
+        files: ['vscode.ts', 'macos.ts'],
     });
 
     // add explicit macos x86_64 vs arm64 build configs
