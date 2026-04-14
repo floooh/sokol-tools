@@ -104,21 +104,21 @@ protected:
     ShaderStageArrayInfo shader_stage_array_info(const GenInput& gen, const refl::ProgramReflection& prog, ShaderStage::Enum stage, Slang::Enum slang);
 
     // line output
-    template<typename... T> void l(fmt::format_string<T...> fmt, T&&... args) {
-        const std::string str = fmt::format("{}{}", indentation, fmt::format(fmt::runtime(fmt), args...));
+    template<typename... T> void l(fmt::string_view fmt, T&&... args) {
+        const std::string str = fmt::format("{}{}", indentation, fmt::format(fmt::runtime(fmt), std::forward<T>(args)...));
         content.append(str);
     }
-    template<typename... T> void l_append(fmt::format_string<T...> fmt, T&&... args) {
-        const std::string str = fmt::format(fmt, args...);
+    template<typename... T> void l_append(fmt::string_view fmt, T&&... args) {
+        const std::string str = fmt::format(fmt::runtime(fmt), std::forward<T>(args)...);
         content.append(str);
     }
-    template<typename... T> void l_open(fmt::format_string<T...> fmt, T&&... args) {
-        l(fmt::runtime(fmt), args...);
+    template<typename... T> void l_open(fmt::string_view fmt, T&&... args) {
+        l(fmt, std::forward<T>(args)...);
         indent();
     }
-    template<typename... T> void l_close(fmt::format_string<T...> fmt, T&&... args) {
+    template<typename... T> void l_close(fmt::string_view fmt, T&&... args) {
         dedent();
-        l(fmt::runtime(fmt), args...);
+        l(fmt, std::forward<T>(args)...);
     }
     template<typename... T> void l_close() {
         dedent();
@@ -127,16 +127,16 @@ protected:
     void cbl_start() {
         l_open("{}\n", comment_block_start());
     }
-    template<typename... T> void cbl(fmt::format_string<T...> fmt, T&&... args) {
+    template<typename... T> void cbl(fmt::string_view fmt, T&&... args) {
         std::string str = pystring::rstrip(fmt::format("{}{}{}", comment_block_line_prefix(), indentation, fmt::format(fmt::runtime(fmt), args...)));
         str += "\n";
         content.append(str);
     }
-    template<typename... T> void cbl_open(fmt::format_string<T...> fmt, T&&... args) {
+    template<typename... T> void cbl_open(fmt::string_view fmt, T&&... args) {
         cbl(fmt, args...);
         indent();
     }
-    template<typename... T> void cbl_close(fmt::format_string<T...> fmt, T&&... args) {
+    template<typename... T> void cbl_close(fmt::string_view fmt, T&&... args) {
         dedent();
         cbl(fmt, args...);
     }
