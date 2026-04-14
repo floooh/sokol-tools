@@ -64,31 +64,27 @@ pub fn buildExe(
     };
     const flags = common_cpp_flags ++ spvcross_public_cpp_flags ++ tint_public_cpp_flags;
 
-    const exe = b.addExecutable(.{
-        .name = "sokol-shdc",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libc = true,
+        .link_libcpp = true,
     });
-    if (exe.rootModuleTarget().abi != .msvc) {
-        exe.linkLibCpp();
-    } else {
-        exe.linkLibC();
-    }
-    exe.linkLibrary(libFmt(b, target, mode, prefix_path));
-    exe.linkLibrary(libGetopt(b, target, mode, prefix_path));
-    exe.linkLibrary(libPystring(b, target, mode, prefix_path));
-    exe.linkLibrary(libSpirvcross(b, target, mode, prefix_path));
-    exe.linkLibrary(libSpirvtools(b, target, mode, prefix_path));
-    exe.linkLibrary(libGlslang(b, target, mode, prefix_path));
-    exe.linkLibrary(libTint(b, target, mode, prefix_path));
+    mod.linkLibrary(libFmt(b, target, mode, prefix_path));
+    mod.linkLibrary(libGetopt(b, target, mode, prefix_path));
+    mod.linkLibrary(libPystring(b, target, mode, prefix_path));
+    mod.linkLibrary(libSpirvcross(b, target, mode, prefix_path));
+    mod.linkLibrary(libSpirvtools(b, target, mode, prefix_path));
+    mod.linkLibrary(libGlslang(b, target, mode, prefix_path));
+    mod.linkLibrary(libTint(b, target, mode, prefix_path));
     inline for (incl_dirs) |incl_dir| {
-        exe.addIncludePath(b.path(prefix_path ++ incl_dir));
+        mod.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        exe.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
+
+    const exe = b.addExecutable(.{ .name = "sokol-shdc", .root_module = mod });
     b.installArtifact(exe);
     return exe;
 }
@@ -99,18 +95,15 @@ fn libGetopt(
     mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addLibrary(.{
-        .name = "getopt",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-            .link_libc = true,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libc = true,
     });
-    lib.addIncludePath(b.path(prefix_path ++ "ext/getopt/include"));
+    mod.addIncludePath(b.path(prefix_path ++ "ext/getopt/include"));
     const flags = common_c_flags;
-    lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/getopt/src/getopt.c"), .flags = &flags });
-    return lib;
+    mod.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/getopt/src/getopt.c"), .flags = &flags });
+    return b.addLibrary(.{ .name = "getopt", .root_module = mod });
 }
 
 fn libPystring(
@@ -119,21 +112,15 @@ fn libPystring(
     mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addLibrary(.{
-        .name = "pystring",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libcpp = true,
+        .link_libc = true,
     });
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
     const flags = common_cpp_flags;
-    lib.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/pystring/pystring.cpp"), .flags = &flags });
-    return lib;
+    mod.addCSourceFile(.{ .file = b.path(prefix_path ++ "ext/pystring/pystring.cpp"), .flags = &flags });
+    return b.addLibrary(.{ .name = "pystring", .root_module = mod });
 }
 
 fn libFmt(
@@ -144,24 +131,18 @@ fn libFmt(
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/fmt/src/";
     const sources = [_][]const u8{ "format.cc", "os.cc" };
-    const lib = b.addLibrary(.{
-        .name = "fmt",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libcpp = true,
+        .link_libc = true,
     });
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
-    lib.addIncludePath(b.path(prefix_path ++ "ext/fmt/include"));
+    mod.addIncludePath(b.path(prefix_path ++ "ext/fmt/include"));
     const flags = common_cpp_flags;
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
-    return lib;
+    return b.addLibrary(.{ .name = "fmt", .root_module = mod });
 }
 
 fn libSpirvcross(
@@ -184,23 +165,17 @@ fn libSpirvcross(
     };
     const flags = common_cpp_flags ++ spvcross_public_cpp_flags;
 
-    const lib = b.addLibrary(.{
-        .name = "spirvcross",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libcpp = true,
+        .link_libc = true,
     });
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
-    lib.addIncludePath(b.path("ext/SPIRV-Cross"));
+    mod.addIncludePath(b.path("ext/SPIRV-Cross"));
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
-    return lib;
+    return b.addLibrary(.{ .name = "spirvcross", .root_module = mod });
 }
 
 fn libGlslang(
@@ -209,14 +184,6 @@ fn libGlslang(
     mode: std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
-    const lib = b.addLibrary(.{
-        .name = "glslang",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
-    });
-
     const dir = prefix_path ++ "ext/glslang/";
     const sources = [_][]const u8{
         "glslang/CInterface/glslang_c_interface.cpp",
@@ -275,29 +242,30 @@ fn libGlslang(
     const cmn_flags = common_cpp_flags ++ [_][]const u8{"-DENABLE_OPT=1"};
     const win_flags = cmn_flags ++ [_][]const u8{"-DGLSLANG_OSINCLUDE_WIN32"};
     const unx_flags = cmn_flags ++ [_][]const u8{"-DGLSLANG_OSINCLUDE_UNIX"};
-    const flags = if (lib.rootModuleTarget().os.tag == .windows) win_flags else unx_flags;
 
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libcpp = true,
+        .link_libc = true,
+    });
+    const flags = if (target.result.os.tag == .windows) win_flags else unx_flags;
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
+        mod.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
-    if (lib.rootModuleTarget().os.tag == .windows) {
+    if (target.result.os.tag == .windows) {
         inline for (win_sources) |src| {
-            lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+            mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
         }
     } else {
         inline for (unix_sources) |src| {
-            lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+            mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
         }
     }
-    return lib;
+    return b.addLibrary(.{ .name = "glslang", .root_module = mod });
 }
 
 fn libSpirvtools(
@@ -513,25 +481,19 @@ fn libSpirvtools(
     };
     const flags = common_cpp_flags;
 
-    const lib = b.addLibrary(.{
-        .name = "spirvtools",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libcpp = true,
+        .link_libc = true,
     });
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
+        mod.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
-    return lib;
+    return b.addLibrary(.{ .name = "spirvtools", .root_module = mod });
 }
 
 fn libTint(
@@ -973,23 +935,17 @@ fn libTint(
     };
     const flags = common_cpp_flags ++ tint_public_cpp_flags;
 
-    const lib = b.addLibrary(.{
-        .name = "tint",
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = mode,
-        }),
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = mode,
+        .link_libc = true,
+        .link_libcpp = true,
     });
-    if (lib.rootModuleTarget().abi != .msvc) {
-        lib.linkLibCpp();
-    } else {
-        lib.linkLibC();
-    }
     inline for (incl_dirs) |incl_dir| {
-        lib.addIncludePath(b.path(prefix_path ++ incl_dir));
+        mod.addIncludePath(b.path(prefix_path ++ incl_dir));
     }
     inline for (sources) |src| {
-        lib.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
+        mod.addCSourceFile(.{ .file = b.path(dir ++ src), .flags = &flags });
     }
-    return lib;
+    return b.addLibrary(.{ .name = "tint", .root_module = mod });
 }
