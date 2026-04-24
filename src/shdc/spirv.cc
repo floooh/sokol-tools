@@ -71,9 +71,6 @@ static MergedSource merge_source(const Input& inp, const Snippet& snippet, Slang
     ("for (;;) { }") to WebGL
 */
 static void spirv_optimize(Slang::Enum slang, std::vector<uint32_t>& spirv) {
-    if (slang == Slang::WGSL) {
-        return;
-    }
     spv_target_env target_env;
     target_env = SPV_ENV_UNIVERSAL_1_2;
     spvtools::Optimizer optimizer(target_env);
