@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+### **25-Apr-2026**
+
+The SPIRV-Tools optimizer pass is now also executed for WGSL output.
+Previously this was disabled because Tint seemed to have problems
+with the optimizer output, but the more recent Tint version used now
+seems to be fine (tested on the sokol-sampled)
+
 ### **23-Feb-2026**
 
 sokol-shdc now throws an error when encountering unsupported texture uniform
