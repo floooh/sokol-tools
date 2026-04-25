@@ -6,7 +6,11 @@ CHANGELOG
 The SPIRV-Tools optimizer pass is now also executed for WGSL output.
 Previously this was disabled because Tint seemed to have problems
 with the optimizer output, but the more recent Tint version used now
-seems to be fine (tested on the sokol-sampled)
+seems to be fine (tested on the sokol-sampled). This fixes a confusing
+error (or assert in debug mode) when shader resources were unused.
+
+Related ticket: https://github.com/floooh/sokol-tools/issues/213
+PR: https://github.com/floooh/sokol-tools/pull/214
 
 ### **23-Feb-2026**
 
