@@ -10,16 +10,15 @@ jobs:
           with:
             submodules: true
         - uses: denoland/setup-deno@v2
-        - name: build debug
+        - name: build & test debug
           run: |
             ./fibs config win-vstudio-debug
             ./fibs build
-        - name: build release
+            ./fibs runtests win-vstudio-debug
+        - name: build & test release
           run: |
             ./fibs config win-vstudio-release
             ./fibs build
-        - name: test
-          run: |
             ./fibs runtests win-vstudio-release
     mac:
         runs-on: macos-latest
@@ -29,16 +28,15 @@ jobs:
             submodules: true
         - uses: ashutoshvarma/setup-ninja@master
         - uses: denoland/setup-deno@v2
-        - name: build debug
+        - name: build & test debug
           run: |
             ./fibs config macos-ninja-debug
             ./fibs build
-        - name: build release
+            ./fibs runtests macos-ninja-debug
+        - name: build & test release
           run: |
             ./fibs config macos-ninja-release
             ./fibs build
-        - name: test
-          run: |
             ./fibs runtests macos-ninja-release
     linux:
         runs-on: ubuntu-latest
@@ -48,16 +46,15 @@ jobs:
             submodules: true
         - uses: ashutoshvarma/setup-ninja@master
         - uses: denoland/setup-deno@v2
-        - name: build debug
+        - name: build & test debug
           run: |
             ./fibs config linux-ninja-debug
             ./fibs build
-        - name: build release
+            ./fibs runtests linux-ninja-debug
+        - name: build & test release
           run: |
             ./fibs config linux-ninja-release
             ./fibs build
-        - name: test
-          run: |
             ./fibs runtests linux-ninja-release
     linux-arm64:
         runs-on: ubuntu-24.04-arm
@@ -71,14 +68,13 @@ jobs:
           run: |
             sudo apt-get update
             sudo apt install ninja-build
-        - name: build debug
+        - name: build & test debug
           run: |
             ./fibs config linux-ninja-debug
             ./fibs build
-        - name: build release
+            ./fibs runtests linux-ninja-debug
+        - name: build & test release
           run: |
             ./fibs config linux-ninja-release
             ./fibs build
-        - name: test
-          run: |
             ./fibs runtests linux-ninja-release
