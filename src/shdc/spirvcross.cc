@@ -12,6 +12,8 @@
 #include "spirv_msl.hpp"
 #include "spirv_reflect.hpp"
 #include "tint/tint.h"
+#include "src/tint/lang/core/ir/module.h"
+#include "src/tint/lang/wgsl/writer/ir_to_program/ir_to_program.h"
 #include "util.h"
 
 #include "spirv_glsl.hpp"
@@ -490,23 +492,32 @@ static SpirvcrossSource to_wgsl(const Input& inp, const SpirvBlob& blob, Slang::
     wgsl_patch_bind_slots(compiler_temp, blob.bindings, patched_bytecode);
     SpirvcrossSource res;
     res.snippet_index = blob.snippet_index;
-    tint::spirv::reader::Options spirv_options;
-    spirv_options.allow_non_uniform_derivatives = true; // FIXME? => this allow texture sample calls inside dynamic if blocks
-    spirv_options.allowed_features.features = { tint::wgsl::LanguageFeature::kReadonlyAndReadwriteStorageTextures };
-    tint::Program program = tint::spirv::reader::Read(patched_bytecode, spirv_options);
-    if (!program.Diagnostics().ContainsErrors()) {
-        const tint::wgsl::writer::Options wgsl_options;
-        tint::Result result = tint::wgsl::writer::Generate(program, wgsl_options);
-        if (result == tint::Success) {
-            res.source_code = result.Get().wgsl;
-            res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
-        } else {
-            res.error = inp.error(blob.snippet_index, result.Failure().reason);
-        }
-    } else {
-        res.error = inp.error(blob.snippet_index, program.Diagnostics().Str());
+    const tint::spirv::reader::Options spirv_options;
+    auto ir_result = tint::spirv::reader::ReadIR(patched_bytecode, spirv_options);
+    if (ir_result != tint::Success) {
+        res.error = inp.error(blob.snippet_index, ir_result.Failure().reason);
+        res.valid = false;
+        return res;
     }
-    res.valid = !res.error.valid();
+    tint::wgsl::writer::Options wgsl_options;
+    wgsl_options.allow_non_uniform_derivatives = true;
+    wgsl_options.allowed_features.features = { tint::wgsl::LanguageFeature::kReadonlyAndReadwriteStorageTextures };
+    auto program = tint::wgsl::writer::IRToProgram(ir_result.Get(), wgsl_options);
+    if (!program.IsValid()) {
+        res.error = inp.error(blob.snippet_index, program.Diagnostics().Str());
+        res.valid = false;
+        return res;
+    }
+    auto wgsl_result = tint::wgsl::writer::Generate(program, wgsl_options);
+    if (wgsl_result == tint::Success) {
+        res.source_code = wgsl_result.Get().wgsl;
+        res.stage_refl = parse_reflection(inp, blob, snippet, res.error);
+    } else {
+        res.error = inp.error(blob.snippet_index, wgsl_result.Failure().reason);
+        res.valid = false;
+        return res;
+    }
+    res.valid = true;
     return res;
 }
 
