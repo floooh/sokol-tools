@@ -54,6 +54,9 @@ void SokolCGenerator::gen_epilog(const GenInput& gen) {
 }
 
 void SokolCGenerator::gen_prerequisites(const GenInput& gen) {
+    if (gen.args.reflection) {
+        l("#include <string.h>\n");
+    }
     l("#if !defined(SOKOL_GFX_INCLUDED)\n");
     l("#error \"Please include sokol_gfx.h before {}\"\n", pystring::os::path::basename(gen.args.output));
     l("#endif\n");
