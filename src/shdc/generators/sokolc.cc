@@ -27,6 +27,8 @@ static const char* sokol_define(Slang::Enum slang) {
             return "SOKOL_METAL";
         case Slang::WGSL:
             return "SOKOL_WGPU";
+        case Slang::SPIRV_VK:
+            return "SOKOL_VULKAN";
         default:
             return "<INVALID>";
     }
