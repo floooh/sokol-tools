@@ -388,6 +388,7 @@ code into **#ifdef/#endif** pairs using the sokol-gfx backend-selection defines:
     - SOKOL_D3D11
     - SOKOL_METAL
     - SOKOL_WGPU
+    - SOKOL_VULKAN
 - **-d --dump**: Enable verbose debug output, this basically dumps all internal
 information to stdout. Useful for debugging and understanding how sokol-shdc
 works, but not much else :)
