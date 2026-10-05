@@ -161,7 +161,7 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
         }
     }
     int hlsl_register_t_n = 0;
-    int hlsl_register_u_n = 0;
+    int hlsl_register_u_n = (stage == ShaderStage::Fragment) ? MaxColorAttachments : 0;
     int msl_buffer_n = MaxUniformBlocks;
     int msl_texture_n = 0;
     int glsl_storage_image_binding_n = 0;
