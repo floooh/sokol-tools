@@ -249,7 +249,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
         if (compiler.get_execution_model() == spv::ExecutionModelVertex) {
             bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
             if (!readonly) {
-                return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex- and fragment-shaders", sbuf_res.name));
+                return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex-shaders", sbuf_res.name));
             }
         }
     }
