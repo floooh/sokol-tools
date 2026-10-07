@@ -581,6 +581,12 @@ Bindings Reflection::merge_bindings(const std::vector<Bindings>& in_bindings, bo
     // if requested, assign new texture-sampler slots which are unique across shader stages, this
     // is needed when merging the per-shader-stage bindings into per-program-bindings
     if (to_prog_bindings) {
+        if (out_bindings.texture_samplers.size() > size_t(MaxTextureSamplers)) {
+            out_error = ErrMsg::error(fmt::format(
+                "program uses {} texture-sampler pairs, maximum is {}",
+                out_bindings.texture_samplers.size(), MaxTextureSamplers));
+            return Bindings();
+        }
         int sokol_slot = 0;
         for (TextureSampler& tex_smp: out_bindings.texture_samplers) {
             tex_smp.sokol_slot = sokol_slot++;
