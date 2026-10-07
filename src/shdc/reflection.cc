@@ -750,7 +750,7 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         }
         for (const auto& tex: bindings.textures) {
             const int slot = tex.sokol_slot;
-            if ((slot < 0) || (slot > MaxViews)) {
+            if ((slot < 0) || (slot >= MaxViews)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for resource '{}' (must be 0..{})",
                     slot,
                     tex.name,
