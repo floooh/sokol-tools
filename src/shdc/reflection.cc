@@ -124,7 +124,6 @@ Reflection Reflection::build(const Args& args, const Input& inp, const std::arra
             res.error = inp.error(prog.line_index, err.msg);
             return res;
         }
-        prog_bindings.push_back(prog_refl.bindings);
 
         // check that the outputs of the vertex stage match the input stage
         res.error = validate_linking(inp, prog, prog_refl);
@@ -712,7 +711,7 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
                     MaxUniformBlocks - 1));
             }
             if (!ub_slots[slot].empty()) {
-                return ErrMsg::error(fmt::format("uniform blocks {} and {} cannot use the same binding {}",
+                return ErrMsg::error(fmt::format("uniform blocks '{}' and '{}' cannot use the same binding {}",
                     ub_slots[slot],
                     ub.name,
                     slot));
@@ -775,17 +774,17 @@ ErrMsg Reflection::validate_program_bindings(const Bindings& bindings) {
         std::array<std::string, MaxSamplers> smp_slots;
         for (const auto& smp: bindings.samplers) {
             const int slot = smp.sokol_slot;
-            if ((slot < 0) || (slot > MaxSamplers)) {
+            if ((slot < 0) || (slot >= MaxSamplers)) {
                 return ErrMsg::error(fmt::format("binding {} out of range for sampler '{}' (must be 0..{})",
                     slot,
                     smp.name,
                     MaxSamplers - 1));
             }
             if (!smp_slots[slot].empty()) {
-                    return ErrMsg::error(fmt::format("samplers '{}' and '{}' cannot use the same binding {}",
-                        smp_slots[slot],
-                        smp.name,
-                        slot));
+                return ErrMsg::error(fmt::format("samplers '{}' and '{}' cannot use the same binding {}",
+                    smp_slots[slot],
+                    smp.name,
+                    slot));
             }
             smp_slots[slot] = smp.name;
         }
