@@ -262,9 +262,24 @@ async function runTestsRun(p: Project, args: string[]) {
             Deno.exit(res.exitCode);
         }
     }
+    for (const shd of expected_failure_test_shaders) {
+        const res = await util.runCmd(cmd, {
+            cwd,
+            args: [
+                '-i', shd,
+                '-o', `${outDir}/${shd}.h`,
+                '-l', 'glsl310es:glsl430:hlsl5:metal_macos:metal_ios:metal_sim',
+                '-b',
+            ]
+        });
+        if (res.exitCode === 0) {
+            log.error(new Error(`expected '${shd}' to fail compilation, but it succeeded`));
+        }
+    }
 }
 
 const test_shaders = [
+    'bind_limits.glsl',
     'chipvis.glsl',
     'fontstash.glsl',
     'imgui.glsl',
@@ -338,6 +353,13 @@ const test_shaders = [
     'sapp/vertexpull-sapp.glsl',
     'sapp/vertextexture-sapp.glsl',
     'sapp/write-storageimage-sapp.glsl',
+];
+
+const expected_failure_test_shaders = [
+    'bind_limits_exceeded_pairs.glsl',
+    'bind_limits_exceeded_samplers.glsl',
+    'bind_limits_exceeded_ub.glsl',
+    'bind_limits_exceeded_views.glsl',
 ];
 
 const sokol_shdc_sources = [
