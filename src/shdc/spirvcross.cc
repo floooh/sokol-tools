@@ -205,7 +205,7 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
     //   - arrays must be 1-dimensional
     // - storage buffers:
     //   - must only have a single flexible array struct item
-    //   - must be readonly in vertex/fragment shaders
+    //   - must be readonly in vertex shaders
     // - storage images:
     //   - only allowed on compute stage
     //   - must not be readonly
@@ -246,10 +246,10 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
         if (!content_valid) {
             return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': must contain exactly one flexible array of a struct", sbuf_res.name));
         }
-        if (compiler.get_execution_model() != spv::ExecutionModelGLCompute) {
+        if (compiler.get_execution_model() == spv::ExecutionModelVertex) {
             bool readonly = compiler.get_buffer_block_flags(sbuf_res.id).get(spv::DecorationNonWritable);
             if (!readonly) {
-                return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex- and fragment-shaders", sbuf_res.name));
+                return ErrMsg::error(inp.base_path, 0, fmt::format("storage buffer '{}': only 'readonly' SSBOs are allowed in vertex-shaders", sbuf_res.name));
             }
         }
     }
