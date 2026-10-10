@@ -1,6 +1,16 @@
 CHANGELOG
 =========
 
+### **09-Oct-2026**
+
+New error when max number of combined texture-samplers (32) is exceeded
+
+Some code cleanup and new test shaders for the above bindings limit
+validation.
+
+Thanks to @squk for the initial PR!
+
+
 ### **25-Apr-2026**
 
 The SPIRV-Tools optimizer pass is now also executed for WGSL output.
