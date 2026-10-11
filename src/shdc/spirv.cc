@@ -196,6 +196,18 @@ static bool compile(Input& inp, EShLanguage stage, Slang::Enum slang, const Merg
             }
         }
     }
+    for (int i = 0; i < program.getNumPipeOutputs(); i++) {
+        const auto& output = program.getPipeOutput(i);
+        if (output.getType()->isBuiltIn()) {
+            continue;
+        }
+        // the next skip should actually never happen
+        if (!output.getType()->getQualifier().hasLocation()) {
+            fmt::print(stderr, "Fragment shader output without location, this can't happen, please report a bug!");
+            continue;
+        }
+        spirv_blob.bindings.track_fs_output_location((int)output.layoutLocation());
+    }
     spirv_blob.bindings.allocate_backend_slots(ShaderStage::from_glsang_eshlangauge(stage));
 
     // translate intermediate representation to SPIRV

@@ -14,8 +14,10 @@ struct BindSlotMap {
     std::array<BindSlot, MaxUniformBlocks> uniform_blocks;
     std::array<BindSlot, MaxViews> views;
     std::array<BindSlot, MaxSamplers> samplers;
+    int max_fs_output_location = 0;
 
     bool add(const BindSlot& bindslot, std::string& out_error_msg);
+    void track_fs_output_location(int location);
     void allocate_backend_slots(ShaderStage::Enum stage);
     int find_uniformblock_slang_slot(const std::string& name, Slang::Enum slang) const;
     int find_view_slang_slot(const std::string& name, Slang::Enum slang) const;
@@ -150,6 +152,12 @@ inline bool BindSlotMap::add(const BindSlot& bindslot, std::string& out_error_ms
     return true;
 }
 
+inline void BindSlotMap::track_fs_output_location(int location) {
+    if (location > max_fs_output_location) {
+        max_fs_output_location = location;
+    }
+}
+
 inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
     for (int i = 0; i < MaxUniformBlocks; i++) {
         auto& slot = uniform_blocks[i];
@@ -161,7 +169,9 @@ inline void BindSlotMap::allocate_backend_slots(ShaderStage::Enum stage) {
         }
     }
     int hlsl_register_t_n = 0;
-    int hlsl_register_u_n = 0;
+    // NOTE: the HLSL UAV register for writable storage buffers bound to fragment
+    // stages must not collide with color render target 'bind slots'
+    int hlsl_register_u_n = (stage == ShaderStage::Fragment) ? (max_fs_output_location+1) : 0;
     int msl_buffer_n = MaxUniformBlocks;
     int msl_texture_n = 0;
     int glsl_storage_image_binding_n = 0;
