@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+### **11-Oct-2026**
+
+Writing to storage buffers from fragment shaders is now allowed, and
+for this use case the HLSL UAV register allocation has been changed so
+that UAV bind slots don't collide with render target slots (D3D11 requirement
+since render targets and UAVs shared the same bind slot range).
+
 ### **09-Oct-2026**
 
 New error when max number of combined texture-samplers (32) is exceeded
