@@ -40,7 +40,7 @@ pub fn build(b: *Build) void {
 pub fn buildExe(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
     lib: *Build.Step.Compile,
 ) *Build.Step.Compile {
@@ -68,7 +68,7 @@ pub fn buildExe(
 pub fn buildDll(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
     lib: *Build.Step.Compile,
 ) *Build.Step.Compile {
@@ -96,7 +96,7 @@ pub fn buildDll(
 pub fn buildLib(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "src/shdc/";
@@ -155,7 +155,7 @@ pub fn buildLib(
 fn libGetopt(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const mod = b.createModule(.{
@@ -172,7 +172,7 @@ fn libGetopt(
 fn libPystring(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const mod = b.createModule(.{
@@ -189,7 +189,7 @@ fn libPystring(
 fn libFmt(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/fmt/src/";
@@ -211,7 +211,7 @@ fn libFmt(
 fn libSpirvcross(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/SPIRV-Cross/";
@@ -244,7 +244,7 @@ fn libSpirvcross(
 fn libGlslang(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/glslang/";
@@ -334,7 +334,7 @@ fn libGlslang(
 fn libSpirvtools(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/SPIRV-Tools/source/";
@@ -562,7 +562,7 @@ fn libSpirvtools(
 fn libTint(
     b: *Build,
     target: Build.ResolvedTarget,
-    mode: std.builtin.OptimizeMode,
+    mode: ?std.builtin.OptimizeMode,
     comptime prefix_path: []const u8,
 ) *Build.Step.Compile {
     const dir = prefix_path ++ "ext/tint-extract/src/tint/";
