@@ -1,6 +1,10 @@
 CHANGELOG
 =========
 
+### **10-Nov-2026**
+
+Raise max number of samplers from 12 to 14 (see: https://github.com/floooh/sokol/pull/1648)
+
 ### **11-Oct-2026**
 
 Writing to storage buffers from fragment shaders is now allowed, and
