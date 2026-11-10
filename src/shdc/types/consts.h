@@ -10,7 +10,7 @@ namespace shdc {
 //
 inline static const int MaxUniformBlocks = 8;
 inline static const int MaxViews = 32;
-inline static const int MaxSamplers = 12;
+inline static const int MaxSamplers = 14;
 inline static const int MaxTextureSamplers = MaxViews;
 inline static const int MaxColorAttachments = 8;
 

@@ -100,6 +100,8 @@ layout(binding=9) uniform sampler smp9;
 layout(binding=10) uniform sampler smp10;
 layout(binding=11) uniform sampler smp11;
 layout(binding=12) uniform sampler smp12;
+layout(binding=13) uniform sampler smp13;
+layout(binding=14) uniform sampler smp14;
 
 in vec4 color;
 in vec2 uv;
@@ -119,10 +121,10 @@ void main() {
     c += texture(sampler2D(tex25, smp10), uv);
     c += texture(sampler2D(tex26, smp11), uv);
     c += texture(sampler2D(tex27, smp12), uv);
-    c += texture(sampler2D(tex28, smp7), uv);
-    c += texture(sampler2D(tex29, smp8), uv);
-    c += texture(sampler2D(tex30, smp9), uv);
-    c += texture(sampler2D(tex31, smp10), uv);
+    c += texture(sampler2D(tex28, smp13), uv);
+    c += texture(sampler2D(tex29, smp14), uv);
+    c += texture(sampler2D(tex30, smp7), uv);
+    c += texture(sampler2D(tex31, smp8), uv);
     frag_color = c;
 }
 @end
