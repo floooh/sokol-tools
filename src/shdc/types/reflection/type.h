@@ -36,6 +36,7 @@ struct Type {
         Mat4x2,
         Mat4x3,
         Mat4x4,
+        UInt64,
         Struct,
     };
     std::string name;
@@ -142,6 +143,8 @@ inline Type::Enum Type::basetype() const {
         case Mat4x3:
         case Mat4x4:
             return Float;
+        case UInt64:
+            return UInt64;
         case Struct:
             return Struct;
         default:
@@ -179,6 +182,7 @@ inline std::string Type::type_to_str(Type::Enum e) {
         case Mat4x2:    return "Mat4x2";
         case Mat4x3:    return "Mat4x3";
         case Mat4x4:    return "Mat4x4";
+        case UInt64:    return "UInt64";
         case Struct:    return "Struct";
         default:        return "INVALID";
     }
@@ -198,6 +202,7 @@ inline std::string Type::type_to_glsl(Type::Enum e) {
         case Int2:      return "ivec2";
         case Int3:      return "ivec3";
         case Int4:      return "ivec4";
+        case UInt64:    return "uint64_t";
         case UInt:      return "uint";
         case UInt2:     return "uvec2";
         case UInt3:     return "uvec3";
