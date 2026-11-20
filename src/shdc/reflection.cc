@@ -174,6 +174,8 @@ static StoragePixelFormat::Enum spirtype_to_storage_pixel_format(const SPIRType&
         case spv::ImageFormatRgba16ui: return StoragePixelFormat::RGBA16UI;
         case spv::ImageFormatRgba16i: return StoragePixelFormat::RGBA16SI;
         case spv::ImageFormatRgba16f: return StoragePixelFormat::RGBA16F;
+        case spv::ImageFormatR16ui: return StoragePixelFormat::R16UI;
+        case spv::ImageFormatR11fG11fB10f: return StoragePixelFormat::RG11B10F;
         case spv::ImageFormatR32ui: return StoragePixelFormat::R32UI;
         case spv::ImageFormatR32i: return StoragePixelFormat::R32SI;
         case spv::ImageFormatR32f: return StoragePixelFormat::R32F;

@@ -731,6 +731,8 @@ std::string SokolCGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum
         case StoragePixelFormat::RGBA16UI:  return "SG_PIXELFORMAT_RGBA16UI";
         case StoragePixelFormat::RGBA16SI:  return "SG_PIXELFORMAT_RGBA16SI";
         case StoragePixelFormat::RGBA16F:   return "SG_PIXELFORMAT_RGBA16F";
+        case StoragePixelFormat::R16UI:     return "SG_PIXELFORMAT_R16UI";
+        case StoragePixelFormat::RG11B10F:  return "SG_PIXELFORMAT_RG11B10F";
         case StoragePixelFormat::R32UI:     return "SG_PIXELFORMAT_R32UI";
         case StoragePixelFormat::R32SI:     return "SG_PIXELFORMAT_R32SI";
         case StoragePixelFormat::R32F:      return "SG_PIXELFORMAT_R32F";
