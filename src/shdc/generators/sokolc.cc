@@ -182,6 +182,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Int2:    l("int32_t {}[2];\n", item.name); break;
                     case Type::Int3:    l("int32_t {}[3];\n", item.name); break;
                     case Type::Int4:    l("int32_t {}[4];\n", item.name); break;
+                    case Type::UInt64:  l("uint64_t {};\n", item.name); break;
                     case Type::UInt:    l("uint32_t {};\n", item.name); break;
                     case Type::UInt2:   l("uint32_t {}[2];\n", item.name); break;
                     case Type::UInt3:   l("uint32_t {}[3];\n", item.name); break;
@@ -215,6 +216,7 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Int2:    l("int32_t {}[{}][2];\n", item.name, item.array_count); break;
                     case Type::Int3:    l("int32_t {}[{}][3];\n", item.name, item.array_count); break;
                     case Type::Int4:    l("int32_t {}[{}][4];\n", item.name, item.array_count); break;
+                    case Type::UInt64:  l("uint64_t {}[{}];\n", item.name, item.array_count); break;
                     case Type::UInt:    l("uint32_t {}[{}];\n", item.name, item.array_count); break;
                     case Type::UInt2:   l("uint32_t {}[{}][2];\n", item.name, item.array_count); break;
                     case Type::UInt3:   l("uint32_t {}[{}][3];\n", item.name, item.array_count); break;
