@@ -36,6 +36,8 @@ struct Type {
         Mat4x2,
         Mat4x3,
         Mat4x4,
+        UInt64,
+        Int64,
         Struct,
     };
     std::string name;
@@ -142,6 +144,10 @@ inline Type::Enum Type::basetype() const {
         case Mat4x3:
         case Mat4x4:
             return Float;
+        case UInt64:
+            return UInt64;
+        case Int64:
+            return Int64;
         case Struct:
             return Struct;
         default:
@@ -179,6 +185,8 @@ inline std::string Type::type_to_str(Type::Enum e) {
         case Mat4x2:    return "Mat4x2";
         case Mat4x3:    return "Mat4x3";
         case Mat4x4:    return "Mat4x4";
+        case UInt64:    return "UInt64";
+        case Int64:     return "Int64";
         case Struct:    return "Struct";
         default:        return "INVALID";
     }
@@ -218,6 +226,8 @@ inline std::string Type::type_to_glsl(Type::Enum e) {
         case Mat4x2:    return "mat4x2";
         case Mat4x3:    return "mat4x3";
         case Mat4x4:    return "mat4";
+        case UInt64:    return "uint64_t";
+        case Int64:     return "int64_t";
         default:        return "INVALID";
     }
 }
@@ -253,11 +263,13 @@ inline bool Type::is_valid_glsl_type(const std::string& str) {
         (str == "mat4x1") ||
         (str == "mat4x2") ||
         (str == "mat4x3") ||
-        (str == "mat4x4");
+        (str == "mat4x4") ||
+        (str == "uint64_t") ||
+        (str == "int64_t");
 }
 
 inline std::string Type::valid_glsl_types_as_str() {
-    return "float|vec[2..4]|bool|bvec[2..4]|int|ivec[2..4]|uint|uvec[2..4]|mat[2..4]|mat[2..4]x[1..4]";
+    return "float|vec[2..4]|bool|bvec[2..4]|int|ivec[2..4]|uint|uvec[2..4]|mat[2..4]|mat[2..4]x[1..4]|int64_t|uint64_t";
 }
 
 inline void Type::dump_debug(const std::string& indent) const {

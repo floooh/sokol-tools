@@ -643,6 +643,16 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
             case SPIRType::UInt:
                 out.type = uint_types[col_idx][vec_idx];
                 break;
+            case SPIRType::UInt64:
+                if (col_idx == 0 && vec_idx == 0) {
+                    out.type = Type::UInt64;
+                }
+                break;
+            case SPIRType::Int64:
+                if (col_idx == 0 && vec_idx == 0) {
+                    out.type = Type::Int64;
+                }
+                break;
             case SPIRType::Float:
                 out.type = float_types[col_idx][vec_idx];
                 break;
@@ -663,7 +673,9 @@ Type Reflection::parse_struct_item(const Compiler& compiler, const TypeID& type_
         out.size = (int) compiler.get_declared_struct_size_runtime_array(item_base_type, 1);
     } else {
         out.size = (int) compiler.get_declared_struct_member_size(base_type, item_index);
-        if (item_base_type.vecsize == 3) {
+        if ((out.type == Type::UInt64) || (out.type == Type::Int64)) {
+            out.align = 8;
+        } else if (item_base_type.vecsize == 3) {
             out.align = 4 * 4;
         } else {
             out.align = 4 * item_base_type.vecsize;
