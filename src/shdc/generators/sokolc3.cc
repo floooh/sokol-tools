@@ -139,6 +139,8 @@ void SokolC3Generator::gen_struct_interior_decl_std430(const GenInput& gen, cons
                     case Type::Mat4x2:  l("float[8] {};\n", item.name); break;
                     case Type::Mat4x3:  l("float[12] {};\n", item.name); break;
                     case Type::Mat4x4:  l("float[16] {};\n", item.name); break;
+                    case Type::UInt64:  l("ulong {};\n", item.name); break;
+                    case Type::Int64:   l("long {};\n", item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
@@ -172,6 +174,8 @@ void SokolC3Generator::gen_struct_interior_decl_std430(const GenInput& gen, cons
                     case Type::Mat4x2:  l("float[8][{}] {};\n", item.array_count, item.name); break;
                     case Type::Mat4x3:  l("float[12][{}] {};\n", item.array_count, item.name); break;
                     case Type::Mat4x4:  l("float[16][{}] {};\n", item.array_count, item.name); break;
+                    case Type::UInt64:  l("ulong[{}] {};\n", item.array_count, item.name); break;
+                    case Type::Int64:   l("long[{}] {};\n", item.array_count, item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }

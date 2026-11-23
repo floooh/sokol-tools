@@ -9,9 +9,9 @@ layout(binding=0) uniform params {
 
 struct item_t {
     uint flags;
-    uint64_t u64;
-    int i32;
-    int64_t i64;
+    uint64_t val_u64;
+    int val_i32;
+    int64_t val_i64;
     uint64_t u64_arr[3];
     int64_t i64_arr[2];
     vec4 pos;
@@ -34,9 +34,9 @@ void main() {
     }
     item_t item = items_in[idx];
     item.flags |= 1;
-    item.u64 += uint64_t(idx) << 32;
-    item.i32 = -item.i32;
-    item.i64 = -item.i64 - int64_t(item.i32);
+    item.val_u64 += uint64_t(idx) << 32;
+    item.val_i32 = -item.val_i32;
+    item.val_i64 = -item.val_i64 - int64_t(item.val_i32);
     for (int i = 0; i < 3; i++) {
         item.u64_arr[i] = item.u64_arr[i] * 2ul;
     }

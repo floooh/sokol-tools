@@ -136,6 +136,8 @@ void SokolRustGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
                     case Type::Mat4x2:  l("pub {}: [f32; 8],\n", item.name); break;
                     case Type::Mat4x3:  l("pub {}: [f32; 12],\n", item.name); break;
                     case Type::Mat4x4:  l("pub {}: [f32; 16],\n", item.name); break;
+                    case Type::UInt64:  l("pub {}: u64,\n", item.name); break;
+                    case Type::Int64:   l("pub {}: i64,\n", item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
@@ -169,6 +171,8 @@ void SokolRustGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
                     case Type::Mat4x2:  l("pub {}: [[f32; 8]; {}],\n", item.name, item.array_count); break;
                     case Type::Mat4x3:  l("pub {}: [[f32; 12]; {}],\n", item.name, item.array_count); break;
                     case Type::Mat4x4:  l("pub {}: [[f32; 16]; {}],\n", item.name, item.array_count); break;
+                    case Type::UInt64:  l("pub {}: [u64; {}],\n", item.name, item.array_count); break;
+                    case Type::Int64:   l("pub {}: [i64; {}],\n", item.name, item.array_count); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }

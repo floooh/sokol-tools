@@ -205,6 +205,8 @@ void SokolNimGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
                     case Type::Mat4x2:  l("{}*{}: array[8, float32]\n",  item.name, align); break;
                     case Type::Mat4x3:  l("{}*{}: array[12, float32]\n", item.name, align); break;
                     case Type::Mat4x4:  l("{}*{}: array[16, float32]\n", item.name, align); break;
+                    case Type::UInt64:  l("{}*{}: uint64\n",             item.name, align); break;
+                    case Type::Int64:   l("{}*{}: int64\n",              item.name, align); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
@@ -238,6 +240,8 @@ void SokolNimGenerator::gen_struct_interior_decl_std430(const GenInput& gen, con
                     case Type::Mat4x2:  l("{}*{}: array[{}, array[8, float32]]\n",  item.name, align, item.array_count); break;
                     case Type::Mat4x3:  l("{}*{}: array[{}, array[12, float32]]\n", item.name, align, item.array_count); break;
                     case Type::Mat4x4:  l("{}*{}: array[{}, array[16, float32]]\n", item.name, align, item.array_count); break;
+                    case Type::UInt64:  l("{}*{}: array[{}, uint64]\n",             item.name, align, item.array_count); break;
+                    case Type::Int64:   l("{}*{}: array[{}, int64]\n",              item.name, align, item.array_count); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }

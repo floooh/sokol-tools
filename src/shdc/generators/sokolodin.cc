@@ -143,6 +143,8 @@ void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
                     case Type::Mat4x2:  l("{}: [8]f32,\n", item.name); break;
                     case Type::Mat4x3:  l("{}: [12]f32,\n", item.name); break;
                     case Type::Mat4x4:  l("{}: [16]f32,\n", item.name); break;
+                    case Type::UInt64:  l("{}: u64,\n", item.name); break;
+                    case Type::Int64:   l("{}: i64,\n", item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
@@ -176,6 +178,8 @@ void SokolOdinGenerator::gen_struct_interior_decl_std430(const GenInput& gen, co
                     case Type::Mat4x2:  l("{}: [{}][8]f32,\n", item.name, item.array_count); break;
                     case Type::Mat4x3:  l("{}: [{}][12]f32,\n", item.name, item.array_count); break;
                     case Type::Mat4x4:  l("{}: [{}][16]f32,\n", item.name, item.array_count); break;
+                    case Type::UInt64:  l("{}: [{}]u64,\n", item.name, item.array_count); break;
+                    case Type::Int64:   l("{}: [{}]i64,\n", item.name, item.array_count); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }
