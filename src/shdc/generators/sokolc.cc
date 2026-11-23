@@ -182,7 +182,6 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Int2:    l("int32_t {}[2];\n", item.name); break;
                     case Type::Int3:    l("int32_t {}[3];\n", item.name); break;
                     case Type::Int4:    l("int32_t {}[4];\n", item.name); break;
-                    case Type::UInt64:  l("uint64_t {};\n", item.name); break;
                     case Type::UInt:    l("uint32_t {};\n", item.name); break;
                     case Type::UInt2:   l("uint32_t {}[2];\n", item.name); break;
                     case Type::UInt3:   l("uint32_t {}[3];\n", item.name); break;
@@ -203,6 +202,8 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Mat4x2:  l("float {}[8];\n", item.name); break;
                     case Type::Mat4x3:  l("float {}[12];\n", item.name); break;
                     case Type::Mat4x4:  l("float {}[16];\n", item.name); break;
+                    case Type::UInt64:  l("uint64_t {};\n", item.name); break;
+                    case Type::Int64:   l("int64_t {};\n", item.name); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             } else {
@@ -216,7 +217,6 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Int2:    l("int32_t {}[{}][2];\n", item.name, item.array_count); break;
                     case Type::Int3:    l("int32_t {}[{}][3];\n", item.name, item.array_count); break;
                     case Type::Int4:    l("int32_t {}[{}][4];\n", item.name, item.array_count); break;
-                    case Type::UInt64:  l("uint64_t {}[{}];\n", item.name, item.array_count); break;
                     case Type::UInt:    l("uint32_t {}[{}];\n", item.name, item.array_count); break;
                     case Type::UInt2:   l("uint32_t {}[{}][2];\n", item.name, item.array_count); break;
                     case Type::UInt3:   l("uint32_t {}[{}][3];\n", item.name, item.array_count); break;
@@ -237,6 +237,8 @@ void SokolCGenerator::gen_struct_interior_decl_std430(const GenInput& gen, const
                     case Type::Mat4x2:  l("float {}[{}][8];\n", item.name, item.array_count); break;
                     case Type::Mat4x3:  l("float {}[{}][12];\n", item.name, item.array_count); break;
                     case Type::Mat4x4:  l("float {}[{}][16];\n", item.name, item.array_count); break;
+                    case Type::UInt64:  l("uint64_t {}[{}];\n", item.name, item.array_count); break;
+                    case Type::Int64:   l("int64_t {}[{}];\n", item.name, item.array_count); break;
                     default: l("INVALID_TYPE\n"); break;
                 }
             }
