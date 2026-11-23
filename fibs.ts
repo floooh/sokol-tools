@@ -248,13 +248,15 @@ async function runTestsRun(p: Project, args: string[]) {
     util.ensureDir(outDir);
     util.ensureDir(`${outDir}/sapp`);
     const cmd = `${p.targetDistDir('sokol-shdc', config.name)}/sokol-shdc`;
-    for (const shd of test_shaders) {
+    for (const item of test_shaders) {
+        const shd = (typeof item === 'string') ? item : item.shd;
+        const slangs = (typeof item === 'string') ? test_slangs : test_slangs.filter((slang) => item.slangs.includes(slang));
         const res = await util.runCmd(cmd, {
             cwd,
             args: [
                 '-i', shd,
                 '-o', `${outDir}/${shd}.h`,
-                '-l', 'glsl310es:glsl430:hlsl5:metal_macos:metal_ios:metal_sim',
+                '-l', slangs.join(':'),
                 '-b',
             ]
         });
@@ -268,7 +270,7 @@ async function runTestsRun(p: Project, args: string[]) {
             args: [
                 '-i', shd,
                 '-o', `${outDir}/${shd}.h`,
-                '-l', 'glsl310es:glsl430:hlsl5:metal_macos:metal_ios:metal_sim',
+                '-l', test_slangs.join(':'),
                 '-b',
             ]
         });
@@ -278,9 +280,13 @@ async function runTestsRun(p: Project, args: string[]) {
     }
 }
 
-const test_shaders = [
+const test_slangs = ['glsl310es', 'glsl430', 'hlsl5', 'metal_macos', 'metal_ios', 'metal_sim', 'spirv_vk'];
+
+// either a filename, or a filename with the subset of test_slangs the shader supports
+const test_shaders: (string | { shd: string, slangs: string[] })[] = [
     'bind_limits.glsl',
     'chipvis.glsl',
+    { shd: 'compute_int64.glsl', slangs: ['glsl310es', 'glsl430', 'spirv_vk'] },
     'fontstash.glsl',
     'imgui.glsl',
     'infinity.glsl',
