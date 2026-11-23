@@ -14,6 +14,8 @@ struct StoragePixelFormat {
         RGBA16UI,           // => SG_PIXELFORMAT_RGBA16UI
         RGBA16SI,           // => SG_PIXELFORMAT_RGBA16SI
         RGBA16F,            // => SG_PIXELFORMAT_RGBA16F
+        R16UI,              // => SG_PIXELFORMAT_R16UI
+        RG11B10F,           // => SG_PIXELFORMAT_RG11B10F
         R32UI,              // => SG_PIXELFORMAT_R32UI
         R32SI,              // => SG_PIXELFORMAT_R32SI
         R32F,               // => SG_PIXELFORMAT_R32F
@@ -36,6 +38,8 @@ inline const char* StoragePixelFormat::to_str(Enum e) {
         case RGBA16UI: return "RGBA16UI";
         case RGBA16SI: return "RGBA16SI";
         case RGBA16F: return "RGBA16F";
+        case R16UI: return "R16UI";
+        case RG11B10F: return "RG11B10F";
         case R32UI: return "R32UI";
         case R32SI: return "R32SI";
         case R32F: return "R32F";
