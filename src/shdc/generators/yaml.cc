@@ -112,6 +112,17 @@ ErrMsg YamlGenerator::generate(const GenInput& gen) {
         }
     }
     l_close();
+    if (gen.inp.consts.size() > 0) {
+        l_open("consts:\n");
+        for (const ConstTag& c: gen.inp.consts) {
+            l_open("-\n");
+            l("name: {}\n", c.name);
+            l("type: {}\n", ConstTag::type_to_str(c.type));
+            l("value: {}\n", c.value_as_str());
+            l_close();
+        }
+        l_close();
+    }
 
     // write result into output file
     const std::string file_path = fmt::format("{}_{}reflection.yaml", gen.args.output, mod_prefix);

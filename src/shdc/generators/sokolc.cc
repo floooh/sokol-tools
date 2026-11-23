@@ -824,6 +824,11 @@ std::string SokolCGenerator::uniform_block_bind_slot_name(const UniformBlock& ub
     return fmt::format("UB_{}{}", mod_prefix, ub.name);
 }
 
+std::string SokolCGenerator::const_definition(const ConstTag& c) {
+    const char* suffix = (c.type == ConstTag::UINT) ? "u" : "";
+    return fmt::format("#define {}{} ({}{})", mod_prefix, c.name, c.value_as_str(), suffix);
+}
+
 std::string SokolCGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("#define {} ({})", vertex_attr_name(prog_name, attr), attr.slot);
 }

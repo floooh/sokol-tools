@@ -669,6 +669,16 @@ std::string SokolNimGenerator::uniform_block_bind_slot_name(const UniformBlock& 
     return to_camel_case(fmt::format("UB_{}", ub.name));
 }
 
+std::string SokolNimGenerator::const_definition(const ConstTag& c) {
+    std::string suffix;
+    switch (c.type) {
+        case ConstTag::INT: suffix = "'i32"; break;
+        case ConstTag::UINT: suffix = "'u32"; break;
+        default: break;
+    }
+    return fmt::format("const {}* = {}{}", to_camel_case(c.name), c.value_as_str(), suffix);
+}
+
 std::string SokolNimGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("const {}* = {}", vertex_attr_name(prog_name, attr), attr.slot);
 }

@@ -600,6 +600,19 @@ static std::string const_def(const std::string& name, int slot) {
     return fmt::format("enum {} = {};", name, slot);
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "int";
+        case ConstTag::UINT: return "uint";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolDGenerator::const_definition(const ConstTag& c) {
+    return fmt::format("enum {} {} = {};", const_type(c.type), pystring::upper(c.name), c.value_as_str());
+}
+
 std::string SokolDGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return const_def(vertex_attr_name(prog_name, attr), attr.slot);
 }

@@ -36,6 +36,7 @@ protected:
     virtual std::string uniform_block_bind_slot_name(const refl::UniformBlock& ub);
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf);
     virtual std::string storage_image_bind_slot_name(const refl::StorageImage& simg);
+    virtual std::string const_definition(const ConstTag& c);
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr);
     virtual std::string texture_bind_slot_definition(const refl::Texture& tex);
     virtual std::string sampler_bind_slot_definition(const refl::Sampler& smp);

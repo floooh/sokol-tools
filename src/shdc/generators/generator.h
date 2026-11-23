@@ -17,6 +17,7 @@ protected:
     virtual void gen_prolog(const GenInput& gen);
     virtual void gen_header(const GenInput& gen);
     virtual void gen_prerequisites(const GenInput& gen);
+    virtual void gen_consts(const GenInput& gen);
     virtual void gen_vertex_attr_consts(const GenInput& gen);
     virtual void gen_bind_slot_consts(const GenInput& gen);
     virtual void gen_uniform_block_decls(const GenInput& gen);
@@ -86,6 +87,7 @@ protected:
     virtual std::string storage_buffer_bind_slot_name(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };
     virtual std::string storage_image_bind_slot_name(const refl::StorageImage& simg) { assert(false && "implement me"); return ""; };
 
+    virtual std::string const_definition(const ConstTag& c) { assert(false && "implement me"); return ""; };
     virtual std::string vertex_attr_definition(const std::string& prog_name, const refl::StageAttr& attr) { assert(false && "implement me"); return ""; };
     virtual std::string texture_bind_slot_definition(const refl::Texture& img) { assert(false && "implement me"); return ""; };
     virtual std::string storage_buffer_bind_slot_definition(const refl::StorageBuffer& sbuf) { assert(false && "implement me"); return ""; };

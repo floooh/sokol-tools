@@ -6,6 +6,7 @@
 #include "types/line.h"
 #include "types/snippet.h"
 #include "types/program.h"
+#include "types/const_tag.h"
 
 namespace shdc {
 
@@ -19,6 +20,7 @@ struct Input {
     std::vector<Snippet> snippets;    // @block, @vs and @fs snippets
     std::map<std::string, std::string> ctype_map;    // @ctype uniform type definitions
     std::vector<std::string> headers;       // @header statements
+    std::vector<ConstTag> consts;           // @const definitions (in declaration order)
     std::map<std::string, int> snippet_map; // name-index mapping for all code snippets
     std::map<std::string, int> block_map;   // name-index mapping for @block snippets
     std::map<std::string, int> vs_map;      // name-index mapping for @vs snippets
@@ -35,6 +37,7 @@ struct Input {
     // return nullptr if not found
     const ImageSampleTypeTag* find_image_sample_type_tag(const std::string& tex_name) const;
     const SamplerTypeTag* find_sampler_type_tag(const std::string& smp_name) const;
+    const ConstTag* find_const_tag(const std::string& name) const;
 };
 
 } // namespace shdc

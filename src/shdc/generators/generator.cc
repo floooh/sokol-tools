@@ -17,6 +17,7 @@ ErrMsg Generator::generate(const GenInput& gen) {
     gen_prolog(gen);
     gen_header(gen);
     gen_prerequisites(gen);
+    gen_consts(gen);
     gen_vertex_attr_consts(gen);
     gen_bind_slot_consts(gen);
     gen_uniform_block_decls(gen);
@@ -153,6 +154,12 @@ void Generator::gen_bindings_info(const GenInput& gen) {
         cbl("Type: {}\n", sampler_type(smp.type));
         cbl("Bind slot: {} => {}\n", sampler_bind_slot_name(smp), smp.sokol_slot);
         cbl_close();
+    }
+}
+
+void Generator::gen_consts(const GenInput& gen) {
+    for (const ConstTag& c: gen.inp.consts) {
+        l("{}\n", const_definition(c));
     }
 }
 

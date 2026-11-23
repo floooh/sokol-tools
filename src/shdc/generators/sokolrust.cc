@@ -603,6 +603,19 @@ std::string SokolRustGenerator::uniform_block_bind_slot_name(const UniformBlock&
     return pystring::upper(fmt::format("UB_{}", ub.name));
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "i32";
+        case ConstTag::UINT: return "u32";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolRustGenerator::const_definition(const ConstTag& c) {
+    return fmt::format("pub const {}: {} = {};", pystring::upper(c.name), const_type(c.type), c.value_as_str());
+}
+
 std::string SokolRustGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("pub const {}: usize = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }
