@@ -11,6 +11,9 @@ that those might not be portable.
 
 Thanks to @squk for the initial PRs!
 
+A warning is shown now when the Metal compiler cannot be executed (previously
+the build was silently falling back to MSL source code.
+
 ### **10-Nov-2026**
 
 Raise max number of samplers from 12 to 14 (see: https://github.com/floooh/sokol/pull/1648)
