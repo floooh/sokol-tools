@@ -573,19 +573,41 @@ std::string SokolNimGenerator::sampler_type(SamplerType::Enum e) {
 
 std::string SokolNimGenerator::storage_pixel_format(refl::StoragePixelFormat::Enum e) {
     switch (e) {
+        case StoragePixelFormat::R8:        return "pixelFormatR8";
+        case StoragePixelFormat::R8SN:      return "pixelFormatR8sn";
+        case StoragePixelFormat::R8UI:      return "pixelFormatR8ui";
+        case StoragePixelFormat::R8SI:      return "pixelFormatR8si";
+        case StoragePixelFormat::R16:       return "pixelFormatR16";
+        case StoragePixelFormat::R16SN:     return "pixelFormatR16sn";
+        case StoragePixelFormat::R16UI:     return "pixelFormatR16ui";
+        case StoragePixelFormat::R16SI:     return "pixelFormatR16si";
+        case StoragePixelFormat::R16F:      return "pixelFormatR16f";
+        case StoragePixelFormat::RG8:       return "pixelFormatRg8";
+        case StoragePixelFormat::RG8SN:     return "pixelFormatRg8sn";
+        case StoragePixelFormat::RG8UI:     return "pixelFormatRg8ui";
+        case StoragePixelFormat::RG8SI:     return "pixelFormatRg8si";
+        case StoragePixelFormat::R32UI:     return "pixelFormatR32ui";
+        case StoragePixelFormat::R32SI:     return "pixelFormatR32si";
+        case StoragePixelFormat::R32F:      return "pixelFormatR32f";
+        case StoragePixelFormat::RG16:      return "pixelFormatRg16";
+        case StoragePixelFormat::RG16SN:    return "pixelFormatRg16sn";
+        case StoragePixelFormat::RG16UI:    return "pixelFormatRg16ui";
+        case StoragePixelFormat::RG16SI:    return "pixelFormatRg16si";
+        case StoragePixelFormat::RG16F:     return "pixelFormatRg16f";
         case StoragePixelFormat::RGBA8:     return "pixelFormatRgba8";
         case StoragePixelFormat::RGBA8SN:   return "pixelFormatRgba8sn";
         case StoragePixelFormat::RGBA8UI:   return "pixelFormatRgba8ui";
         case StoragePixelFormat::RGBA8SI:   return "pixelFormatRgba8si";
-        case StoragePixelFormat::RGBA16UI:  return "pixelFormatRgba16ui";
-        case StoragePixelFormat::RGBA16SI:  return "pixelFormatRgba16si";
-        case StoragePixelFormat::RGBA16F:   return "pixelFormatRgba16f";
-        case StoragePixelFormat::R32UI:     return "pixelFormatR32ui";
-        case StoragePixelFormat::R32SI:     return "pixelFormatR32si";
-        case StoragePixelFormat::R32F:      return "pixelFormatR32f";
+        case StoragePixelFormat::RGB10A2:   return "pixelFormatRgb10a2";
+        case StoragePixelFormat::RG11B10F:  return "pixelFormatRg11b10f";
         case StoragePixelFormat::RG32UI:    return "pixelFormatRg32ui";
         case StoragePixelFormat::RG32SI:    return "pixelFormatRg32si";
         case StoragePixelFormat::RG32F:     return "pixelFormatRg32f";
+        case StoragePixelFormat::RGBA16:    return "pixelFormatRgba16";
+        case StoragePixelFormat::RGBA16SN:  return "pixelFormatRgba16sn";
+        case StoragePixelFormat::RGBA16UI:  return "pixelFormatRgba16ui";
+        case StoragePixelFormat::RGBA16SI:  return "pixelFormatRgba16si";
+        case StoragePixelFormat::RGBA16F:   return "pixelFormatRgba16f";
         case StoragePixelFormat::RGBA32UI:  return "pixelFormatRgba32ui";
         case StoragePixelFormat::RGBA32SI:  return "pixelFormatRgba32si";
         case StoragePixelFormat::RGBA32F:   return "pixelFormatRgba32f";

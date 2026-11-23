@@ -6,7 +6,10 @@ CHANGELOG
 Experimental support for int64_t and uint64_t. Note that this is currently only
 supported for the targets `glsl430`, `gles310es` and `spirv_vk`.
 
-Thanks to @squk for the initial PR!
+Likewise, 20 additional storage image pixel formats have been added. Keep in mind
+that those might not be portable.
+
+Thanks to @squk for the initial PRs!
 
 ### **10-Nov-2026**
 

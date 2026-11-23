@@ -167,21 +167,41 @@ ImageType::Enum Reflection::spirtype_to_image_type(const SPIRType& type) {
 
 StoragePixelFormat::Enum Reflection::spirtype_to_storage_pixel_format(const SPIRType& type) {
     switch (type.image.format) {
+        case spv::ImageFormatR8: return StoragePixelFormat::R8;
+        case spv::ImageFormatR8Snorm: return StoragePixelFormat::R8SN;
+        case spv::ImageFormatR8ui: return StoragePixelFormat::R8UI;
+        case spv::ImageFormatR8i: return StoragePixelFormat::R8SI;
+        case spv::ImageFormatR16: return StoragePixelFormat::R16;
+        case spv::ImageFormatR16Snorm: return StoragePixelFormat::R16SN;
+        case spv::ImageFormatR16ui: return StoragePixelFormat::R16UI;
+        case spv::ImageFormatR16i: return StoragePixelFormat::R16SI;
+        case spv::ImageFormatR16f: return StoragePixelFormat::R16F;
+        case spv::ImageFormatRg8: return StoragePixelFormat::RG8;
+        case spv::ImageFormatRg8Snorm: return StoragePixelFormat::RG8SN;
+        case spv::ImageFormatRg8ui: return StoragePixelFormat::RG8UI;
+        case spv::ImageFormatRg8i: return StoragePixelFormat::RG8SI;
+        case spv::ImageFormatR32ui: return StoragePixelFormat::R32UI;
+        case spv::ImageFormatR32i: return StoragePixelFormat::R32SI;
+        case spv::ImageFormatR32f: return StoragePixelFormat::R32F;
+        case spv::ImageFormatRg16: return StoragePixelFormat::RG16;
+        case spv::ImageFormatRg16Snorm: return StoragePixelFormat::RG16SN;
+        case spv::ImageFormatRg16ui: return StoragePixelFormat::RG16UI;
+        case spv::ImageFormatRg16i: return StoragePixelFormat::RG16SI;
+        case spv::ImageFormatRg16f: return StoragePixelFormat::RG16F;
         case spv::ImageFormatRgba8: return StoragePixelFormat::RGBA8;
         case spv::ImageFormatRgba8Snorm: return StoragePixelFormat::RGBA8SN;
         case spv::ImageFormatRgba8ui: return StoragePixelFormat::RGBA8UI;
         case spv::ImageFormatRgba8i: return StoragePixelFormat::RGBA8SI;
-        case spv::ImageFormatRgba16ui: return StoragePixelFormat::RGBA16UI;
-        case spv::ImageFormatRgba16i: return StoragePixelFormat::RGBA16SI;
-        case spv::ImageFormatRgba16f: return StoragePixelFormat::RGBA16F;
-        case spv::ImageFormatR16ui: return StoragePixelFormat::R16UI;
+        case spv::ImageFormatRgb10A2: return StoragePixelFormat::RGB10A2;
         case spv::ImageFormatR11fG11fB10f: return StoragePixelFormat::RG11B10F;
-        case spv::ImageFormatR32ui: return StoragePixelFormat::R32UI;
-        case spv::ImageFormatR32i: return StoragePixelFormat::R32SI;
-        case spv::ImageFormatR32f: return StoragePixelFormat::R32F;
         case spv::ImageFormatRg32ui: return StoragePixelFormat::RG32UI;
         case spv::ImageFormatRg32i: return StoragePixelFormat::RG32SI;
         case spv::ImageFormatRg32f: return StoragePixelFormat::RG32F;
+        case spv::ImageFormatRgba16: return StoragePixelFormat::RGBA16;
+        case spv::ImageFormatRgba16Snorm: return StoragePixelFormat::RGBA16SN;
+        case spv::ImageFormatRgba16ui: return StoragePixelFormat::RGBA16UI;
+        case spv::ImageFormatRgba16i: return StoragePixelFormat::RGBA16SI;
+        case spv::ImageFormatRgba16f: return StoragePixelFormat::RGBA16F;
         case spv::ImageFormatRgba32ui: return StoragePixelFormat::RGBA32UI;
         case spv::ImageFormatRgba32i: return StoragePixelFormat::RGBA32SI;
         case spv::ImageFormatRgba32f: return StoragePixelFormat::RGBA32F;
