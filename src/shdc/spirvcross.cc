@@ -261,26 +261,9 @@ static ErrMsg validate_resource_restrictions(const Input& inp, const SpirvBlob& 
         if (mask.get(spv::DecorationNonWritable)) {
             return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': storage images cannot be readonly (use regular textures instead)", simg_res.name));
         }
-        switch (compiler.get_type(simg_res.type_id).image.format) {
-            case spv::ImageFormatRgba8:
-            case spv::ImageFormatRgba8Snorm:
-            case spv::ImageFormatRgba8ui:
-            case spv::ImageFormatRgba8i:
-            case spv::ImageFormatRgba16ui:
-            case spv::ImageFormatRgba16i:
-            case spv::ImageFormatRgba16f:
-            case spv::ImageFormatR32ui:
-            case spv::ImageFormatR32i:
-            case spv::ImageFormatR32f:
-            case spv::ImageFormatRg32ui:
-            case spv::ImageFormatRg32i:
-            case spv::ImageFormatRg32f:
-            case spv::ImageFormatRgba32ui:
-            case spv::ImageFormatRgba32i:
-            case spv::ImageFormatRgba32f:
-                break;
-            default:
-                return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': access format must be one of rgba8_snorm, rgba8i, rgba8ui, rgba16ui, rgba16i, rgba16f, r32ui, r32i, r32f, rg32ui, rg32i, rg32f, rgba32ui, rgba32i, rgba32f", simg_res.name));
+        const SPIRType& simg_type = compiler.get_type(simg_res.type_id);
+        if (Reflection::spirtype_to_storage_pixel_format(simg_type) == StoragePixelFormat::INVALID) {
+            return ErrMsg::error(inp.base_path, 0, fmt::format("storage image '{}': unsupported access format", simg_res.name));
         }
     }
     for (const Resource& tex_res: res.separate_images) {

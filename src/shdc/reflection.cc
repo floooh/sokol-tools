@@ -165,7 +165,7 @@ ImageType::Enum Reflection::spirtype_to_image_type(const SPIRType& type) {
     return ImageType::INVALID;
 }
 
-static StoragePixelFormat::Enum spirtype_to_storage_pixel_format(const SPIRType& type) {
+StoragePixelFormat::Enum Reflection::spirtype_to_storage_pixel_format(const SPIRType& type) {
     switch (type.image.format) {
         case spv::ImageFormatRgba8: return StoragePixelFormat::RGBA8;
         case spv::ImageFormatRgba8Snorm: return StoragePixelFormat::RGBA8SN;
