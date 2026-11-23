@@ -29,6 +29,8 @@ struct Reflection {
 
     // helper: convert SPIRType to ImageType
     static ImageType::Enum spirtype_to_image_type(const spirv_cross::SPIRType& type);
+    // helper: convert SPIRType to StoragePixelFormat (INVALID if not a supported storage image format)
+    static StoragePixelFormat::Enum spirtype_to_storage_pixel_format(const spirv_cross::SPIRType& type);
 
 private:
     // create a set of unique resource bindings from shader snippet input bindings
