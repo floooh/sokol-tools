@@ -58,6 +58,10 @@ static MergedSource merge_source(const Input& inp, const Snippet& snippet, Slang
         res.linenr_offset += 1;
         res.src += fmt::format("#define {} (1)\n", define);
     }
+    for (const ConstTag& c: inp.consts) {
+        res.linenr_offset += 1;
+        res.src += fmt::format("const {} {} = {};\n", ConstTag::type_to_str(c.type), c.name, c.value_as_glsl());
+    }
     for (int line_index : snippet.lines) {
         res.src += fmt::format("{}\n", inp.lines[line_index].line);
     }

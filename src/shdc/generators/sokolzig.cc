@@ -601,6 +601,19 @@ std::string SokolZigGenerator::uniform_block_bind_slot_name(const UniformBlock& 
     return fmt::format("UB_{}", ub.name);
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "i32";
+        case ConstTag::UINT: return "u32";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolZigGenerator::const_definition(const ConstTag& c) {
+    return fmt::format("pub const {}: {} = {};", c.name, const_type(c.type), c.value_as_str());
+}
+
 std::string SokolZigGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("pub const {} = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }

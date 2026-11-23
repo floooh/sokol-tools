@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <charconv>
 #include "fmt/format.h"
 #include "pystring.h"
 
@@ -31,6 +32,15 @@ const SamplerTypeTag* Input::find_sampler_type_tag(const std::string& smp_name) 
     } else {
         return nullptr;
     }
+}
+
+const ConstTag* Input::find_const_tag(const std::string& name) const {
+    for (const ConstTag& c: consts) {
+        if (c.name == name) {
+            return &c;
+        }
+    }
+    return nullptr;
 }
 
 static std::string load_file_into_str(const std::string& path) {
@@ -130,6 +140,7 @@ static const std::string msl_options_tag = "@msl_options";
 static const std::string include_tag = "@include";
 static const std::string image_sample_type_tag = "@image_sample_type";
 static const std::string sampler_type_tag = "@sampler_type";
+static const std::string const_tag = "@const";
 
 static bool normalize_pragma_sokol(std::vector<std::string>& toks, std::string &line, int line_index, Input& inp) {
     // Returns true if it saw no errors, even if it did nothing.
@@ -366,6 +377,98 @@ static bool validate_image_sample_type_tag(const std::vector<std::string>& token
     return true;
 }
 
+static bool is_valid_identifier(const std::string& str) {
+    if (str.empty() || !(isalpha(str[0]) || (str[0] == '_'))) {
+        return false;
+    }
+    for (char c: str) {
+        if (!(isalnum(c) || (c == '_'))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// parse a decimal or hex (0x) integer literal, fails if the value doesn't fit into T
+template<typename T> static bool parse_const_int_value(const std::string& str, T& out_value) {
+    const char* first = str.data();
+    const char* last = first + str.size();
+    int base = 10;
+    if (pystring::startswith(str, "0x") || pystring::startswith(str, "0X")) {
+        first += 2;
+        base = 16;
+        // from_chars would accept a sign after the hex prefix
+        if ((first < last) && (*first == '-')) {
+            return false;
+        }
+    }
+    const auto res = std::from_chars(first, last, out_value, base);
+    return (res.ec == std::errc()) && (res.ptr == last);
+}
+
+static bool validate_const_tag(const std::vector<std::string>& tokens, bool in_snippet, int line_index, Input& inp) {
+    if (tokens.size() != 4) {
+        inp.out_error = inp.error(line_index, "@const tag must have exactly 3 args (@const type name value)");
+        return false;
+    }
+    if (in_snippet) {
+        inp.out_error = inp.error(line_index, "@const tag cannot be inside a tag block (missing @end?).");
+        return false;
+    }
+    if (ConstTag::type_from_str(tokens[1]) == ConstTag::INVALID) {
+        inp.out_error = inp.error(line_index, fmt::format("first arg of @const tag must be one of {}", ConstTag::valid_types_as_str()));
+        return false;
+    }
+    if (!is_valid_identifier(tokens[2])) {
+        inp.out_error = inp.error(line_index, fmt::format("@const name '{}' is not a valid identifier", tokens[2]));
+        return false;
+    }
+    if (pystring::startswith(tokens[2], "gl_")) {
+        inp.out_error = inp.error(line_index, fmt::format("@const name '{}' must not start with 'gl_' (reserved in GLSL)", tokens[2]));
+        return false;
+    }
+    if (nullptr != inp.find_const_tag(tokens[2])) {
+        inp.out_error = inp.error(line_index, fmt::format("duplicate @const '{}' (const names must be unique)", tokens[2]));
+        return false;
+    }
+    return true;
+}
+
+static bool parse_const_tag(const std::vector<std::string>& tokens, int line_index, Input& inp) {
+    const ConstTag::Type type = ConstTag::type_from_str(tokens[1]);
+    const std::string& name = tokens[2];
+    const std::string& str = tokens[3];
+    int64_t value = 0;
+    if (type == ConstTag::BOOL) {
+        if (str == "true") {
+            value = 1;
+        } else if (str == "false") {
+            value = 0;
+        } else {
+            inp.out_error = inp.error(line_index, fmt::format("value of bool @const '{}' must be 'true' or 'false' (got '{}')", name, str));
+            return false;
+        }
+    } else {
+        bool ok;
+        if (type == ConstTag::INT) {
+            int32_t v = 0;
+            ok = parse_const_int_value(str, v);
+            value = v;
+        } else {
+            uint32_t v = 0;
+            ok = parse_const_int_value(str, v);
+            value = v;
+        }
+        if (!ok) {
+            inp.out_error = inp.error(line_index, fmt::format("value of {} @const '{}' must be a valid {}-bit integer (got '{}')",
+                ConstTag::type_to_str(type), name, (type == ConstTag::INT) ? "signed 32" : "unsigned 32", str));
+            return false;
+        }
+    }
+    inp.consts.push_back(ConstTag(type, name, value, line_index));
+    return true;
+}
+
 static bool validate_sampler_type_tag(const std::vector<std::string>& tokens, int line_index, Input& inp) {
     if (tokens.size() != 3) {
         inp.out_error = inp.error(line_index, fmt::format("@sampler_type must have 2 args (@sampler_type [sampler] {})", SamplerType::valid_sampler_types_as_str()));
@@ -535,6 +638,13 @@ static bool parse(Input& inp) {
                 }
                 inp.sampler_type_tags[tokens[1]] = SamplerTypeTag(tokens[1], SamplerType::from_str(tokens[2]), line_index);
                 add_line = false;
+            } else if (tokens[0] == const_tag) {
+                if (!validate_const_tag(tokens, in_snippet, line_index, inp)) {
+                    return false;
+                }
+                if (!parse_const_tag(tokens, line_index, inp)) {
+                    return false;
+                }
             } else if (tokens[0][0] == '@') {
                 inp.out_error = inp.error(line_index, fmt::format("unknown meta tag: {}", tokens[0]));
                 return false;
@@ -747,6 +857,10 @@ void Input::dump_debug(ErrMsg::Format err_fmt) const {
         fmt::print(stderr, "      fs: {}\n", prog.fs_name);
         fmt::print(stderr, "      cs: {}\n", prog.cs_name);
         fmt::print(stderr, "      line_index: {}\n", prog.line_index);
+    }
+    fmt::print(stderr, "  consts:\n");
+    for (const ConstTag& c: consts) {
+        fmt::print(stderr, "    {} {} = {} (line: {})\n", ConstTag::type_to_str(c.type), c.name, c.value_as_glsl(), c.line_index);
     }
     fmt::print(stderr, "    image sample type tags:\n");
     for (const auto& [key, val]: image_sample_type_tags) {

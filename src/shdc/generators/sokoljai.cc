@@ -587,6 +587,19 @@ std::string SokolJaiGenerator::uniform_block_bind_slot_name(const UniformBlock& 
     return fmt::format("UB_{}", ub.name);
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "s32";
+        case ConstTag::UINT: return "u32";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolJaiGenerator::const_definition(const ConstTag& c) {
+    return fmt::format("{} : {} : {};", c.name, const_type(c.type), c.value_as_str());
+}
+
 std::string SokolJaiGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("{} :: {};", vertex_attr_name(prog_name, attr), attr.slot);
 }

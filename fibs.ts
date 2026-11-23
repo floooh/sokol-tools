@@ -427,6 +427,7 @@ const sokol_shdc_sources = [
     'types/bind_slot_map.h',
     'types/bindslot.h',
     'types/bytecode_blob.h',
+    'types/const_tag.h',
     'types/consts.h',
     'types/errmsg.h',
     'types/format.h',

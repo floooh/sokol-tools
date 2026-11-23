@@ -593,6 +593,19 @@ std::string SokolC2Generator::uniform_block_bind_slot_name(const UniformBlock& u
     return pystring::upper(fmt::format("UB_{}", ub.name));
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "i32";
+        case ConstTag::UINT: return "u32";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolC2Generator::const_definition(const ConstTag& c) {
+    return fmt::format("const {} {} = {};", const_type(c.type), pystring::upper(c.name), c.value_as_str());
+}
+
 std::string SokolC2Generator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("const i32 {} = {};", vertex_attr_name(prog_name, attr), attr.slot);
 }

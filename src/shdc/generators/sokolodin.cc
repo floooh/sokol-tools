@@ -726,6 +726,19 @@ std::string SokolOdinGenerator::uniform_block_bind_slot_name(const UniformBlock&
     return fmt::format("UB_{}{}", mod_prefix, ub.name);
 }
 
+static const char* const_type(ConstTag::Type t) {
+    switch (t) {
+        case ConstTag::INT: return "i32";
+        case ConstTag::UINT: return "u32";
+        case ConstTag::BOOL: return "bool";
+        default: return "INVALID";
+    }
+}
+
+std::string SokolOdinGenerator::const_definition(const ConstTag& c) {
+    return fmt::format("{}{} : {} : {}", mod_prefix, c.name, const_type(c.type), c.value_as_str());
+}
+
 std::string SokolOdinGenerator::vertex_attr_definition(const std::string& prog_name, const StageAttr& attr) {
     return fmt::format("{} :: {}", vertex_attr_name(prog_name, attr), attr.slot);
 }

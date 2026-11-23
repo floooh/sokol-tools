@@ -3,6 +3,10 @@ CHANGELOG
 
 ### **23-Nov-2026**
 
+A new tag `@const [type] [name] [value]` allows to define `int`, `uint` and `bool`
+constants which are injected into the shader code and also written to the generated
+target-language code (see the `@const` section in the documentation for details).
+
 Experimental support for int64_t and uint64_t. Note that this is currently only
 supported for the targets `glsl430`, `gles310es` and `spirv_vk`.
 

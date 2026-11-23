@@ -796,6 +796,63 @@ Example from https://github.com/floooh/sokol-samples/blob/master/sapp/ozz-skin-s
 layout(binding=0) uniform sampler smp;
 ```
 
+### @const [type] [name] [value]
+
+The `@const` tag defines a named constant which is shared between the shader code
+and the generated target-language code, so that both sides always agree on
+the same value (for instance array sizes or loop counts).
+
+Valid values for `type` are:
+
+- `int`: a signed 32-bit integer
+- `uint`: an unsigned 32-bit integer
+- `bool`: must be `true` or `false`
+
+Integer values can be written in decimal or hexadecimal (`0x...`) notation,
+expressions are not allowed. `@const` tags must be defined at global scope
+(outside of `@vs`, `@fs`, `@cs` and `@block`), and const names must be unique.
+
+For example:
+
+```glsl
+@const int NUM_LIGHTS 4
+@const bool USE_FOG true
+
+@vs vs
+layout(binding=0) uniform vs_params {
+    vec4 light_pos[NUM_LIGHTS];
+};
+...
+@end
+```
+
+The constants are injected into the source code of every shader stage
+as regular GLSL constants:
+
+```glsl
+const int NUM_LIGHTS = 4;
+const bool USE_FOG = true;
+```
+
+...and are also written to the generated code, for instance in C:
+
+```c
+#define NUM_LIGHTS (4)
+#define USE_FOG (true)
+```
+
+...or in Zig:
+
+```zig
+pub const NUM_LIGHTS: i32 = 4;
+pub const USE_FOG: bool = true;
+```
+
+The target-language naming follows the same conventions as the generated
+bind slot constants (e.g. for C and Odin the `@module` prefix is prepended,
+for Rust, D, C2 and C3 the name is converted to upper case, and for Nim to
+camel case).
+
 ## Shader Authoring Considerations
 
 ### Target Shader Language Defines
