@@ -187,7 +187,9 @@ static Bytecode mtl_compile(const Args& args, const Input& inp, const Spirvcross
     Bytecode bytecode;
     std::string base_dir;
     std::string base_filename;
-    pystring::os::path::split(base_dir, base_filename, inp.base_path);
+    // NOTE: derive temp filenames from the output path, so that parallel sokol-shdc
+    // runs on the same input file (e.g. with different defines) don't clobber each other
+    pystring::os::path::split(base_dir, base_filename, args.output);
     std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
     std::string src_path, dia_path, air_path, lib_path, bin_path;
 

@@ -1,6 +1,13 @@
 CHANGELOG
 =========
 
+### **24-Nov-2026**
+
+Fixed a race condition when running multiple sokol-shdc instances in parallel
+on the same input file (e.g. with different `--defines`) and Metal bytecode
+generation: intermediate files are now named after the output file instead of the
+input file, so that parallel runs no longer overwrite each other's temporary files.
+
 ### **23-Nov-2026**
 
 - A new tag `@const [type] [name] [value]` allows to define `int`, `uint` and `bool`

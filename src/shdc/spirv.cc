@@ -283,7 +283,8 @@ Spirv Spirv::compile_glsl_and_extract_bindings(Input& inp, Slang::Enum slang, co
 bool Spirv::write_to_file(const Args& args, const Input& inp, Slang::Enum slang) {
     std::string base_dir;
     std::string base_filename;
-    pystring::os::path::split(base_dir, base_filename, inp.base_path);
+    // NOTE: derive filenames from the output path to avoid clashes between parallel runs
+    pystring::os::path::split(base_dir, base_filename, args.output);
     std::string base_path = fmt::format("{}{}_{}_", args.tmpdir, base_filename, Slang::to_str(slang));
     for (const SpirvBlob& blob: blobs) {
         const Snippet& snippet = inp.snippets[blob.snippet_index];
